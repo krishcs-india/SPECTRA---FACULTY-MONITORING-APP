@@ -1,0 +1,422 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-primary: #140105;
+    --color-bg-surface: #2A040C;
+    --color-gold: #D4AF37;
+  }
+
+  *, *::before, *::after, html, body, button, input, select, textarea, table, th, td, h1, h2, h3, h4, h5, h6, p, span, div, a, label {
+    font-family: 'Marcellus', serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #140105;
+    color: #F8FAFC;
+    font-family: 'Marcellus', serif !important;
+  }
+
+  .font-cursive, .font-cursive * {
+    font-family: 'Alex Brush', 'Great Vibes', cursive !important;
+  }
+
+  .font-calligraphy, .font-calligraphy * {
+    font-family: 'Great Vibes', 'MonteCarlo', cursive !important;
+  }
+
+  .font-handwriting, .font-handwriting * {
+    font-family: 'Birthstone', 'Alex Brush', cursive !important;
+  }
+
+  .faculty-name-cursive {
+    font-family: 'Alex Brush', 'Great Vibes', cursive !important;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+  }
+
+  .marcellus-regular {
+    font-family: "Marcellus", serif !important;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  /* Custom Apple-grade refined scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #140105;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #55121E;
+    border-radius: 9999px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #D4AF37;
+  }
+}
+
+@layer utilities {
+  .marcellus-regular {
+    font-family: "Marcellus", serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  /* Apple-inspired Glassmorphism with Kalyani Crimson and Gold */
+  .kalyani-glass {
+    background: rgba(42, 4, 12, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 175, 55, 0.16);
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.45);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .kalyani-glass:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.15);
+  }
+
+  .kalyani-glass-elevated {
+    background: rgba(61, 7, 19, 0.85);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(212, 175, 55, 0.32);
+    box-shadow: 0 16px 45px 0 rgba(0, 0, 0, 0.65), inset 0 1px 1px 0 rgba(255, 245, 209, 0.15);
+  }
+
+  .kalyani-glass-gold {
+    background: linear-gradient(135deg, rgba(85, 18, 30, 0.8) 0%, rgba(42, 4, 12, 0.95) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.2), inset 0 1px 1px 0 rgba(255, 245, 209, 0.25);
+  }
+
+  .kalyani-glass-card {
+    background: linear-gradient(180deg, rgba(50, 8, 17, 0.75) 0%, rgba(26, 3, 8, 0.9) 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .kalyani-glass-card:hover {
+    border-color: rgba(212, 175, 55, 0.45);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.15);
+  }
+
+  /* Dropdown Option Glowing Effect */
+  .kalyani-option-glow {
+    transition: all 0.2s ease;
+  }
+  .kalyani-option-glow:hover {
+    background: rgba(212, 175, 55, 0.18);
+    color: #FFF5D1;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+    border-radius: 0.75rem;
+  }
+
+  /* Luxurious Metallic Gold Gradients with descender protection */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #FFF5D1 0%, #D4AF37 40%, #E2BD39 70%, #AA820A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
+  }
+
+  .text-gold-radiant {
+    background: linear-gradient(90deg, #FFFFFF 0%, #F5E6BD 20%, #D4AF37 50%, #FFD166 80%, #D4AF37 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
+  }
+
+  .text-crimson-gradient {
+    background: linear-gradient(135deg, #F0A3B5 0%, #E11D48 50%, #9B1A39 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
+  }
+
+  /* Shimmer button effect */
+  .bg-gold-shimmer {
+    background: linear-gradient(
+      90deg,
+      #B89225 0%,
+      #D4AF37 25%,
+      #FFF5D1 50%,
+      #D4AF37 75%,
+      #B89225 100%
+    );
+    background-size: 200% auto;
+    animation: shimmer 3s linear infinite;
+  }
+
+  /* Apple-grade micro-interactions */
+  .apple-hover {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .apple-hover:hover {
+    filter: brightness(1.08);
+  }
+  .apple-hover:active {
+    transform: scale(0.97);
+  }
+
+  .glow-gold-hover:hover {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.35);
+  }
+
+  /* Kalyani Shimmering to Glow Animation */
+  @keyframes shimmer-glow {
+    0% {
+      background-position: -200% center;
+      filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+    }
+    50% {
+      background-position: 100% center;
+      filter: drop-shadow(0 0 25px rgba(255, 235, 160, 0.9)) drop-shadow(0 0 45px rgba(212, 175, 55, 0.7));
+    }
+    100% {
+      background-position: 200% center;
+      filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+    }
+  }
+
+  .kalyani-shimmer-text {
+    background: linear-gradient(
+      90deg,
+      #D4AF37 0%,
+      #FFE885 25%,
+      #FFFFFF 50%,
+      #FFE885 75%,
+      #D4AF37 100%
+    );
+    background-size: 250% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: shimmer-glow 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.5;
+      box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
+    }
+    70% {
+      transform: scale(1.08);
+      opacity: 1;
+      box-shadow: 0 0 0 20px rgba(212, 175, 55, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      opacity: 0.5;
+      box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+    }
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Snake Glowing Wave Animation for Loading Dots */
+  @keyframes snake-wave {
+    0%, 100% {
+      transform: scale(0.65) translateY(0);
+      opacity: 0.35;
+      filter: drop-shadow(0 0 3px rgba(212, 175, 55, 0.4));
+    }
+    30% {
+      transform: scale(1.85) translateY(-8px);
+      opacity: 1;
+      filter: drop-shadow(0 0 16px rgba(255, 240, 160, 1)) drop-shadow(0 0 30px rgba(212, 175, 55, 0.9));
+    }
+    60% {
+      transform: scale(0.85) translateY(4px);
+      opacity: 0.6;
+      filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6));
+    }
+  }
+
+  .animate-snake-dot {
+    animation: snake-wave 1.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  }
+
+  /* Shimmering & Glowing Stars Moving Animations */
+  @keyframes star-float-1 {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg) scale(0.8);
+      opacity: 0.35;
+    }
+    35% {
+      transform: translate(32px, -28px) rotate(45deg) scale(1.45);
+      opacity: 0.95;
+      filter: drop-shadow(0 0 16px rgba(255, 235, 140, 1)) drop-shadow(0 0 28px rgba(212, 175, 55, 0.9));
+    }
+    70% {
+      transform: translate(-24px, 22px) rotate(90deg) scale(0.9);
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes star-float-2 {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg) scale(1.1);
+      opacity: 0.55;
+    }
+    40% {
+      transform: translate(-38px, -32px) rotate(-60deg) scale(0.7);
+      opacity: 0.25;
+    }
+    80% {
+      transform: translate(28px, 22px) rotate(30deg) scale(1.55);
+      opacity: 1;
+      filter: drop-shadow(0 0 18px rgba(255, 245, 180, 1)) drop-shadow(0 0 32px rgba(212, 175, 55, 0.95));
+    }
+  }
+
+  @keyframes star-float-3 {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg) scale(0.9);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translate(25px, 35px) rotate(75deg) scale(1.35);
+      opacity: 0.9;
+      filter: drop-shadow(0 0 14px rgba(255, 230, 120, 0.95));
+    }
+  }
+
+  /* Swirling Brand Logo Emblem Animation (Pure Swirl, No Glow) */
+  @keyframes logo-swirl {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-logo-swirl {
+    animation: logo-swirl 8s linear infinite;
+  }
+
+  .animate-star-drift-1 {
+    animation: star-float-1 7s ease-in-out infinite;
+  }
+
+  .animate-star-drift-2 {
+    animation: star-float-2 9s ease-in-out infinite;
+  }
+
+  .animate-star-drift-3 {
+    animation: star-float-3 6s ease-in-out infinite;
+  }
+
+  /* Milky Way Sparkling & Galaxy Drift Animations */
+  @keyframes milky-twinkle {
+    0%, 100% {
+      opacity: 0.2;
+      transform: scale(0.65) rotate(0deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.4) rotate(45deg);
+      filter: drop-shadow(0 0 8px #FFFBEB) drop-shadow(0 0 16px rgba(212, 175, 55, 0.95));
+    }
+  }
+
+  @keyframes milky-drift-1 {
+    0% {
+      transform: translate(0, 0) scale(0.7);
+      opacity: 0.2;
+    }
+    30% {
+      opacity: 0.95;
+      filter: drop-shadow(0 0 6px #FFF4B8) drop-shadow(0 0 12px rgba(212, 175, 55, 0.8));
+    }
+    50% {
+      transform: translate(35px, -35px) scale(1.3);
+      opacity: 1;
+    }
+    75% {
+      opacity: 0.45;
+    }
+    100% {
+      transform: translate(65px, -70px) scale(0.6);
+      opacity: 0.15;
+    }
+  }
+
+  @keyframes milky-drift-2 {
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 0.3;
+    }
+    40% {
+      transform: translate(-35px, 30px) scale(0.65);
+      opacity: 0.9;
+      filter: drop-shadow(0 0 8px #FFFFFF) drop-shadow(0 0 14px rgba(212, 175, 55, 0.85));
+    }
+    75% {
+      transform: translate(-70px, 55px) scale(1.4);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-105px, 85px) scale(0.75);
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes milky-drift-3 {
+    0% {
+      transform: translate(0, 0) scale(0.8);
+      opacity: 0.25;
+    }
+    50% {
+      transform: translate(30px, 40px) scale(1.35);
+      opacity: 1;
+      filter: drop-shadow(0 0 8px #FFECA0) drop-shadow(0 0 14px rgba(212, 175, 55, 0.8));
+    }
+    100% {
+      transform: translate(60px, 80px) scale(0.65);
+      opacity: 0.15;
+    }
+  }
+
+  .animate-milky-twinkle {
+    animation: milky-twinkle 2.8s ease-in-out infinite;
+  }
+  .animate-milky-drift-1 {
+    animation: milky-drift-1 9s ease-in-out infinite;
+  }
+  .animate-milky-drift-2 {
+    animation: milky-drift-2 11s ease-in-out infinite;
+  }
+  .animate-milky-drift-3 {
+    animation: milky-drift-3 8s ease-in-out infinite;
+  }
+}

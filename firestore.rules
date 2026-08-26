@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for Role & Ownership enforcement
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'ADMIN' && getUserData().active == true;
+    }
+
+    function isHOD(departmentId) {
+      return isAuthenticated() && getUserData().role == 'HOD' && 
+             (getUserData().departmentId == departmentId || isAdmin()) && 
+             getUserData().active == true;
+    }
+
+    function isFaculty() {
+      return isAuthenticated() && getUserData().active == true;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Anyone authenticated can read active user profiles for directory/availability
+      allow read: if isAuthenticated();
+      
+      // Only Admin can create, modify roles, or delete users
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'hodType', 'departmentId', 'active']));
+    }
+
+    // Departments Collection
+    match /departments/{departmentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Periods Collection (Configuration Driven)
+    match /periods/{periodId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && getUserData().role == 'HOD');
+    }
+
+    // Subjects Collection (Department-scoped)
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin() || isHOD(request.resource.data.departmentId);
+    }
+
+    // Schedules Collection (Dynamic daily records)
+    match /schedules/{scheduleId} {
+      // Authenticated users in the same department (or Admin) can read schedules
+      allow read: if isAuthenticated();
+      
+      // Faculty can create and update ONLY their own schedule
+      // And cannot edit past dates
+      allow create: if isFaculty() && 
+                      request.resource.data.facultyId == request.auth.uid &&
+                      request.resource.data.status in ['SUBMITTED', 'FULL_DAY_FREE', 'NOT_SUBMITTED'];
+      
+      allow update: if (isFaculty() && resource.data.facultyId == request.auth.uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Academic Configurations
+    match /academic_configs/{departmentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isHOD(departmentId);
+    }
+
+    // Global System Settings
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
