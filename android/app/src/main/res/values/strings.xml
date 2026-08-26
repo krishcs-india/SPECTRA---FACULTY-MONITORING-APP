@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kalyani</string>
+    <string name="title_activity_main">Kalyani</string>
+    <string name="package_name">in.edu.college.kalyani</string>
+    <string name="custom_url_scheme">in.edu.college.kalyani</string>
+</resources>
