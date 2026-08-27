@@ -5,6 +5,141 @@ export interface NotificationPayload {
   data?: Record<string, any>;
 }
 
+import { Capacitor } from '@capacitor/core';
+
+const isNative = () =>
+  typeof window !== 'undefined' && Capacitor.isNativePlatform?.();
+
+/** Fires like WhatsApp/Instagram notifications in the native notification bar */
+class NativeNotificationBridge {
+  private static readonly DAILY_REMINDER_ID = 42001;
+
+  async requestPermission(): Promise<boolean> {
+    if (!isNative()) return false;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const res = await LocalNotifications.requestPermissions();
+      return res.display === 'granted';
+    } catch {
+      return false;
+    }
+  }
+
+  async notifyNow(title: string, body: string): Promise<void> {
+    if (!(await this.requestPermission())) return;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: Date.now() % 2000000000,
+          title,
+          body,
+          smallIcon: 'ic_launcher',
+          iconColor: '#D4AF37'
+        }]
+      });
+    } catch (err) {
+      console.warn('Native notification failed:', err);
+    }
+  }
+
+  /**
+   * Registers a repeating daily reminder (idempotent — once per device per day)
+   */
+  async ensureDailyReminder(hour = 8, minute = 30): Promise<void> {
+    if (!isNative()) return;
+    try {
+      const key = `kalyani_daily_reminder_${new Date().toISOString().slice(0, 10)}`;
+      if (localStorage.getItem(key)) return;
+      if (!(await this.requestPermission())) return;
+
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: NativeNotificationBridge.DAILY_REMINDER_ID,
+          title: 'Kalyani — Daily Period Reminder',
+          body: 'A new day has begun. Update your period availability or mark Full Day Free.',
+          schedule: { on: { hour, minute }, allowWhileIdle: true },
+          smallIcon: 'ic_launcher',
+          iconColor: '#D4AF37'
+        }]
+      });
+      localStorage.setItem(key, '1');
+    } catch (err) {
+      console.warn('Daily reminder scheduling failed:', err);
+    }
+  }
+
+  /**
+   * Instant nudge if today's schedule is still pending (max once per day)
+   */
+  async notifyIfPendingToday(userId: string, userName: string, isSubmitted: boolean): Promise<void> {
+    if (!isNative() || isSubmitted) return;
+    const key = `kalyani_pending_notified_${userId}_${new Date().toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(key)) return;
+    await this.notifyNow(
+      "Kalyani — Today's Periods Pending",
+      `Namaste ${userName}, you have not updated today's subjects/periods yet. Please submit your schedule.`
+    );
+    localStorage.setItem(key, '1');
+  }
+
+  /**
+   * Chrome-style "download complete" system notification for exported files.
+   * Tapping it opens the file via the system handler / share sheet.
+   */
+  async notifyDownloadComplete(fileName: string, fileUri: string): Promise<void> {
+    if (!isNative()) return;
+    if (!(await this.requestPermission())) return;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const id = 700000000 + Math.floor(Date.now() % 200000000);
+      // Remember where the file lives so the tap handler can open it
+      localStorage.setItem(`kalyani_dl_uri_${id}`, fileUri);
+      await LocalNotifications.schedule({
+        notifications: [{
+          id,
+          title: '✅ Download complete',
+          body: `${fileName} — tap to open or save`,
+          smallIcon: 'ic_launcher',
+          iconColor: '#D4AF37'
+        }]
+      });
+    } catch (err) {
+      console.warn('Download notification failed:', err);
+    }
+  }
+
+  /**
+   * Global tap handler: opens the saved file when its "download complete"
+   * notification is tapped. Call once at app boot (native only).
+   */
+  async handleNotificationTaps(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      LocalNotifications.removeAllListeners();
+      LocalNotifications.addListener('localNotificationActionPerformed', async (action) => {
+        const id = action.notification.id;
+        const uri = localStorage.getItem(`kalyani_dl_uri_${id}`);
+        if (!uri) return;
+        try {
+          const { Share } = await import('@capacitor/share');
+          await Share.share({
+            title: 'Open downloaded file',
+            url: uri,
+            dialogTitle: 'Open / Save File'
+          });
+        } catch {}
+      });
+    } catch (err) {
+      console.warn('Notification tap listener failed:', err);
+    }
+  }
+}
+
+const nativeBridge = new NativeNotificationBridge();
+
 export interface INotificationProvider {
   name: string;
   isSupported(): boolean;
@@ -64,12 +199,11 @@ class MobileLocalNotificationProvider implements INotificationProvider {
   }
 
   async requestPermission(): Promise<boolean> {
-    // Will be linked to @capacitor/local-notifications in Phase 2
-    return true;
+    return nativeBridge.requestPermission();
   }
 
   async sendNotification(payload: NotificationPayload): Promise<void> {
-    console.log('[Mobile Provider] Notification dispatched:', payload);
+    await nativeBridge.notifyNow(payload.title, payload.body);
   }
 
   scheduleRecurringReminder(intervalMinutes: number, callback: () => void): number {
@@ -131,6 +265,11 @@ class KalyaniNotificationManager {
       this.provider.cancelReminder(existing);
       this.activeReminders.delete(facultyId);
     }
+  }
+
+  /** Native mobile notification bar support (Android/iOS) */
+  get native(): NativeNotificationBridge {
+    return nativeBridge;
   }
 }
 

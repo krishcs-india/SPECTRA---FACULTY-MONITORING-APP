@@ -10,28 +10,83 @@ import {
 } from 'firebase/firestore';
 import { db, isLiveFirebaseConfigured } from '../config/firebase';
 import { FacultySchedule } from '../types/schedule';
-import { KalyaniUser } from '../types/user';
+import { KalyaniUser, UserRole, HodType } from '../types/user';
 import { Department } from '../types/department';
 import { Subject } from '../types/subject';
 import { Period } from '../types/period';
-import { AcademicConfiguration, SystemSettings } from '../types/configuration';
+import { SystemSettings } from '../types/configuration';
 import {
   INITIAL_USERS,
   INITIAL_DEPARTMENTS,
   INITIAL_PERIODS,
-  INITIAL_SUBJECTS,
-  INITIAL_CONFIGS,
   INITIAL_SETTINGS
 } from './seedDataService';
 
-// Track whether each collection has delivered data at least once, so an
-// initial empty snapshot doesn't wipe local state, but real deletions propagate
-const listenerHasData: Record<string, boolean> = {};
+// Realtime Firestore synchronization for institutional academic data
+export interface CloudSyncHandlers {
+  onSchedules: (data: Record<string, FacultySchedule>) => void;
+  onUsers: (data: KalyaniUser[]) => void;
+  onDepartments: (data: Department[]) => void;
+  onSubjects: (data: Subject[]) => void;
+  onPeriods: (data: Period[]) => void;
+  onSystemSettings: (data: SystemSettings) => void;
+}
+
+let syncHandlers: CloudSyncHandlers | null = null;
+let cloudSyncUnsubscribes: Unsubscribe[] = [];
+let realtimeSyncStarted = false;
 
 export const firestoreService = {
   /**
+   * Store registers its state-update callbacks here
+   */
+  registerSyncHandlers(handlers: CloudSyncHandlers): void {
+    syncHandlers = handlers;
+    if (realtimeSyncStarted) {
+      this.attachCloudSync();
+    }
+  },
+
+  /**
+   * Initializes real-time synchronization immediately on boot.
+   */
+  initRealtimeSync(): void {
+    if (!isLiveFirebaseConfigured || !db || realtimeSyncStarted) return;
+    realtimeSyncStarted = true;
+    console.log('🔥 Initializing real-time Cloud Firestore synchronization...');
+    this.attachCloudSync();
+  },
+
+  initAuthSync(): void {
+    this.initRealtimeSync();
+  },
+
+  attachCloudSync(): void {
+    if (!isLiveFirebaseConfigured || !db || !syncHandlers) return;
+
+    this.detachCloudSync();
+    this.ensureDatabaseInitialized();
+
+    const subs = [
+      this.subscribeSchedules((data) => syncHandlers?.onSchedules(data)),
+      this.subscribeUsers((data) => syncHandlers?.onUsers(data)),
+      this.subscribeDepartments((data) => syncHandlers?.onDepartments(data)),
+      this.subscribeSubjects((data) => syncHandlers?.onSubjects(data)),
+      this.subscribePeriods((data) => syncHandlers?.onPeriods(data)),
+      this.subscribeSystemSettings((data) => syncHandlers?.onSystemSettings(data))
+    ];
+    cloudSyncUnsubscribes.push(...subs.filter((s): s is Unsubscribe => s !== null));
+  },
+
+  detachCloudSync(): void {
+    cloudSyncUnsubscribes.forEach((unsub) => {
+      try { unsub(); } catch {}
+    });
+    cloudSyncUnsubscribes = [];
+  },
+
+  /**
    * Converts undefined values to null so Firestore setDoc never throws
-   * "Unsupported field value: undefined"
    */
   sanitizeForFirestore<T>(value: T): T {
     if (value === null || typeof value !== 'object') return value;
@@ -46,57 +101,102 @@ export const firestoreService = {
   },
 
   /**
-   * Initializes Firestore with seed collections if currently empty
+   * Initializes Firestore with baseline master records if totally empty
    */
   async ensureDatabaseInitialized(): Promise<void> {
     if (!isLiveFirebaseConfigured || !db) return;
 
     try {
-      // Check if users collection exists
-      const usersSnap = await getDocs(collection(db, 'users'));
-      if (usersSnap.empty) {
-        console.log('⚡ Initializing Firestore with default institutional master records...');
+      // 1. Check departments
+      const deptSnap = await getDocs(collection(db, 'departments'));
+      if (deptSnap.empty) {
+        console.log('⚡ Initializing Firestore default departments (CSE, AIDS)...');
         const batch = writeBatch(db);
-
-        // Seed Users
-        INITIAL_USERS.forEach((u) => {
-          const ref = doc(db, 'users', u.uid);
-          batch.set(ref, u);
-        });
-
-        // Seed Departments
         INITIAL_DEPARTMENTS.forEach((d) => {
           const ref = doc(db, 'departments', d.id);
-          batch.set(ref, d);
+          batch.set(ref, firestoreService.sanitizeForFirestore(d));
         });
+        await batch.commit();
+      }
 
-        // Seed Periods
+      // 2. Check users (ensure admin exists)
+      const usersSnap = await getDocs(collection(db, 'users'));
+      if (usersSnap.empty) {
+        console.log('⚡ Initializing Firestore master administrator...');
+        const batch = writeBatch(db);
+        INITIAL_USERS.forEach((u) => {
+          const ref = doc(db, 'users', u.uid);
+          batch.set(ref, firestoreService.sanitizeForFirestore(u));
+        });
+        await batch.commit();
+      }
+
+      // 3. Check periods
+      const periodsSnap = await getDocs(collection(db, 'periods'));
+      if (periodsSnap.empty) {
+        console.log('⚡ Initializing Firestore standard periods...');
+        const batch = writeBatch(db);
         INITIAL_PERIODS.forEach((p) => {
           const ref = doc(db, 'periods', p.id);
-          batch.set(ref, p);
+          batch.set(ref, firestoreService.sanitizeForFirestore(p));
         });
-
-        // Seed Subjects
-        INITIAL_SUBJECTS.forEach((s) => {
-          const ref = doc(db, 'subjects', s.id);
-          batch.set(ref, s);
-        });
-
-        // Seed Academic Configs
-        Object.entries(INITIAL_CONFIGS).forEach(([deptId, cfg]) => {
-          const ref = doc(db, 'academic_configs', deptId);
-          batch.set(ref, cfg);
-        });
-
-        // Seed System Settings
-        const settingsRef = doc(db, 'settings', 'global');
-        batch.set(settingsRef, INITIAL_SETTINGS);
-
         await batch.commit();
-        console.log('✅ Firestore institutional database initialized successfully.');
       }
+
+      // 4. Check system settings
+      const settingsRef = doc(db, 'settings', 'global');
+      const batch = writeBatch(db);
+      batch.set(settingsRef, firestoreService.sanitizeForFirestore(INITIAL_SETTINGS), { merge: true });
+      await batch.commit();
     } catch (err) {
-      console.warn('Firestore initialization notice (check security rules if needed):', err);
+      console.warn('Firestore initialization notice:', err);
+    }
+  },
+
+  /**
+   * Complete Database Rebuild & Clean Re-seed
+   */
+  async rebuildAndSeedDatabase(): Promise<{ success: boolean; error?: string }> {
+    if (!isLiveFirebaseConfigured || !db) {
+      return { success: false, error: 'Firebase is not connected in live mode.' };
+    }
+
+    try {
+      console.log('🔄 Rebuilding & Seeding Cloud Firestore Database...');
+
+      // 1. Departments (CSE, AIDS)
+      const deptBatch = writeBatch(db);
+      INITIAL_DEPARTMENTS.forEach((d) => {
+        const ref = doc(db, 'departments', d.id);
+        deptBatch.set(ref, firestoreService.sanitizeForFirestore(d));
+      });
+      await deptBatch.commit();
+
+      // 2. Master Admin
+      const userBatch = writeBatch(db);
+      INITIAL_USERS.forEach((u) => {
+        const ref = doc(db, 'users', u.uid);
+        userBatch.set(ref, firestoreService.sanitizeForFirestore(u));
+      });
+      await userBatch.commit();
+
+      // 3. Standard Periods
+      const periodBatch = writeBatch(db);
+      INITIAL_PERIODS.forEach((p) => {
+        const ref = doc(db, 'periods', p.id);
+        periodBatch.set(ref, firestoreService.sanitizeForFirestore(p));
+      });
+      await periodBatch.commit();
+
+      // 4. System Settings
+      const settingsRef = doc(db, 'settings', 'global');
+      await setDoc(settingsRef, firestoreService.sanitizeForFirestore(INITIAL_SETTINGS));
+
+      console.log('✅ Firestore Database Baseline Synchronized.');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error rebuilding database:', err);
+      return { success: false, error: err?.message || 'Database rebuild failed.' };
     }
   },
 
@@ -130,8 +230,6 @@ export const firestoreService = {
         snapshot.forEach((docSnap) => {
           users.push(docSnap.data() as KalyaniUser);
         });
-        if (!listenerHasData.users && users.length === 0) return;
-        listenerHasData.users = true;
         onUpdate(users);
       }, (err) => {
         console.warn('Users realtime listener notice:', err);
@@ -150,8 +248,6 @@ export const firestoreService = {
         snapshot.forEach((docSnap) => {
           departments.push(docSnap.data() as Department);
         });
-        if (!listenerHasData.departments && departments.length === 0) return;
-        listenerHasData.departments = true;
         onUpdate(departments);
       }, (err) => {
         console.warn('Departments realtime listener notice:', err);
@@ -170,8 +266,6 @@ export const firestoreService = {
         snapshot.forEach((docSnap) => {
           subjects.push(docSnap.data() as Subject);
         });
-        if (!listenerHasData.subjects && subjects.length === 0) return;
-        listenerHasData.subjects = true;
         onUpdate(subjects);
       }, (err) => {
         console.warn('Subjects realtime listener notice:', err);
@@ -190,8 +284,6 @@ export const firestoreService = {
         snapshot.forEach((docSnap) => {
           periods.push(docSnap.data() as Period);
         });
-        if (!listenerHasData.periods && periods.length === 0) return;
-        listenerHasData.periods = true;
         periods.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
         onUpdate(periods);
       }, (err) => {
@@ -219,26 +311,6 @@ export const firestoreService = {
     }
   },
 
-  subscribeAcademicConfigs(onUpdate: (configs: Record<string, AcademicConfiguration>) => void): Unsubscribe | null {
-    if (!isLiveFirebaseConfigured || !db) return null;
-    try {
-      return onSnapshot(collection(db, 'academic_configs'), (snapshot) => {
-        const configs: Record<string, AcademicConfiguration> = {};
-        snapshot.forEach((docSnap) => {
-          configs[docSnap.id] = docSnap.data() as AcademicConfiguration;
-        });
-        if (!listenerHasData.academicConfigs && Object.keys(configs).length === 0) return;
-        listenerHasData.academicConfigs = true;
-        onUpdate(configs);
-      }, (err) => {
-        console.warn('Academic configs realtime listener notice:', err);
-      });
-    } catch (e) {
-      console.warn('Failed to attach academic configs listener:', e);
-      return null;
-    }
-  },
-
   // ==========================================
   // REAL-TIME WRITE OPERATIONS
   // ==========================================
@@ -250,6 +322,95 @@ export const firestoreService = {
       await setDoc(doc(db, 'schedules', docId), this.sanitizeForFirestore(schedule), { merge: true });
     } catch (err) {
       console.error('Error saving schedule to Firestore:', err);
+    }
+  },
+
+  async deleteScheduleDoc(scheduleId: string): Promise<void> {
+    if (!isLiveFirebaseConfigured || !db) return;
+    try {
+      await deleteDoc(doc(db, 'schedules', scheduleId));
+    } catch (err) {
+      console.error('Error deleting schedule doc in Firestore:', err);
+    }
+  },
+
+  async deleteTodaySchedulesForDepartment(departmentId: string, todayDate: string): Promise<void> {
+    if (!isLiveFirebaseConfigured || !db) return;
+    try {
+      const cleanDept = (departmentId || '').toUpperCase().trim();
+      const snap = await getDocs(collection(db, 'schedules'));
+      for (const d of snap.docs) {
+        const data = d.data() as FacultySchedule;
+        if ((data.departmentId || '').toUpperCase().trim() === cleanDept && data.date === todayDate) {
+          await deleteDoc(d.ref);
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting today schedules for department:', err);
+    }
+  },
+
+  async deleteSchedulesForUser(userId: string): Promise<void> {
+    if (!isLiveFirebaseConfigured || !db) return;
+    try {
+      const snap = await getDocs(collection(db, 'schedules'));
+      for (const d of snap.docs) {
+        const data = d.data();
+        if (data.facultyId === userId || d.id.startsWith(`${userId}_`)) {
+          await deleteDoc(d.ref);
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting user schedules in Firestore:', err);
+    }
+  },
+
+  async fetchUserByEmail(email: string): Promise<KalyaniUser | null> {
+    if (!isLiveFirebaseConfigured || !db) return null;
+    try {
+      const clean = email.trim().toLowerCase();
+      const snap = await getDocs(collection(db, 'users'));
+      for (const d of snap.docs) {
+        const u = d.data() as KalyaniUser;
+        if ((u.email || '').trim().toLowerCase() === clean) {
+          return {
+            ...u,
+            uid: u.uid || d.id,
+            email: (u.email || '').trim().toLowerCase(),
+            role: (u.role || 'FACULTY').toString().toUpperCase() as UserRole,
+            hodType: u.hodType ? (u.hodType.toString().toUpperCase() as HodType) : null,
+            active: u.active !== false
+          };
+        }
+      }
+      return null;
+    } catch (err) {
+      console.warn('Error fetching user by email from Firestore:', err);
+      return null;
+    }
+  },
+
+  async fetchUserById(uid: string): Promise<KalyaniUser | null> {
+    if (!isLiveFirebaseConfigured || !db) return null;
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      for (const d of snap.docs) {
+        const u = d.data() as KalyaniUser;
+        if (d.id === uid || u.uid === uid) {
+          return {
+            ...u,
+            uid: u.uid || d.id,
+            email: (u.email || '').trim().toLowerCase(),
+            role: (u.role || 'FACULTY').toString().toUpperCase() as UserRole,
+            hodType: u.hodType ? (u.hodType.toString().toUpperCase() as HodType) : null,
+            active: u.active !== false
+          };
+        }
+      }
+      return null;
+    } catch (err) {
+      console.warn('Error fetching user by ID from Firestore:', err);
+      return null;
     }
   },
 
@@ -280,6 +441,15 @@ export const firestoreService = {
     }
   },
 
+  async deleteDepartment(id: string): Promise<void> {
+    if (!isLiveFirebaseConfigured || !db) return;
+    try {
+      await deleteDoc(doc(db, 'departments', id));
+    } catch (err) {
+      console.error('Error deleting department in Firestore:', err);
+    }
+  },
+
   async saveSubject(subject: Subject): Promise<void> {
     if (!isLiveFirebaseConfigured || !db) return;
     try {
@@ -294,16 +464,18 @@ export const firestoreService = {
     try {
       await deleteDoc(doc(db, 'subjects', id));
     } catch (err) {
-      console.error('Error deleting subject in Firestore:', err);
+      console.error('Error deleting subject from Firestore:', err);
     }
   },
 
   async bulkDeleteSubjects(ids: string[]): Promise<void> {
-    if (!isLiveFirebaseConfigured || !db || ids.length === 0) return;
+    if (!isLiveFirebaseConfigured || !db) return;
     try {
-      for (const id of ids) {
-        await deleteDoc(doc(db, 'subjects', id));
-      }
+      const batch = writeBatch(db);
+      ids.forEach((id) => {
+        batch.delete(doc(db, 'subjects', id));
+      });
+      await batch.commit();
     } catch (err) {
       console.error('Error bulk deleting subjects in Firestore:', err);
     }
@@ -318,12 +490,25 @@ export const firestoreService = {
     }
   },
 
-  async saveAcademicConfig(departmentId: string, config: AcademicConfiguration): Promise<void> {
+  async deletePeriodDoc(id: string): Promise<void> {
     if (!isLiveFirebaseConfigured || !db) return;
     try {
-      await setDoc(doc(db, 'academic_configs', departmentId), this.sanitizeForFirestore(config), { merge: true });
+      await deleteDoc(doc(db, 'periods', id));
     } catch (err) {
-      console.error('Error saving academic config to Firestore:', err);
+      console.error('Error deleting period doc in Firestore:', err);
+    }
+  },
+
+  async savePeriodsBatch(periods: Period[]): Promise<void> {
+    if (!isLiveFirebaseConfigured || !db || periods.length === 0) return;
+    try {
+      const batch = writeBatch(db);
+      periods.forEach((p) => {
+        batch.set(doc(db, 'periods', p.id), this.sanitizeForFirestore(p), { merge: true });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error('Error saving periods batch to Firestore:', err);
     }
   },
 
@@ -337,7 +522,7 @@ export const firestoreService = {
   },
 
   /**
-   * Purges test schedules, test users (except master admin), and resets department HOD mappings in Firestore
+   * Purges database to clean slate for production
    */
   async purgeDatabaseForProduction(): Promise<void> {
     if (!isLiveFirebaseConfigured || !db) return;
@@ -348,7 +533,7 @@ export const firestoreService = {
         await deleteDoc(d.ref);
       }
 
-      // 2. Delete all users except master administrator
+      // 2. Delete all non-admin users
       const usersSnap = await getDocs(collection(db, 'users'));
       for (const d of usersSnap.docs) {
         const u = d.data();
@@ -357,7 +542,7 @@ export const firestoreService = {
         }
       }
 
-      // 3. Reset department HOD/AHOD pointers
+      // 3. Reset department HOD mappings
       const deptSnap = await getDocs(collection(db, 'departments'));
       for (const d of deptSnap.docs) {
         const dept = d.data() as Department;
@@ -372,39 +557,24 @@ export const firestoreService = {
         });
       }
 
-      // 4. Flush stale subjects and seed simplified subject catalog
+      // 4. Delete all subjects
       const subjSnap = await getDocs(collection(db, 'subjects'));
       for (const d of subjSnap.docs) {
         await deleteDoc(d.ref);
       }
-      for (const s of INITIAL_SUBJECTS) {
-        await setDoc(doc(db, 'subjects', s.id), this.sanitizeForFirestore(s));
+
+      // 5. Reset periods to standard baseline
+      const periodSnap = await getDocs(collection(db, 'periods'));
+      for (const d of periodSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+      for (const p of INITIAL_PERIODS) {
+        await setDoc(doc(db, 'periods', p.id), this.sanitizeForFirestore(p));
       }
 
-      console.log('⚡ Purged test records and synchronized clean subjects in Firestore.');
+      console.log('⚡ Purged records to clean production slate.');
     } catch (err) {
       console.error('Error purging database in Firestore:', err);
-    }
-  },
-
-  /**
-   * Directly fetch a user by email from Cloud Firestore
-   */
-  async fetchUserByEmail(email: string): Promise<KalyaniUser | null> {
-    if (!isLiveFirebaseConfigured || !db) return null;
-    try {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const cleanEmail = email.trim().toLowerCase();
-      for (const d of usersSnap.docs) {
-        const u = d.data() as KalyaniUser;
-        if (u.email && u.email.trim().toLowerCase() === cleanEmail) {
-          return u;
-        }
-      }
-      return null;
-    } catch (err) {
-      console.error('Error finding user in Firestore:', err);
-      return null;
     }
   }
 };

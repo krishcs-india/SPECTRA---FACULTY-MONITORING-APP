@@ -5,7 +5,19 @@ const config: CapacitorConfig = {
   appName: 'Kalyani',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    // Keep the Firebase Auth / Google OAuth redirect flow INSIDE the app's
+    // WebView so it returns to the app instead of leaking into an external
+    // browser where https://localhost does not exist.
+    allowNavigation: [
+      'kalyani-e2179.firebaseapp.com',
+      '*.firebaseapp.com',
+      'accounts.google.com',
+      '*.google.com',
+      'myaccount.google.com',
+      'ssl.gstatic.com',
+      'www.gstatic.com'
+    ]
   },
   plugins: {
     LocalNotifications: {

@@ -6,14 +6,11 @@ import { FacultyStatusList } from '../../components/hod/FacultyStatusList';
 import { TodaySummaryStats } from '../../components/hod/TodaySummaryStats';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
-import { getTodayDateString } from '../../utils/dateUtils';
-import { CalendarRange } from 'lucide-react';
 import { subDays, format } from 'date-fns';
 
 export const HodHistoryPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const departmentId = currentUser?.departmentId || 'dept_cse';
-  // Default to yesterday for history exploration
+  const departmentId = currentUser?.departmentId || 'CSE';
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState<string>(yesterday);
   const [statFilter, setStatFilter] = useState<'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED'>('ALL');
@@ -21,14 +18,22 @@ export const HodHistoryPage: React.FC = () => {
   const getDepartmentAvailability = useAppStore((state) => state.getDepartmentAvailability);
   const schedules = useAppStore((state) => state.schedules);
   const users = useAppStore((state) => state.users);
-  // Historical views must include periods that were later disabled,
-  // otherwise archived records for those periods become invisible
-  const allPeriods = useAppStore((state) => state.getAllDepartmentPeriods(departmentId));
-  const subjects = useAppStore((state) => state.getDepartmentSubjects(departmentId));
+  const periods = useAppStore((state) => state.periods);
+  const subjects = useAppStore((state) => state.subjects);
+
+  const allPeriods = useMemo(
+    () => useAppStore.getState().getAllDepartmentPeriods(departmentId),
+    [periods, departmentId]
+  );
+
+  const deptSubjects = useMemo(
+    () => useAppStore.getState().getDepartmentSubjects(departmentId),
+    [subjects, departmentId]
+  );
 
   const overview = useMemo(
     () => getDepartmentAvailability(departmentId, selectedDate),
-    [getDepartmentAvailability, departmentId, selectedDate, schedules, users, allPeriods.length]
+    [getDepartmentAvailability, departmentId, selectedDate, schedules, users, periods]
   );
 
   return (
@@ -53,7 +58,7 @@ export const HodHistoryPage: React.FC = () => {
           overview={overview}
           activePeriods={allPeriods}
           departmentName={currentUser?.departmentName || 'Computer Science & Engineering'}
-          departmentSubjects={subjects}
+          departmentSubjects={deptSubjects}
           statusFilterSignal={statFilter}
           allowManagement={false}
         />

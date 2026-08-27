@@ -58,7 +58,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
       id: `unlisted_${Date.now()}`,
       subjectCode: '',
       subjectName: name.trim(),
-      departmentId: 'dept_cse',
+      departmentId: subjects[0]?.departmentId || 'CSE',
       active: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -134,7 +134,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
           <div className="space-y-3">
             {/* Search Box */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400/80 z-10 pointer-events-none" />
               <input
                 type="text"
                 value={search}
@@ -145,44 +145,18 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                     handleAddUnlistedSubject(cleanSearch);
                   }
                 }}
-                placeholder="Search subject or type custom subject name…"
+                placeholder="Search subject code or name…"
                 className="w-full bg-kalyani-crimson-950/80 border border-kalyani-gold-500/20 text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20"
               />
             </div>
 
-            {/* UNLISTED SUBJECT CALLOUT (If user types something not in the official list) */}
-            {cleanSearch.length > 0 && !hasExactMatch && (
-              <div className="p-3.5 rounded-2xl bg-kalyani-crimson-900/60 border border-kalyani-gold-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-gold-sm animate-in fade-in duration-150">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> Not in official list
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold text-kalyani-gold-200">
-                      "{cleanSearch}"
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    No subject code required. The subject name will be saved and visible to the HOD.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleAddUnlistedSubject(cleanSearch)}
-                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-kalyani-gold-600 to-kalyani-gold-500 text-kalyani-crimson-950 font-bold text-xs flex items-center gap-1.5 shadow-gold-sm hover:brightness-110 transition-all shrink-0"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Add & Assign Subject</span>
-                </button>
-              </div>
-            )}
-
-            {/* List of Official Subjects */}
-            <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
-              {filteredSubjects.length === 0 && !cleanSearch ? (
+            {/* 1. List of Available / Matching Official Subjects FIRST */}
+            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+              {filteredSubjects.length === 0 ? (
                 <div className="text-center py-6 text-xs text-slate-400">
-                  No subjects available.
+                  {cleanSearch
+                    ? `No matching official subjects found for "${cleanSearch}".`
+                    : 'No subjects available in department master.'}
                 </div>
               ) : (
                 filteredSubjects.map((sub) => {
@@ -222,6 +196,36 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                 })
               )}
             </div>
+
+            {/* 2. UNLISTED SUBJECT CALLOUT AT THE BOTTOM (If user searches something not in the list) */}
+            {cleanSearch.length > 0 && !hasExactMatch && (
+              <div className="pt-2 border-t border-white/5">
+                <div className="p-3.5 rounded-2xl bg-kalyani-crimson-900/60 border border-kalyani-gold-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-gold-sm animate-in fade-in duration-150">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Not in official list
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-kalyani-gold-200">
+                        "{cleanSearch}"
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Can't find your subject? Add this as a custom unlisted subject.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddUnlistedSubject(cleanSearch)}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-kalyani-gold-600 to-kalyani-gold-500 text-kalyani-crimson-950 font-bold text-xs flex items-center gap-1.5 shadow-gold-sm hover:brightness-110 transition-all shrink-0"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Add to List & Assign</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* Custom / Other Activity Form */

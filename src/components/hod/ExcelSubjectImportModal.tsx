@@ -27,11 +27,24 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
   const [isParsing, setIsParsing] = useState(false);
   const [parseResult, setParseResult] = useState<ImportResult<SubjectImportRow> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
 
   const existingCodes = new Set(existingSubjects.map((s) => s.subjectCode.toUpperCase()));
 
-  const handleDownloadTemplate = () => {
-    excelService.downloadSubjectTemplate();
+  // Auto-dismiss download confirmation after 5 seconds
+  React.useEffect(() => {
+    if (downloadMsg) {
+      const t = setTimeout(() => setDownloadMsg(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [downloadMsg]);
+
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadMsg(await excelService.downloadSubjectTemplate());
+    } catch (e: any) {
+      setDownloadMsg(`Template download failed: ${e?.message || 'unknown error'}`);
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +93,12 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
       subtitle="Upload institutional subject lists directly into the department master"
     >
       <div className="space-y-6">
+        {downloadMsg && (
+          <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{downloadMsg}</span>
+          </div>
+        )}
         {/* Step 1: Download Template */}
         <div className="p-4 rounded-2xl bg-kalyani-crimson-950/60 border border-kalyani-gold-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>

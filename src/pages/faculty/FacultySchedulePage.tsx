@@ -10,16 +10,20 @@ import { notificationService } from '../../services/notificationService';
 export const FacultySchedulePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
   const { currentUser } = useAuth();
-  const departmentId = currentUser?.departmentId || 'dept_cse';
+  const departmentId = currentUser?.departmentId || 'CSE';
 
   const todayStatus = useAppStore((state) =>
-    currentUser ? state.getSchedule(currentUser.uid, getTodayDateString())?.status || 'NOT_SUBMITTED' : 'NOT_SUBMITTED'
+    currentUser ? state.schedules[`${currentUser.uid}_${getTodayDateString()}`]?.status || 'NOT_SUBMITTED' : 'NOT_SUBMITTED'
   );
-  const reminderIntervalMinutes = useAppStore((state) => state.getDepartmentConfig(departmentId).reminderIntervalMinutes);
+  const reminderIntervalMinutes = 30;
 
-  // Periodic reminder while today's schedule is still pending
+  // Periodic reminder while today's schedule is still pending.
+  // Main HOD does not submit daily schedules — skip him entirely.
   useEffect(() => {
     if (!currentUser) return;
+    const isMainHod = currentUser.role === 'HOD' && currentUser.hodType !== 'AHOD';
+    if (isMainHod) return;
+
     if (todayStatus === 'NOT_SUBMITTED') {
       notificationService.startPeriodicReminder(
         currentUser.uid,

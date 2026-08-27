@@ -7,11 +7,10 @@ import { FacultyStatusList } from '../../components/hod/FacultyStatusList';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { getTodayDateString } from '../../utils/dateUtils';
-import { Sparkles, RefreshCw } from 'lucide-react';
 
 export const HodDashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const departmentId = currentUser?.departmentId || 'dept_cse';
+  const departmentId = currentUser?.departmentId || 'CSE';
 
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
   const [statFilter, setStatFilter] = useState<'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED'>('ALL');
@@ -19,12 +18,22 @@ export const HodDashboardPage: React.FC = () => {
   const getDepartmentAvailability = useAppStore((state) => state.getDepartmentAvailability);
   const schedules = useAppStore((state) => state.schedules);
   const users = useAppStore((state) => state.users);
-  const activePeriods = useAppStore((state) => state.getActivePeriods(departmentId));
-  const subjects = useAppStore((state) => state.getDepartmentSubjects(departmentId));
+  const periods = useAppStore((state) => state.periods);
+  const subjects = useAppStore((state) => state.subjects);
+
+  const activePeriods = useMemo(
+    () => useAppStore.getState().getActivePeriods(departmentId),
+    [periods, departmentId]
+  );
+
+  const deptSubjects = useMemo(
+    () => useAppStore.getState().getDepartmentSubjects(departmentId),
+    [subjects, departmentId]
+  );
 
   const overview = useMemo(
     () => getDepartmentAvailability(departmentId, selectedDate),
-    [getDepartmentAvailability, departmentId, selectedDate, schedules, users, activePeriods.length]
+    [getDepartmentAvailability, departmentId, selectedDate, schedules, users, periods]
   );
 
   return (
@@ -62,7 +71,7 @@ export const HodDashboardPage: React.FC = () => {
           overview={overview}
           activePeriods={activePeriods}
           departmentName={currentUser?.departmentName || 'Computer Science & Engineering'}
-          departmentSubjects={subjects}
+          departmentSubjects={deptSubjects}
           statusFilterSignal={statFilter}
           allowManagement={false}
         />

@@ -7,17 +7,19 @@ import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniConfirmDialog } from '../common/KalyaniConfirmDialog';
 import { KalyaniTable } from '../common/KalyaniTable';
 import { useAppStore } from '../../store/useAppStore';
-import { Building2, Plus, Edit2, Power, CheckCircle2 } from 'lucide-react';
+import { Building2, Plus, Edit2, Power, Trash2, CheckCircle2 } from 'lucide-react';
 
 export const DepartmentManager: React.FC = () => {
   const departments = useAppStore((state) => state.departments);
   const users = useAppStore((state) => state.users);
   const addDepartment = useAppStore((state) => state.addDepartment);
   const updateDepartment = useAppStore((state) => state.updateDepartment);
+  const deleteDepartment = useAppStore((state) => state.deleteDepartment);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [deptToToggle, setDeptToToggle] = useState<Department | null>(null);
+  const [deptToDelete, setDeptToDelete] = useState<Department | null>(null);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
 
   // Auto-dismiss notification after 5 seconds
@@ -60,9 +62,9 @@ export const DepartmentManager: React.FC = () => {
         code: cleanCode,
       });
       setEditingDept(null);
-      setNotificationMsg(`Department ${cleanCode} updated.`);
+      setNotificationMsg(`Department ${cleanCode} updated successfully.`);
     } else {
-      if (departments.some((d) => d.code.toUpperCase() === cleanCode)) {
+      if (departments.some((d) => d.code.toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode)) {
         setFormError(`Department Code ${cleanCode} already exists.`);
         return;
       }
@@ -73,7 +75,7 @@ export const DepartmentManager: React.FC = () => {
         active: true,
       });
       setIsAddModalOpen(false);
-      setNotificationMsg(`Department ${cleanCode} created.`);
+      setNotificationMsg(`Department ${cleanCode} created successfully.`);
     }
   };
 
@@ -82,6 +84,14 @@ export const DepartmentManager: React.FC = () => {
       updateDepartment(deptToToggle.id, { active: !deptToToggle.active });
       setNotificationMsg(`Department ${deptToToggle.code} status updated.`);
       setDeptToToggle(null);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (deptToDelete) {
+      deleteDepartment(deptToDelete.id);
+      setNotificationMsg(`Department ${deptToDelete.code} deleted permanently.`);
+      setDeptToDelete(null);
     }
   };
 
@@ -102,7 +112,7 @@ export const DepartmentManager: React.FC = () => {
       header: 'Head of Dept (HOD)',
       accessor: (row: Department) => {
         const hodUser = users.find((u) => u.uid === row.hodUid) || 
-                        users.find((u) => u.departmentId === row.id && u.role === 'HOD' && u.hodType !== 'AHOD' && u.active);
+                        users.find((u) => (u.departmentId === row.id || u.departmentId === row.code) && u.role === 'HOD' && u.hodType !== 'AHOD' && u.active);
         return (
           <span className="text-xs text-slate-300 font-medium">
             {hodUser ? hodUser.name : row.hodName || '—'}
@@ -113,7 +123,7 @@ export const DepartmentManager: React.FC = () => {
     {
       header: 'Assistant HODs (AHODs)',
       accessor: (row: Department) => {
-        const ahodUsers = users.filter((u) => u.departmentId === row.id && u.hodType === 'AHOD' && u.active);
+        const ahodUsers = users.filter((u) => (u.departmentId === row.id || u.departmentId === row.code) && u.hodType === 'AHOD' && u.active);
         const dynamicNames = ahodUsers.map((u) => u.name);
         const ahodList = dynamicNames.length > 0
           ? dynamicNames
@@ -169,6 +179,13 @@ export const DepartmentManager: React.FC = () => {
             title={row.active ? 'Disable' : 'Enable'}
           >
             <Power className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setDeptToDelete(row)}
+            className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors"
+            title="Delete Department"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       ),
@@ -245,7 +262,7 @@ export const DepartmentManager: React.FC = () => {
               label="Department Code"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="e.g. CSE or ECE or AI&DS"
+              placeholder="e.g. CSE or AIDS or ECE"
               required
             />
 
@@ -268,6 +285,16 @@ export const DepartmentManager: React.FC = () => {
         title={deptToToggle?.active ? 'Disable Department' : 'Enable Department'}
         message={`Are you sure you want to change the status of ${deptToToggle?.name}?`}
         confirmText={deptToToggle?.active ? 'Disable' : 'Enable'}
+      />
+
+      <KalyaniConfirmDialog
+        isOpen={Boolean(deptToDelete)}
+        onClose={() => setDeptToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        variant="danger"
+        title="Delete Department"
+        message={`Are you sure you want to permanently delete ${deptToDelete?.name} (${deptToDelete?.code})? This action will remove it from Firebase.`}
+        confirmText="Delete Department"
       />
     </div>
   );

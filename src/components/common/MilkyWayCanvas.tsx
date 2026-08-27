@@ -24,17 +24,23 @@ export const MilkyWayCanvas: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: true });
+    let ctx: CanvasRenderingContext2D | null = null;
+    try {
+      ctx = canvas.getContext('2d', { alpha: true });
+    } catch {
+      return;
+    }
     if (!ctx) return;
 
+    let isMounted = true;
     let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let width = (canvas.width = window.innerWidth || document.documentElement.clientWidth || 360);
+    let height = (canvas.height = window.innerHeight || document.documentElement.clientHeight || 640);
 
     const handleResize = () => {
       if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      width = canvas.width = window.innerWidth || document.documentElement.clientWidth || 360;
+      height = canvas.height = window.innerHeight || document.documentElement.clientHeight || 640;
     };
 
     window.addEventListener('resize', handleResize);
@@ -56,9 +62,9 @@ export const MilkyWayCanvas: React.FC = () => {
       const isCurvedDiamond = i < 34;
       const baseRadius = isCurvedDiamond ? Math.random() * 6 + 6 : Math.random() * 2 + 1.5;
 
-      // Faster dynamic flowing velocity
+      // Dynamic flowing velocity
       const angleDir = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 2.2 + 1.6; // Dynamic fast flow speed
+      const speed = Math.random() * 2.2 + 1.6;
 
       particles.push({
         x: Math.random() * width,
@@ -84,6 +90,7 @@ export const MilkyWayCanvas: React.FC = () => {
       currentRadius: number,
       alpha: number
     ) => {
+      if (!ctx) return;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);
@@ -120,6 +127,7 @@ export const MilkyWayCanvas: React.FC = () => {
 
     // Helper: Draw Cosmic Stardust
     const drawStardust = (p: StarParticle, currentRadius: number, alpha: number) => {
+      if (!ctx) return;
       ctx.save();
       ctx.globalAlpha = Math.max(0.15, Math.min(0.9, alpha));
       ctx.shadowColor = p.glowColor;
@@ -136,49 +144,60 @@ export const MilkyWayCanvas: React.FC = () => {
 
     // Render loop at 60fps
     const render = () => {
-      time++;
-      ctx.clearRect(0, 0, width, height);
+      if (!isMounted || !ctx) return;
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
+      try {
+        time++;
+        ctx.clearRect(0, 0, width, height);
 
-        // Organic fast flowing motion with sinusoidal wave variance
-        const driftX = Math.sin(time * 0.02 + p.seed) * 0.8;
-        const driftY = Math.cos(time * 0.02 + p.seed) * 0.6;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
 
-        p.x += p.vx + driftX;
-        p.y += p.vy + driftY;
-        p.angle += p.rotationSpeed;
-        p.pulsePhase += p.pulseSpeed;
+          // Organic motion with sinusoidal wave variance
+          const driftX = Math.sin(time * 0.02 + p.seed) * 0.8;
+          const driftY = Math.cos(time * 0.02 + p.seed) * 0.6;
 
-        // Smooth edge wrapping with margin buffer
-        const margin = 50;
-        if (p.x < -margin) p.x = width + margin;
-        if (p.x > width + margin) p.x = -margin;
-        if (p.y < -margin) p.y = height + margin;
-        if (p.y > height + margin) p.y = -margin;
+          p.x += p.vx + driftX;
+          p.y += p.vy + driftY;
+          p.angle += p.rotationSpeed;
+          p.pulsePhase += p.pulseSpeed;
 
-        // Shimmering twinkle pulse
-        const pulse = 0.5 + 0.5 * Math.sin(p.pulsePhase);
-        const currentRadius = p.baseRadius * (0.8 + 0.5 * pulse);
-        const alpha = 0.35 + 0.65 * pulse;
+          // Smooth edge wrapping with margin buffer
+          const margin = 50;
+          if (p.x < -margin) p.x = width + margin;
+          if (p.x > width + margin) p.x = -margin;
+          if (p.y < -margin) p.y = height + margin;
+          if (p.y > height + margin) p.y = -margin;
 
-        // Render
-        if (p.isCurvedDiamond) {
-          drawCurvedDiamond(p, currentRadius, alpha);
-        } else {
-          drawStardust(p, currentRadius, alpha);
+          // Shimmering twinkle pulse
+          const pulse = 0.5 + 0.5 * Math.sin(p.pulsePhase);
+          const currentRadius = p.baseRadius * (0.8 + 0.5 * pulse);
+          const alpha = 0.35 + 0.65 * pulse;
+
+          // Render
+          if (p.isCurvedDiamond) {
+            drawCurvedDiamond(p, currentRadius, alpha);
+          } else {
+            drawStardust(p, currentRadius, alpha);
+          }
         }
+      } catch (e) {
+        // Fallback for canvas lifecycle
       }
 
-      animationFrameId = requestAnimationFrame(render);
+      if (isMounted) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
+      isMounted = false;
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, []);
 

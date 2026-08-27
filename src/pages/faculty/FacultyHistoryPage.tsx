@@ -11,9 +11,13 @@ import { Calendar, History, Clock, BookOpen, Coffee, Sparkles } from 'lucide-rea
 export const FacultyHistoryPage: React.FC = () => {
   const { currentUser } = useAuth();
   const facultyId = currentUser?.uid || '';
-  const departmentId = currentUser?.departmentId || 'dept_cse';
+  const departmentId = currentUser?.departmentId || 'CSE';
 
-  const history = useAppStore((state) => state.getFacultyHistory(facultyId));
+  const history = useAppStore((state) =>
+    Object.values(state.schedules)
+      .filter((s) => s.facultyId === facultyId)
+      .sort((a, b) => b.date.localeCompare(a.date))
+  );
   const allPeriods = useAppStore((state) => state.getAllDepartmentPeriods(departmentId));
 
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
@@ -81,36 +85,68 @@ export const FacultyHistoryPage: React.FC = () => {
                       Recorded Period Allocation
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                      {allPeriods.map((period) => {
-                        const entry = record.periods?.[period.id];
-                        const isFree = !entry || entry.type === 'FREE';
-                        const isSubject = entry?.type === 'SUBJECT';
+                      {(() => {
+                        const recordedKeys = Object.keys(record.periods || {});
+                        const periodsToRender = (recordedKeys.length > 0
+                          ? recordedKeys.map((k, idx) => {
+                              const found = allPeriods.find((p) => p.id === k);
+                              const numMatch = k.match(/\d+/);
+                              const num = numMatch ? parseInt(numMatch[0], 10) : idx + 1;
+                              return found || {
+                                id: k,
+                                name: `Period ${num}`,
+                                shortName: `P${num}`,
+                                sequence: num,
+                                startTime: '',
+                                endTime: '',
+                                active: true,
+                                departmentId: departmentId,
+                              };
+                            })
+                          : allPeriods
+                        ).sort((a, b) => {
+                          const seqA = a.sequence ?? (parseInt((a.name || a.shortName || a.id || '').replace(/\D/g, ''), 10) || 999);
+                          const seqB = b.sequence ?? (parseInt((b.name || b.shortName || b.id || '').replace(/\D/g, ''), 10) || 999);
+                          return seqA - seqB;
+                        });
 
-                        return (
-                          <div
-                            key={period.id}
-                            className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
-                              isFree
-                                ? 'bg-teal-950/40 border-teal-500/20 text-teal-200'
-                                : isSubject
-                                ? 'bg-kalyani-crimson-900/60 border-kalyani-gold-500/30 text-kalyani-gold-200'
-                                : 'bg-amber-950/40 border-amber-500/30 text-amber-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between font-bold">
-                              <span>{period.name || period.shortName}</span>
-                              <span className="text-[10px] uppercase font-semibold">
-                                {isFree ? 'FREE' : isSubject ? 'Assigned' : 'Other'}
-                              </span>
+                        return periodsToRender.map((period) => {
+                          const entry = record.periods?.[period.id] ||
+                            (typeof period.sequence === 'number'
+                              ? Object.entries(record.periods || {}).find(([k]) => {
+                                  const match = k.match(/\d+/);
+                                  return match ? parseInt(match[0], 10) === period.sequence : false;
+                                })?.[1]
+                              : undefined);
+                          const isFree = !entry || entry.type === 'FREE';
+                          const isSubject = entry?.type === 'SUBJECT';
+
+                          return (
+                            <div
+                              key={period.id}
+                              className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
+                                isFree
+                                  ? 'bg-teal-950/40 border-teal-500/20 text-teal-200'
+                                  : isSubject
+                                  ? 'bg-kalyani-crimson-900/60 border-kalyani-gold-500/30 text-kalyani-gold-200'
+                                  : 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between font-bold">
+                                <span>{period.name || period.shortName}</span>
+                                <span className="text-[10px] uppercase font-semibold">
+                                  {isFree ? 'FREE' : isSubject ? 'Assigned' : 'Other'}
+                                </span>
+                              </div>
+                              <p className="mt-1 font-medium text-slate-100 truncate">
+                                {isFree && 'Available'}
+                                {isSubject && `${entry?.subjectCode || ''} ${entry?.subjectName || ''}`}
+                                {entry?.type === 'CUSTOM' && `Other: ${entry?.customText}`}
+                              </p>
                             </div>
-                            <p className="mt-1 font-medium text-slate-100 truncate">
-                              {isFree && 'Available'}
-                              {isSubject && `${entry?.subjectCode || ''} ${entry?.subjectName || ''}`}
-                              {entry?.type === 'CUSTOM' && `Other: ${entry?.customText}`}
-                            </p>
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 )}

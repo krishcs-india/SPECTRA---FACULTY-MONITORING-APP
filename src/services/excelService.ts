@@ -1,8 +1,46 @@
 import * as XLSX from 'xlsx';
+import { Capacitor } from '@capacitor/core';
 import { KalyaniUser, UserRole, HodType } from '../types/user';
 import { Subject } from '../types/subject';
 import { DayAvailabilityOverview } from '../types/schedule';
 import { formatTimeDisplay } from '../utils/dateUtils';
+
+/**
+ * Saves a workbook for the current platform:
+ * - Web: triggers a browser download
+ * - Android/iOS app: writes the file natively and opens the share sheet,
+ *   since WebView downloads are silently dropped
+ * Returns a human-friendly confirmation message.
+ */
+async function saveWorkbook(wb: XLSX.WorkBook, fileName: string): Promise<string> {
+  if (Capacitor.isNativePlatform?.()) {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+    const { Share } = await import('@capacitor/share');
+
+    const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const result = await Filesystem.writeFile({
+      path: fileName,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true
+    });
+
+    // Chrome-style system notification: "Download complete — tap to open"
+    const { notificationService } = await import('./notificationService');
+    await notificationService.native.notifyDownloadComplete(fileName, result.uri);
+
+    try {
+      await Share.share({ title: fileName, url: result.uri, dialogTitle: 'Save Excel File' });
+      return `✅ ${fileName} saved — choose a folder in the share sheet.`;
+    } catch {
+      // User dismissed the share sheet; the file is still saved
+      return `✅ ${fileName} saved to your device's Documents folder.`;
+    }
+  }
+
+  XLSX.writeFile(wb, fileName);
+  return `✅ ${fileName} downloaded successfully.`;
+}
 
 export interface UserImportRow {
   name: string;
@@ -46,7 +84,7 @@ export const excelService = {
   /**
    * Generates and downloads the Official Users Import Excel Template
    */
-  downloadUserTemplate(): void {
+  async downloadUserTemplate(): Promise<string> {
     const templateData = [
       {
         "Full Name": "Dr. Arun Kumar",
@@ -70,24 +108,24 @@ export const excelService = {
         "Role (ADMIN/HOD/AHOD/FACULTY)": "FACULTY",
       },
       {
-        "Full Name": "Dr. K. S. Rajan",
-        "College Email": "admin@krce.ac.in",
+        "Full Name": "Prof. Rajesh Kumar",
+        "College Email": "rajesh.cse@krce.ac.in",
         "Department Code": "CSE",
-        "Designation": "Principal & Chief Administrator",
-        "Role (ADMIN/HOD/AHOD/FACULTY)": "ADMIN",
+        "Designation": "Assistant Professor",
+        "Role (ADMIN/HOD/AHOD/FACULTY)": "FACULTY",
       }
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users_Template");
-    XLSX.writeFile(wb, "KRCE_Users_Import_Template.xlsx");
+    return await saveWorkbook(wb, "KRCE_Users_Import_Template.xlsx");
   },
 
   /**
    * Generates and downloads the Official Subjects Import Excel Template
    */
-  downloadSubjectTemplate(): void {
+  async downloadSubjectTemplate(): Promise<string> {
     const templateData = [
       {
         "Subject Code": "CS501",
@@ -110,7 +148,7 @@ export const excelService = {
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Subjects_Template");
-    XLSX.writeFile(wb, "KRCE_Subjects_Import_Template.xlsx");
+    return await saveWorkbook(wb, "KRCE_Subjects_Import_Template.xlsx");
   },
 
   /**
@@ -191,6 +229,102 @@ export const excelService = {
   },
 
   /**
+   * Generates and downloads a department staff Excel template for HODs
+   */
+  async downloadDepartmentStaffTemplate(departmentCode = 'CSE'): Promise<string> {
+    const templateData = [
+      {
+        "Faculty Name": "Dr. S. Karthikeyan",
+        "College Email": `karthik.${departmentCode.toLowerCase()}@krce.ac.in`,
+        "Position / Designation": "Associate Professor",
+        "Role Assignment (Faculty / Assistant HOD)": "Faculty"
+      },
+      {
+        "Faculty Name": "Mrs. Priya R.",
+        "College Email": `priya.${departmentCode.toLowerCase()}@krce.ac.in`,
+        "Position / Designation": "Assistant HOD",
+        "Role Assignment (Faculty / Assistant HOD)": "Assistant HOD"
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Department_Staff_Template");
+    return await saveWorkbook(wb, `KRCE_${departmentCode}_Staff_Template.xlsx`);
+  },
+
+  /**
+   * Parses an uploaded Excel/CSV file containing Department Staff data for HOD
+   */
+  async parseDepartmentStaffFile(
+    file: File,
+    existingEmails: Set<string>,
+    departmentId: string
+  ): Promise<ImportResult<UserImportRow>> {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rawRows: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+    const validRecords: UserImportRow[] = [];
+    const errors: { row: number; data: any; reason: string }[] = [];
+    const seenFileEmails = new Set<string>();
+    let duplicateCount = 0;
+
+    rawRows.forEach((row, idx) => {
+      const rowNumber = idx + 2;
+      const name = (row["Faculty Name"] || row["Full Name"] || row["Name"] || row["name"] || "").toString().trim();
+      const email = (row["College Email"] || row["Email"] || row["email"] || "").toString().trim().toLowerCase();
+      const designation = (row["Position / Designation"] || row["Designation"] || row["Position"] || row["designation"] || "Assistant Professor").toString().trim();
+      const rawRole = (row["Role Assignment (Faculty / Assistant HOD)"] || row["Role Assignment"] || row["Role"] || row["role"] || "FACULTY").toString().trim().toUpperCase();
+
+      if (!name) {
+        errors.push({ row: rowNumber, data: row, reason: "Missing faculty name" });
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        errors.push({ row: rowNumber, data: row, reason: "Invalid or missing college email" });
+        return;
+      }
+
+      if (existingEmails.has(email) || seenFileEmails.has(email)) {
+        duplicateCount++;
+        errors.push({ row: rowNumber, data: row, reason: `Email already exists (${email})` });
+        return;
+      }
+
+      seenFileEmails.add(email);
+
+      let role: UserRole = 'FACULTY';
+      let hodType: HodType = null;
+
+      if (rawRole.includes('AHOD') || rawRole.includes('ASSISTANT HOD') || designation.toLowerCase().includes('assistant hod')) {
+        role = 'FACULTY';
+        hodType = 'AHOD';
+      }
+
+      validRecords.push({
+        name,
+        email,
+        departmentCode: departmentId,
+        designation: hodType === 'AHOD' && (!designation || designation === 'Assistant Professor') ? 'Assistant HOD' : designation,
+        role,
+        hodType
+      });
+    });
+
+    return {
+      totalProcessed: rawRows.length,
+      validCount: validRecords.length,
+      duplicateCount,
+      errorCount: errors.length - duplicateCount,
+      validRecords,
+      errors
+    };
+  },
+
+  /**
    * Parses an uploaded Excel/CSV file containing Subjects data
    */
   async parseSubjectsFile(
@@ -249,7 +383,7 @@ export const excelService = {
   /**
    * Exports Daily Department Availability Matrix to Excel
    */
-  exportAvailabilityReport(overview: DayAvailabilityOverview, departmentName: string): void {
+  async exportAvailabilityReport(overview: DayAvailabilityOverview, departmentName: string): Promise<string> {
     const sanitize = (v: any) => excelService.sanitizeCell(v);
     const data = overview.facultyStatuses.map(f => {
       const row: Record<string, any> = {
@@ -285,6 +419,25 @@ export const excelService = {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Faculty_Availability");
-    XLSX.writeFile(wb, `Kalyani_Availability_${departmentName}_${overview.date}.xlsx`);
+    return await saveWorkbook(wb, `Kalyani_Availability_${departmentName}_${overview.date}.xlsx`);
+  },
+
+  /**
+   * Exports User / Staff Directory to Excel
+   */
+  async exportUserDirectory(userList: KalyaniUser[], fileNamePrefix = 'Kalyani_Staff_Directory'): Promise<string> {
+    const sanitize = (v: any) => excelService.sanitizeCell(v);
+    const data = userList.map(u => ({
+      "Full Name": sanitize(u.name),
+      "Email ID": sanitize(u.email),
+      "Department": sanitize(u.departmentName || u.departmentId),
+      "Designation": sanitize(u.designation),
+      "Role": u.hodType === 'AHOD' ? 'Assistant HOD' : u.role,
+      "Status": u.active ? 'Active' : 'Inactive'
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Staff_Directory");
+    return await saveWorkbook(wb, `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 };

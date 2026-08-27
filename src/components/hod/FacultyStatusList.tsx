@@ -45,10 +45,15 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | ScheduleStatus>('ALL');
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('ALL');
-  const [selectedFacultyForModal, setSelectedFacultyForModal] = useState<any | null>(null);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [facultyToToggle, setFacultyToToggle] = useState<KalyaniUser | null>(null);
   const [facultyToDelete, setFacultyToDelete] = useState<KalyaniUser | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+
+  const activeModalFaculty = React.useMemo(
+    () => overview.facultyStatuses.find((f) => f.facultyId === selectedFacultyId),
+    [overview.facultyStatuses, selectedFacultyId]
+  );
 
   // Auto-dismiss notification after 5 seconds
   useEffect(() => {
@@ -121,8 +126,13 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
     return true;
   });
 
-  const handleExportExcel = () => {
-    excelService.exportAvailabilityReport(overview, departmentName);
+  const handleExportExcel = async () => {
+    try {
+      const message = await excelService.exportAvailabilityReport(overview, departmentName);
+      setActionSuccessMsg(message);
+    } catch (err: any) {
+      setActionSuccessMsg(`Excel export failed: ${err?.message || 'unknown error'}`);
+    }
   };
 
 
@@ -218,7 +228,7 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
               variant="outline-gold"
               size="sm"
               leftIcon={<Eye className="w-3.5 h-3.5" />}
-              onClick={() => setSelectedFacultyForModal(row)}
+              onClick={() => setSelectedFacultyId(row.facultyId)}
               title="View Schedule Timeline"
             >
               View
@@ -293,19 +303,19 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
         data={filteredFaculty}
         keyExtractor={(row) => row.facultyId}
         emptyMessage="No faculty match the specified search or subject query."
-        onRowClick={(row) => setSelectedFacultyForModal(row)}
+        onRowClick={(row) => setSelectedFacultyId(row.facultyId)}
       />
 
-      {/* Detail Modal */}
-      {selectedFacultyForModal && (
+      {/* Detail Modal - Reactively bound to live incoming schedule updates */}
+      {activeModalFaculty && (
         <FacultyDetailModal
-          isOpen={Boolean(selectedFacultyForModal)}
-          onClose={() => setSelectedFacultyForModal(null)}
-          facultyName={selectedFacultyForModal.facultyName}
-          facultyDesignation={selectedFacultyForModal.facultyDesignation}
-          facultyEmail={selectedFacultyForModal.email}
+          isOpen={Boolean(activeModalFaculty)}
+          onClose={() => setSelectedFacultyId(null)}
+          facultyName={activeModalFaculty.facultyName}
+          facultyDesignation={activeModalFaculty.facultyDesignation}
+          facultyEmail={activeModalFaculty.email}
           date={overview.date}
-          schedule={selectedFacultyForModal.schedule}
+          schedule={activeModalFaculty.schedule}
           activePeriods={activePeriods}
         />
       )}

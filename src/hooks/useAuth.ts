@@ -7,7 +7,7 @@ export function useAuth() {
     isLoading,
     error,
     loginWithEmail,
-    loginWithAdminSecret,
+    loginWithAdminCredentials,
     loginAsUser,
     switchRoleQuickly,
     logout,
@@ -29,10 +29,10 @@ export function useAuth() {
     isAHOD,
     isFaculty,
     loginWithEmail,
-    loginWithAdminSecret,
+    loginWithAdminCredentials,
     loginAsUser,
     switchRoleQuickly,
     logout,
     clearError
   };
-}
+};

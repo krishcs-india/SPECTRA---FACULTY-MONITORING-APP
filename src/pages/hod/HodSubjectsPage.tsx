@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export const HodSubjectsPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const departmentId = currentUser?.departmentId || 'dept_cse';
+  const departmentId = currentUser?.departmentId || 'CSE';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">

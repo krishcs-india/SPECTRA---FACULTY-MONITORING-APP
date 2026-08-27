@@ -4,21 +4,21 @@ import { KalyaniStatCard } from '../../components/common/KalyaniStatCard';
 import { KalyaniCard } from '../../components/common/KalyaniCard';
 import { KalyaniButton } from '../../components/common/KalyaniButton';
 import { useAppStore } from '../../store/useAppStore';
-import { Users, Building2, Clock, BookOpen, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Users, Building2, Sparkles, ArrowRight } from 'lucide-react';
 
 interface AdminDashboardPageProps {
   onNavigate: (path: string) => void;
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNavigate }) => {
-  const users = useAppStore((state) => state.users);
-  const departments = useAppStore((state) => state.departments);
-  const periods = useAppStore((state) => state.periods);
-  const subjects = useAppStore((state) => state.subjects);
+  const users = useAppStore((state) => state.users || []);
+  const departments = useAppStore((state) => state.departments || []);
 
-  const activeUsers = users.filter((u) => u.active).length;
-  const activeDepts = departments.filter((d) => d.active).length;
-  const activePeriods = periods.filter((p) => p.active).length;
+  const activeUsers = (users || []).filter(
+    (u) => u && u.active !== false && u.role !== 'ADMIN' && u.uid !== 'usr_admin'
+  ).length;
+  const activeDepts = (departments || []).filter((d) => d && d.active !== false).length;
+  const hodCount = (departments || []).filter((d) => d && Boolean(d.hodUid || d.hodName)).length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -33,12 +33,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
         }
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 3 Core Admin Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
         <KalyaniStatCard
           title="Active Users"
           value={activeUsers}
-          subtitle="Faculty &amp; Administrators"
+          subtitle="Faculty &amp; Staff"
           variant="gold"
           icon={<Users className="w-6 h-6 text-kalyani-gold-300" />}
           onClick={() => onNavigate('/admin/users')}
@@ -47,28 +47,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
         <KalyaniStatCard
           title="Departments"
           value={activeDepts}
-          subtitle="Configured Faculties"
+          subtitle="Academic Branches"
           variant="emerald"
           icon={<Building2 className="w-6 h-6 text-emerald-400" />}
           onClick={() => onNavigate('/admin/departments')}
         />
 
         <KalyaniStatCard
-          title="Active Periods"
-          value={activePeriods}
-          subtitle="Dynamic Timetable Slots"
+          title="Appointed HODs"
+          value={hodCount}
+          subtitle="Department Leaders"
           variant="teal"
-          icon={<Clock className="w-6 h-6 text-teal-400" />}
-          onClick={() => onNavigate('/admin/periods')}
-        />
-
-        <KalyaniStatCard
-          title="Subject Master"
-          value={subjects.filter((s) => s.active).length}
-          subtitle="Official Courses"
-          variant="ruby"
-          icon={<BookOpen className="w-6 h-6 text-rose-400" />}
-          onClick={() => onNavigate('/hod/subjects')}
+          icon={<Sparkles className="w-6 h-6 text-teal-400" />}
+          onClick={() => onNavigate('/admin/hod-management')}
         />
       </div>
 
@@ -130,7 +121,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
           }
         >
           <p className="text-xs text-slate-300 leading-relaxed">
-            Configure Google Sign-In domain enforcement, institution branding name, academic semester cycles, and cloud synchronization settings.
+            Configure college branding, official email domain, and cloud database maintenance.
           </p>
         </KalyaniCard>
       </div>

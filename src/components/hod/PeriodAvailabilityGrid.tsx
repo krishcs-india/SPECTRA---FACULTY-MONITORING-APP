@@ -12,7 +12,12 @@ interface PeriodAvailabilityGridProps {
 export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
   periodsAvailability,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodAvailabilitySummary | null>(null);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+
+  const activePeriodModal = React.useMemo(
+    () => periodsAvailability.find((p) => p.periodId === selectedPeriodId),
+    [periodsAvailability, selectedPeriodId]
+  );
 
   return (
     <div className="space-y-4">
@@ -34,7 +39,7 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
             <KalyaniCard
               key={period.periodId}
               variant="card"
-              onClick={() => setSelectedPeriod(period)}
+              onClick={() => setSelectedPeriodId(period.periodId)}
               className="apple-hover group"
               bodyClassName="p-4 flex flex-col justify-between h-full"
             >
@@ -80,13 +85,13 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
         })}
       </div>
 
-      {/* Drilldown Modal: Who is available in this period */}
-      {selectedPeriod && (
+      {/* Drilldown Modal: Who is available in this period - Live Reactive */}
+      {activePeriodModal && (
         <KalyaniModal
-          isOpen={Boolean(selectedPeriod)}
-          onClose={() => setSelectedPeriod(null)}
+          isOpen={Boolean(activePeriodModal)}
+          onClose={() => setSelectedPeriodId(null)}
           maxWidth="lg"
-          title={`${selectedPeriod.periodName} Availability`}
+          title={`${activePeriodModal.periodName} Availability`}
           subtitle="Faculty availability breakdown for this period"
         >
           <div className="space-y-6">
@@ -95,18 +100,18 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-teal-300 flex items-center gap-1.5">
                   <Coffee className="w-4 h-4 text-teal-400" />
-                  Available Free Faculty ({selectedPeriod.freeFaculty.length})
+                  Available Free Faculty ({activePeriodModal.freeFaculty.length})
                 </h4>
                 <span className="text-[10px] text-teal-400/80">Confirmed available</span>
               </div>
 
-              {selectedPeriod.freeFaculty.length === 0 ? (
+              {activePeriodModal.freeFaculty.length === 0 ? (
                 <div className="p-4 rounded-xl bg-teal-950/20 border border-teal-500/20 text-xs text-slate-400 text-center">
                   No faculty available in this period.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {selectedPeriod.freeFaculty.map((f) => (
+                  {activePeriodModal.freeFaculty.map((f) => (
                     <div
                       key={f.facultyId}
                       className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 flex items-center justify-between"
@@ -129,18 +134,18 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-kalyani-gold-300 flex items-center gap-1.5 font-marcellus">
                   <BookOpen className="w-4 h-4 text-kalyani-gold-400" />
-                  Teaching / Assigned Faculty ({selectedPeriod.busyFaculty.length})
+                  Teaching / Assigned Faculty ({activePeriodModal.busyFaculty.length})
                 </h4>
                 <span className="text-[10px] text-slate-400 font-marcellus">Occupied with classes/duties</span>
               </div>
 
-              {selectedPeriod.busyFaculty.length === 0 ? (
+              {activePeriodModal.busyFaculty.length === 0 ? (
                 <div className="p-4 rounded-xl bg-kalyani-crimson-950/40 border border-kalyani-gold-500/20 text-xs text-slate-400 text-center font-marcellus">
                   No faculty teaching in this period.
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {selectedPeriod.busyFaculty.map((f) => (
+                  {activePeriodModal.busyFaculty.map((f) => (
                     <div
                       key={f.facultyId}
                       className="p-3.5 rounded-2xl bg-kalyani-crimson-900/50 border border-kalyani-gold-500/25 flex items-center justify-between gap-3"

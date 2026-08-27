@@ -3,7 +3,7 @@ import { PeriodEntry } from '../types/schedule';
 import { notificationService } from '../services/notificationService';
 
 export function useSchedule(facultyId: string, date: string) {
-  const schedule = useAppStore(state => state.getSchedule(facultyId, date));
+  const schedule = useAppStore(state => (facultyId && date ? state.schedules[`${facultyId}_${date}`] || null : null));
   const submitScheduleAction = useAppStore(state => state.submitSchedule);
   const submitFullDayFreeAction = useAppStore(state => state.submitFullDayFree);
   const history = useAppStore(state => state.getFacultyHistory(facultyId));

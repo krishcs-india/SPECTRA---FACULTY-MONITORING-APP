@@ -19,7 +19,7 @@ export interface FacultySchedule {
   departmentId: string;
   date: string; // ISO format: YYYY-MM-DD
   status: ScheduleStatus;
-  periods: Record<string, PeriodEntry>; // Keyed by periodId (e.g. "P01", "P02"...)
+  periods: Record<string, PeriodEntry>; // Keyed strictly by canonical periodId (e.g. "P_CSE_1", "P_CSE_2"...)
   submittedAt?: string;
   updatedAt?: string;
   notes?: string;

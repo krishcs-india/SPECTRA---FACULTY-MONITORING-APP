@@ -23,7 +23,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
         <ShieldAlert className="w-12 h-12 text-rose-400 mb-3" />
         <h2 className="text-xl font-bold text-slate-100">Authentication Required</h2>
         <p className="text-xs text-slate-400 max-w-md mt-1 mb-4">
-          Please authenticate with your college Google account to access Kalyani.
+          Please authenticate with your registered college email account to access Kalyani.
         </p>
       </div>
     );

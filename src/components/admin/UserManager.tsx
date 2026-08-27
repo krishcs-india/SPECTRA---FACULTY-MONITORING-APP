@@ -41,40 +41,39 @@ export const UserManager: React.FC = () => {
   }, [notificationMsg]);
 
   // Form states
+  const defaultDeptId = departments[0]?.id || 'CSE';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [departmentId, setDepartmentId] = useState('dept_cse');
+  const [departmentId, setDepartmentId] = useState(defaultDeptId);
   const [designation, setDesignation] = useState('Assistant Professor');
-  const [selectedRoleType, setSelectedRoleType] = useState<'FACULTY' | 'AHOD' | 'HOD' | 'ADMIN'>('FACULTY');
+  const [selectedRoleType, setSelectedRoleType] = useState<'FACULTY' | 'AHOD' | 'HOD'>('FACULTY');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = (users || []).filter((u) => {
+    // Admin is the system supervisor and must not be listed as a manageable directory user
+    if (u.role === 'ADMIN') return false;
+
     const matchesSearch =
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.designation.toLowerCase().includes(searchTerm.toLowerCase());
+      (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.designation || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!matchesSearch) return false;
 
     if (roleFilter !== 'ALL') {
-      if (roleFilter === 'ADMIN' && u.role !== 'ADMIN') return false;
       if (roleFilter === 'HOD' && (u.role !== 'HOD' || u.hodType === 'AHOD')) return false;
       if (roleFilter === 'AHOD' && u.hodType !== 'AHOD') return false;
       if (roleFilter === 'FACULTY' && (u.role !== 'FACULTY' || u.hodType === 'AHOD')) return false;
     }
 
-    if (deptFilter !== 'ALL' && u.departmentId !== deptFilter) return false;
+    if (deptFilter !== 'ALL' && (u.departmentId || '').toUpperCase() !== deptFilter.toUpperCase()) return false;
 
     return true;
   });
 
-  const handleRoleTypeChange = (val: 'FACULTY' | 'AHOD' | 'HOD' | 'ADMIN') => {
+  const handleRoleTypeChange = (val: 'FACULTY' | 'AHOD' | 'HOD') => {
     setSelectedRoleType(val);
-    if (val === 'ADMIN') {
-      if (!designation || designation === 'Assistant Professor' || designation === 'Assistant HOD') {
-        setDesignation('Principal & Chief Administrator');
-      }
-    } else if (val === 'HOD') {
+    if (val === 'HOD') {
       if (!designation || designation === 'Assistant Professor' || designation === 'Assistant HOD') {
         setDesignation('Professor & Head of Department');
       }
@@ -92,7 +91,7 @@ export const UserManager: React.FC = () => {
   const openAddModal = () => {
     setName('');
     setEmail('');
-    setDepartmentId('dept_cse');
+    setDepartmentId(departments[0]?.id || 'CSE');
     setDesignation('Assistant Professor');
     setSelectedRoleType('FACULTY');
     setFormError(null);
@@ -106,9 +105,7 @@ export const UserManager: React.FC = () => {
     setDepartmentId(u.departmentId);
     setDesignation(u.designation);
 
-    if (u.role === 'ADMIN') {
-      setSelectedRoleType('ADMIN');
-    } else if (u.role === 'HOD' && u.hodType !== 'AHOD') {
+    if (u.role === 'HOD' && u.hodType !== 'AHOD') {
       setSelectedRoleType('HOD');
     } else if (u.hodType === 'AHOD') {
       setSelectedRoleType('AHOD');
@@ -127,12 +124,14 @@ export const UserManager: React.FC = () => {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    const finalRole: UserRole = selectedRoleType === 'ADMIN' ? 'ADMIN' : selectedRoleType === 'HOD' ? 'HOD' : 'FACULTY';
+    const finalRole: UserRole = selectedRoleType === 'HOD' ? 'HOD' : 'FACULTY';
     const finalHodType: HodType = selectedRoleType === 'HOD' ? 'HOD' : selectedRoleType === 'AHOD' ? 'AHOD' : null;
+    const finalDepartmentId = departmentId;
+    const finalDepartmentName = departments.find((d) => d.id === departmentId)?.name || '';
     const finalDesignation = selectedRoleType === 'AHOD' && (!designation.trim() || designation === 'Assistant Professor') ? 'Assistant HOD' : designation.trim();
 
     if (editingUser) {
-      const duplicate = users.find((u) => u.email.toLowerCase() === cleanEmail && u.uid !== editingUser.uid);
+      const duplicate = (users || []).find((u) => (u.email || '').toLowerCase() === cleanEmail && u.uid !== editingUser.uid);
       if (duplicate) {
         setFormError(`User with email ${cleanEmail} already exists.`);
         return;
@@ -140,8 +139,8 @@ export const UserManager: React.FC = () => {
       updateUser(editingUser.uid, {
         name: name.trim(),
         email: cleanEmail,
-        departmentId,
-        departmentName: departments.find((d) => d.id === departmentId)?.name,
+        departmentId: finalDepartmentId,
+        departmentName: finalDepartmentName,
         designation: finalDesignation,
         role: finalRole,
         hodType: finalHodType,
@@ -149,7 +148,7 @@ export const UserManager: React.FC = () => {
       setEditingUser(null);
       setNotificationMsg(`User ${name} updated successfully.`);
     } else {
-      if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+      if ((users || []).some((u) => (u.email || '').toLowerCase() === cleanEmail)) {
         setFormError(`User with email ${cleanEmail} already exists.`);
         return;
       }
@@ -157,8 +156,8 @@ export const UserManager: React.FC = () => {
       addUser({
         name: name.trim(),
         email: cleanEmail,
-        departmentId,
-        departmentName: departments.find((d) => d.id === departmentId)?.name,
+        departmentId: finalDepartmentId,
+        departmentName: finalDepartmentName,
         designation: finalDesignation,
         role: finalRole,
         hodType: finalHodType,
@@ -215,11 +214,17 @@ export const UserManager: React.FC = () => {
     },
     {
       header: 'Department',
-      accessor: (row: KalyaniUser) => (
-        <span className="text-xs text-kalyani-gold-300 font-semibold">
-          {departments.find((d) => d.id === row.departmentId)?.code || row.departmentId}
-        </span>
-      ),
+      accessor: (row: KalyaniUser) => {
+        if (row.role === 'ADMIN') {
+          return <span className="text-xs text-slate-400 font-medium italic">Global (Institution)</span>;
+        }
+        const dept = departments.find((d) => d.id === row.departmentId);
+        return (
+          <span className="text-xs text-kalyani-gold-300 font-semibold">
+            {dept?.code || row.departmentId || '—'}
+          </span>
+        );
+      },
     },
     {
       header: 'Role & Authorization',
@@ -316,7 +321,7 @@ export const UserManager: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400/80 z-10 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
@@ -332,7 +337,6 @@ export const UserManager: React.FC = () => {
               onChange={(val) => setRoleFilter(val)}
               options={[
                 { value: 'ALL', label: 'All Roles' },
-                { value: 'ADMIN', label: 'Administrator' },
                 { value: 'HOD', label: 'Head of Dept (HOD)' },
                 { value: 'AHOD', label: 'Assistant HOD (AHOD)' },
                 { value: 'FACULTY', label: 'Faculty' },
@@ -361,7 +365,13 @@ export const UserManager: React.FC = () => {
             variant="glass"
             className="h-11 px-4 text-xs font-semibold rounded-2xl flex items-center"
             leftIcon={<Download className="w-4 h-4" />}
-            onClick={() => excelService.downloadUserTemplate()}
+            onClick={async () => {
+              try {
+                setNotificationMsg(await excelService.downloadUserTemplate());
+              } catch (e: any) {
+                setNotificationMsg(`Template download failed: ${e?.message || 'unknown error'}`);
+              }
+            }}
           >
             Template
           </KalyaniButton>
@@ -473,7 +483,6 @@ export const UserManager: React.FC = () => {
                   { value: 'FACULTY', label: 'Faculty' },
                   { value: 'AHOD', label: 'Assistant HOD (AHOD)' },
                   { value: 'HOD', label: 'Head of Dept (HOD)' },
-                  { value: 'ADMIN', label: 'Administrator' },
                 ]}
               />
 

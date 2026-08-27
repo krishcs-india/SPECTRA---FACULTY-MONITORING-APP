@@ -246,7 +246,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       {/* Top Header & Action Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400/80 z-10 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
@@ -261,7 +261,13 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
             variant="glass"
             className="h-11 px-4 text-xs font-semibold rounded-2xl flex items-center"
             leftIcon={<Download className="w-4 h-4" />}
-            onClick={() => excelService.downloadSubjectTemplate()}
+            onClick={async () => {
+              try {
+                setNotificationMsg(await excelService.downloadSubjectTemplate());
+              } catch (e: any) {
+                setNotificationMsg(`Template download failed: ${e?.message || 'unknown error'}`);
+              }
+            }}
           >
             Template
           </KalyaniButton>

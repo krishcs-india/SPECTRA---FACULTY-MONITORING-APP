@@ -2,7 +2,7 @@ import React from 'react';
 import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniBadge } from '../common/KalyaniBadge';
 import { Period } from '../../types/period';
-import { FacultySchedule } from '../../types/schedule';
+import { FacultySchedule, ScheduleStatus } from '../../types/schedule';
 import { BookOpen, Coffee, Sparkles, Calendar, Mail, User } from 'lucide-react';
 import { formatDateDisplay } from '../../utils/dateUtils';
 
@@ -27,7 +27,37 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
   schedule,
   activePeriods,
 }) => {
-  const status = schedule?.status || 'NOT_SUBMITTED';
+  const status: ScheduleStatus = schedule?.status || 'NOT_SUBMITTED';
+
+  const periodsToRender = React.useMemo(() => {
+    // 1. If activePeriods are provided, use activePeriods strictly sorted by sequence
+    if (activePeriods && activePeriods.length > 0) {
+      return [...activePeriods].sort((a, b) => {
+        const seqA = a.sequence ?? (parseInt((a.name || a.shortName || a.id || '').replace(/\D/g, ''), 10) || 999);
+        const seqB = b.sequence ?? (parseInt((b.name || b.shortName || b.id || '').replace(/\D/g, ''), 10) || 999);
+        return seqA - seqB;
+      });
+    }
+
+    // 2. Fallback: Extract from schedule.periods keys and sort numerically
+    const recordedKeys = Object.keys(schedule?.periods || {});
+    return recordedKeys
+      .map((k, idx) => {
+        const numMatch = k.match(/\d+/);
+        const num = numMatch ? parseInt(numMatch[0], 10) : idx + 1;
+        return {
+          id: k,
+          name: `Period ${num}`,
+          shortName: `P${num}`,
+          sequence: num,
+          startTime: '',
+          endTime: '',
+          active: true,
+          departmentId: '',
+        };
+      })
+      .sort((a, b) => a.sequence - b.sequence);
+  }, [schedule?.periods, activePeriods]);
 
   return (
     <KalyaniModal
@@ -78,7 +108,7 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
           </h4>
 
           <div className="space-y-2">
-            {activePeriods.map((period) => {
+            {periodsToRender.map((period) => {
               if (!schedule || status === 'NOT_SUBMITTED') {
                 return (
                   <div
@@ -113,7 +143,13 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                 );
               }
 
-              const entry = schedule.periods?.[period.id];
+              const entry = schedule.periods?.[period.id] ||
+                (typeof period.sequence === 'number'
+                  ? Object.entries(schedule.periods || {}).find(([k]) => {
+                      const match = k.match(/\d+/);
+                      return match ? parseInt(match[0], 10) === period.sequence : false;
+                    })?.[1]
+                  : undefined);
               const isFree = !entry || entry.type === 'FREE';
               const isSubject = entry?.type === 'SUBJECT';
 

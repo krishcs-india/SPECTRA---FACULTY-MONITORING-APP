@@ -59,13 +59,18 @@ export const HodAssignmentManager: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         {departments.map((dept) => {
-          const hodUser = users.find((u) => u.uid === dept.hodUid);
+          const hodUser =
+            users.find((u) => u.uid === dept.hodUid && u.active) ||
+            users.find((u) => u.departmentId === dept.id && u.role === 'HOD' && u.hodType !== 'AHOD' && u.active);
 
-          // Resolve all multiple AHODs for this department
+          // Resolve all multiple AHODs for this department dynamically
+          const directAhodUsers = users.filter((u) => u.departmentId === dept.id && u.hodType === 'AHOD' && u.active);
           const ahodUids = dept.ahodUids || (dept.ahodUid ? [dept.ahodUid] : []);
-          const ahodUsers = ahodUids
-            .map((uid) => users.find((u) => u.uid === uid))
+          const mappedAhodUsers = ahodUids
+            .map((uid) => users.find((u) => u.uid === uid && u.active))
             .filter(Boolean);
+
+          const ahodUsers = directAhodUsers.length > 0 ? directAhodUsers : mappedAhodUsers;
 
           return (
             <KalyaniCard

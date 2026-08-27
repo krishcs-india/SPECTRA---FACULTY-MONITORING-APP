@@ -5,21 +5,20 @@ import { PeriodAvailabilityGrid } from '../../components/hod/PeriodAvailabilityG
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { getTodayDateString } from '../../utils/dateUtils';
-import { BarChart3 } from 'lucide-react';
 
 export const HodAvailabilityPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const departmentId = currentUser?.departmentId || 'dept_cse';
+  const departmentId = currentUser?.departmentId || 'CSE';
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
 
   const getDepartmentAvailability = useAppStore((state) => state.getDepartmentAvailability);
   const schedules = useAppStore((state) => state.schedules);
   const users = useAppStore((state) => state.users);
-  const activePeriods = useAppStore((state) => state.getActivePeriods(departmentId));
+  const periods = useAppStore((state) => state.periods);
 
   const overview = useMemo(
     () => getDepartmentAvailability(departmentId, selectedDate),
-    [getDepartmentAvailability, departmentId, selectedDate, schedules, users, activePeriods.length]
+    [getDepartmentAvailability, departmentId, selectedDate, schedules, users, periods]
   );
 
   return (

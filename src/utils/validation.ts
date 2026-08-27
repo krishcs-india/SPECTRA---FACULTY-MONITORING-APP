@@ -10,8 +10,7 @@ export interface ValidationResult {
  * Flexible validation for faculty schedule periods
  */
 export function validateSchedulePeriods(
-  periods: Record<string, PeriodEntry>,
-  _maxAllowed?: number
+  periods: Record<string, PeriodEntry>
 ): ValidationResult {
   const assignedEntries = Object.values(periods).filter(
     (p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')

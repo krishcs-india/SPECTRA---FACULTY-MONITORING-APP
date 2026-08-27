@@ -4,20 +4,19 @@ import { Department } from '../types/department';
 import { Period } from '../types/period';
 import { Subject } from '../types/subject';
 import { FacultySchedule, PeriodEntry, DayAvailabilityOverview, PeriodAvailabilitySummary } from '../types/schedule';
-import { AcademicConfiguration, SystemSettings } from '../types/configuration';
+import { SystemSettings } from '../types/configuration';
 import {
   INITIAL_USERS,
   INITIAL_DEPARTMENTS,
   INITIAL_PERIODS,
-  INITIAL_SUBJECTS,
-  INITIAL_CONFIGS,
   INITIAL_SETTINGS,
-  generateInitialSchedules
+  normalizeDepartmentId,
+  createDefaultPeriodsForDepartment
 } from '../services/seedDataService';
 import { firestoreService } from '../services/firestoreService';
 import { isLiveFirebaseConfigured } from '../config/firebase';
-import { getTodayDateString } from '../utils/dateUtils';
 import { validateSchedulePeriods } from '../utils/validation';
+import { getTodayDateString } from '../utils/dateUtils';
 
 interface AppStoreState {
   users: KalyaniUser[];
@@ -25,13 +24,15 @@ interface AppStoreState {
   periods: Period[];
   subjects: Subject[];
   schedules: Record<string, FacultySchedule>;
-  academicConfigs: Record<string, AcademicConfiguration>;
   systemSettings: SystemSettings;
   isInitialized: boolean;
+  isCloudHydrated: boolean;
 
   // Initialization & Reset
   initStore: () => void;
   resetToDefaults: () => void;
+  rebuildDatabase: () => Promise<{ success: boolean; error?: string }>;
+  clearLocalCache: () => void;
 
   // Schedule Actions
   getSchedule: (facultyId: string, date: string) => FacultySchedule | null;
@@ -56,6 +57,7 @@ interface AppStoreState {
   addPeriod: (period: Omit<Period, 'id'>) => Period;
   updatePeriod: (id: string, updates: Partial<Period>) => void;
   deletePeriod: (id: string) => void;
+  cloneGlobalPeriodsForDepartment: (departmentId: string) => Period[];
 
   // User Management Actions
   addUser: (user: Omit<KalyaniUser, 'uid' | 'createdAt' | 'updatedAt'>) => KalyaniUser;
@@ -65,34 +67,31 @@ interface AppStoreState {
   assignHod: (departmentId: string, userUid: string, type: 'HOD' | 'AHOD') => void;
   removeAhod: (departmentId: string, userUid: string) => void;
 
-  // Configuration Actions
-  getDepartmentConfig: (departmentId: string) => AcademicConfiguration;
-  updateDepartmentConfig: (departmentId: string, updates: Partial<AcademicConfiguration>) => void;
+  // System Settings Actions
   updateSystemSettings: (updates: Partial<SystemSettings>) => void;
 
   // Department Actions
   addDepartment: (dept: Omit<Department, 'id' | 'createdAt'>) => Department;
   updateDepartment: (id: string, updates: Partial<Department>) => void;
+  deleteDepartment: (id: string) => void;
 
   // System & Database Reset Actions
   purgeDatabaseToCleanSlate: () => void;
 }
 
-const STORAGE_KEY = 'kalyani_system_storage_v2';
+const STORAGE_KEY = 'kalyani_system_storage_v4';
 
-// Guards against double initialization (React StrictMode mounts effects twice),
-// which would attach duplicate Firestore listeners that are never torn down
 let storeInitStarted = false;
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
-  users: INITIAL_USERS,
-  departments: INITIAL_DEPARTMENTS,
-  periods: INITIAL_PERIODS,
-  subjects: INITIAL_SUBJECTS,
+  users: [],
+  departments: [],
+  periods: [],
+  subjects: [],
   schedules: {},
-  academicConfigs: INITIAL_CONFIGS,
   systemSettings: INITIAL_SETTINGS,
   isInitialized: false,
+  isCloudHydrated: !isLiveFirebaseConfigured,
 
   initStore: () => {
     if (storeInitStarted) return;
@@ -100,18 +99,27 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
     const sanitizeUsers = (userList: KalyaniUser[]): KalyaniUser[] => {
       return userList.map((u) => {
-        let email = u.email;
-        if (email.includes('@kalyani.college.edu.in') || email.includes('@college.edu.in')) {
-          email = email.replace(/@(kalyani\.college\.edu\.in|college\.edu\.in)/g, '@krce.ac.in');
-        }
-        let role = u.role;
-        let hodType = u.hodType;
-        let designation = u.designation;
+        let email = (u.email || '').trim().toLowerCase();
+        const rawRole = (u.role || '').toString().toUpperCase().trim();
+        const rawHodType = (u.hodType || '').toString().toUpperCase().trim();
+        const rawDesig = (u.designation || '').trim();
 
-        if (u.uid === 'usr_ahod_meena' || hodType === 'AHOD') {
+        let role: UserRole = 'FACULTY';
+        let hodType: HodType = null;
+        let designation = rawDesig || 'Assistant Professor';
+
+        if (rawRole === 'ADMIN' || u.uid === 'usr_admin') {
+          role = 'ADMIN';
+          hodType = null;
+          designation = 'System Administrator';
+        } else if (rawHodType === 'AHOD' || rawDesig.toLowerCase().includes('assistant hod')) {
           role = 'FACULTY';
           hodType = 'AHOD';
-          designation = 'Assistant HOD';
+          designation = rawDesig || 'Assistant HOD';
+        } else if (rawRole === 'HOD' || rawDesig.toLowerCase().includes('head of department')) {
+          role = 'HOD';
+          hodType = 'HOD';
+          designation = rawDesig || 'Professor & Head of Department';
         }
 
         return {
@@ -119,7 +127,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           email,
           role,
           hodType,
-          designation
+          designation,
+          departmentId: (u.departmentId || '').trim().toUpperCase(),
+          active: u.active !== false
         };
       });
     };
@@ -128,175 +138,193 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       return {
         ...INITIAL_SETTINGS,
         ...(settings || {}),
-        // Only fall back to institutional defaults when the admin hasn't saved one
         collegeName: settings?.collegeName || INITIAL_SETTINGS.collegeName,
         collegeDomain: settings?.collegeDomain || INITIAL_SETTINGS.collegeDomain
       };
     };
 
-    // 1. Initialize local cache
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const updatedPeriods = (parsed.periods || INITIAL_PERIODS).map((p: any) => ({
-          ...p,
-          name: p.name.includes('Period') ? p.name.replace(/(\d+)(st|nd|rd|th)\s+Period/i, 'Period $1') : `Period ${p.sequence}`,
-          shortName: p.shortName.startsWith('P') && p.shortName.length <= 3 ? `Period ${p.sequence}` : p.shortName
-        }));
+    const persist = () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(get()));
+      } catch {}
+    };
 
-        const updatedDepts = (parsed.departments || INITIAL_DEPARTMENTS).map((d: Department) => {
-          const uids = d.ahodUids || (d.ahodUid ? [d.ahodUid] : []);
-          const names = d.ahodNames || (d.ahodName ? [d.ahodName] : []);
-          return {
-            ...d,
-            ahodUids: uids,
-            ahodNames: names
-          };
-        });
-
-        const cleanUsers = sanitizeUsers(parsed.users || INITIAL_USERS);
-        const cleanSettings = sanitizeSettings(parsed.systemSettings);
-
+    if (!isLiveFirebaseConfigured) {
+      // Local fallback mode
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) : null;
+        if (parsed) {
+          set({
+            users: sanitizeUsers(parsed.users || INITIAL_USERS),
+            departments: parsed.departments || INITIAL_DEPARTMENTS,
+            periods: parsed.periods || INITIAL_PERIODS,
+            subjects: parsed.subjects || [],
+            schedules: parsed.schedules || {},
+            systemSettings: sanitizeSettings(parsed.systemSettings),
+            isCloudHydrated: true,
+            isInitialized: true
+          });
+        } else {
+          set({
+            users: sanitizeUsers(INITIAL_USERS),
+            departments: INITIAL_DEPARTMENTS,
+            periods: INITIAL_PERIODS,
+            subjects: [],
+            schedules: {},
+            systemSettings: INITIAL_SETTINGS,
+            isCloudHydrated: true,
+            isInitialized: true
+          });
+        }
+      } catch (e) {
+        console.warn('Storage hydration notice:', e);
         set({
-          users: cleanUsers,
-          departments: updatedDepts,
-          periods: updatedPeriods,
-          subjects: parsed.subjects || INITIAL_SUBJECTS,
-          schedules: isLiveFirebaseConfigured
-            ? (parsed.schedules || {})
-            : { ...generateInitialSchedules(), ...(parsed.schedules || {}) },
-          academicConfigs: parsed.academicConfigs || INITIAL_CONFIGS,
-          systemSettings: cleanSettings,
-          isInitialized: true
-        });
-
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            ...get(),
-            users: cleanUsers,
-            systemSettings: cleanSettings
-          }));
-        } catch {}
-      } else {
-        const initialSchedules = isLiveFirebaseConfigured ? {} : generateInitialSchedules();
-        const cleanUsers = sanitizeUsers(INITIAL_USERS);
-        set({
-          users: cleanUsers,
+          users: sanitizeUsers(INITIAL_USERS),
           departments: INITIAL_DEPARTMENTS,
           periods: INITIAL_PERIODS,
-          subjects: INITIAL_SUBJECTS,
-          schedules: initialSchedules,
-          academicConfigs: INITIAL_CONFIGS,
+          subjects: [],
+          schedules: {},
           systemSettings: INITIAL_SETTINGS,
+          isCloudHydrated: true,
           isInitialized: true
         });
       }
-    } catch (e) {
-      console.warn('Failed to load storage, initializing fresh seed data', e);
+    } else {
+      // LIVE FIREBASE MODE:
+      set({
+        users: INITIAL_USERS,
+        departments: INITIAL_DEPARTMENTS,
+        periods: INITIAL_PERIODS,
+        subjects: [],
+        schedules: {},
+        systemSettings: INITIAL_SETTINGS,
+        isCloudHydrated: false,
+        isInitialized: true
+      });
     }
 
-    // Refresh active session with sanitized credentials
     try {
       import('./useAuthStore').then((m) => m.useAuthStore.getState().refreshActiveUser());
     } catch {}
 
-    // 2. Attach live real-time Firestore database listeners & seed if needed
-    firestoreService.ensureDatabaseInitialized();
+    // LIVE MODE: Real-time Cloud Firestore synchronization
+    if (isLiveFirebaseConfigured) {
+      firestoreService.registerSyncHandlers({
+        onUsers: (data) => {
+          let cleanUsers: KalyaniUser[] = [];
+          if (Array.isArray(data) && data.length > 0) {
+            cleanUsers = sanitizeUsers(data as KalyaniUser[]);
+          } else {
+            cleanUsers = INITIAL_USERS;
+          }
+          const depts = get().departments.length > 0 ? get().departments : INITIAL_DEPARTMENTS;
+          // Ensure departmentName is accurately populated
+          const enrichedUsers = cleanUsers.map((u) => {
+            if (u.role === 'ADMIN') {
+              return { ...u, departmentName: 'Institutional Administration' };
+            }
+            if (u.departmentId) {
+              const matchedDept = depts.find((d) => d.id === u.departmentId || d.code === u.departmentId);
+              if (matchedDept) {
+                return { ...u, departmentName: matchedDept.name };
+              }
+            }
+            return u;
+          });
 
-    firestoreService.subscribeSchedules((incomingSchedules) => {
-      set((prev) => {
-        const merged = { ...prev.schedules, ...incomingSchedules };
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, schedules: merged }));
-        } catch {}
-        return { schedules: merged };
+          set({ users: enrichedUsers, isCloudHydrated: true });
+          try {
+            import('./useAuthStore').then((m) => m.useAuthStore.getState().refreshActiveUser());
+          } catch {}
+          persist();
+        },
+        onDepartments: (data) => {
+          let depts: Department[] = [];
+          if (Array.isArray(data) && data.length > 0) {
+            depts = (data as Department[]).map((d) => ({
+              ...d,
+              id: (d.id || d.code || '').trim().toUpperCase(),
+              code: (d.code || d.id || '').trim().toUpperCase(),
+              active: d.active !== false
+            }));
+          } else {
+            depts = INITIAL_DEPARTMENTS;
+          }
+          set({ departments: depts });
+          persist();
+        },
+        onSubjects: (data) => {
+          set({ subjects: Array.isArray(data) ? (data as Subject[]) : [] });
+          persist();
+        },
+        onPeriods: (data) => {
+          set({ periods: Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS });
+          persist();
+        },
+        onSystemSettings: (data) => {
+          if (data && typeof data === 'object') {
+            set({ systemSettings: sanitizeSettings(data as SystemSettings) });
+            persist();
+          }
+        },
+        onSchedules: (data) => {
+          if (data && typeof data === 'object') {
+            set({ schedules: data as Record<string, FacultySchedule> });
+            persist();
+          }
+        }
       });
-    });
 
-    firestoreService.subscribeUsers((incomingUsers) => {
-      if (incomingUsers.length > 0) {
-        const cleanUsers = sanitizeUsers(incomingUsers);
-        set((prev) => {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, users: cleanUsers }));
-          } catch {}
-          return { users: cleanUsers };
-        });
-        try {
-          import('./useAuthStore').then((m) => m.useAuthStore.getState().refreshActiveUser());
-        } catch {}
-      }
-    });
-
-    firestoreService.subscribeDepartments((incomingDepts) => {
-      if (incomingDepts.length > 0) {
-        set((prev) => {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, departments: incomingDepts }));
-          } catch {}
-          return { departments: incomingDepts };
-        });
-      }
-    });
-
-    firestoreService.subscribeSubjects((incomingSubjects) => {
-      if (incomingSubjects.length > 0) {
-        set((prev) => {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, subjects: incomingSubjects }));
-          } catch {}
-          return { subjects: incomingSubjects };
-        });
-      }
-    });
-
-    firestoreService.subscribePeriods((incomingPeriods) => {
-      if (incomingPeriods.length > 0) {
-        set((prev) => {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, periods: incomingPeriods }));
-          } catch {}
-          return { periods: incomingPeriods };
-        });
-      }
-    });
-
-    firestoreService.subscribeSystemSettings((incomingSettings) => {
-      if (incomingSettings) {
-        set((prev) => {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, systemSettings: incomingSettings }));
-          } catch {}
-          return { systemSettings: incomingSettings };
-        });
-      }
-    });
-
-    firestoreService.subscribeAcademicConfigs((incomingConfigs) => {
-      if (incomingConfigs && Object.keys(incomingConfigs).length > 0) {
-        set((prev) => {
-          const merged = { ...prev.academicConfigs, ...incomingConfigs };
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, academicConfigs: merged }));
-          } catch {}
-          return { academicConfigs: merged };
-        });
-      }
-    });
+      firestoreService.initRealtimeSync();
+    }
   },
 
   resetToDefaults: () => {
     localStorage.removeItem(STORAGE_KEY);
-    const initialSchedules = generateInitialSchedules();
     set({
       users: INITIAL_USERS,
       departments: INITIAL_DEPARTMENTS,
       periods: INITIAL_PERIODS,
-      subjects: INITIAL_SUBJECTS,
-      schedules: initialSchedules,
-      academicConfigs: INITIAL_CONFIGS,
-      systemSettings: INITIAL_SETTINGS
+      subjects: [],
+      schedules: {},
+      systemSettings: INITIAL_SETTINGS,
+      isCloudHydrated: true
+    });
+  },
+
+  rebuildDatabase: async () => {
+    const result = await firestoreService.rebuildAndSeedDatabase();
+    if (result.success) {
+      set({
+        users: INITIAL_USERS,
+        departments: INITIAL_DEPARTMENTS,
+        periods: INITIAL_PERIODS,
+        subjects: [],
+        schedules: {},
+        systemSettings: INITIAL_SETTINGS,
+        isCloudHydrated: true
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(get()));
+      } catch {}
+      try {
+        import('./useAuthStore').then((m) => m.useAuthStore.getState().refreshActiveUser());
+      } catch {}
+    }
+    return result;
+  },
+
+  clearLocalCache: () => {
+    localStorage.removeItem(STORAGE_KEY);
+    set({
+      users: INITIAL_USERS,
+      departments: INITIAL_DEPARTMENTS,
+      periods: INITIAL_PERIODS,
+      subjects: [],
+      schedules: {},
+      isCloudHydrated: false,
+      isInitialized: true
     });
   },
 
@@ -307,16 +335,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   submitSchedule: (facultyId: string, date: string, periods: Record<string, PeriodEntry>) => {
     const state = get();
-    const faculty = state.users.find(u => u.uid === facultyId);
+    const faculty = state.users.find((u) => u.uid === facultyId);
     if (!faculty) {
       return { success: false, error: 'Faculty record not found' };
     }
 
-    const deptConfig = state.getDepartmentConfig(faculty.departmentId);
-    const maxAllowed = deptConfig?.maxAssignedPeriodsPerDay ?? 3;
-
-    // Dynamic validation
-    const validation = validateSchedulePeriods(periods, maxAllowed);
+    const validation = validateSchedulePeriods(periods);
     if (!validation.isValid) {
       return { success: false, error: validation.error };
     }
@@ -344,7 +368,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), schedules: nextSchedules }));
     } catch {}
 
-    // Cloud Firestore Sync
+    // Real-time Cloud Firestore sync
     firestoreService.saveSchedule(newSchedule);
 
     return { success: true };
@@ -352,14 +376,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   submitFullDayFree: (facultyId: string, date: string) => {
     const state = get();
-    const faculty = state.users.find(u => u.uid === facultyId);
+    const faculty = state.users.find((u) => u.uid === facultyId);
     if (!faculty) {
       return { success: false, error: 'Faculty record not found' };
     }
 
     const activePeriods = state.getActivePeriods(faculty.departmentId);
     const freePeriods: Record<string, PeriodEntry> = {};
-    activePeriods.forEach(p => {
+    activePeriods.forEach((p) => {
       freePeriods[p.id] = { type: 'FREE' };
     });
 
@@ -386,7 +410,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), schedules: nextSchedules }));
     } catch {}
 
-    // Cloud Firestore Sync
+    // Real-time Cloud Firestore sync
     firestoreService.saveSchedule(newSchedule);
 
     return { success: true };
@@ -394,22 +418,29 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   getDepartmentAvailability: (departmentId: string, date: string): DayAvailabilityOverview => {
     const state = get();
-    // Only include teaching faculty and Assistant HODs (AHOD). Exclude Main HOD and Administrator from faculty submissions roster
-    const deptFaculty = state.users.filter(
-      u => u.departmentId === departmentId &&
-           u.active &&
-           u.role !== 'ADMIN' &&
-           (u.role !== 'HOD' || u.hodType === 'AHOD')
-    );
-    const activePeriods = state.getAllDepartmentPeriods(departmentId);
+    const cleanDept = normalizeDepartmentId(departmentId);
+
+    // HOD monitors faculty and AHODs in their department. Main HOD never appears in staff list.
+    const deptFaculty = state.users.filter((u) => {
+      if (normalizeDepartmentId(u.departmentId) !== cleanDept || !u.active || u.role === 'ADMIN') return false;
+      const isMainHod = (u.role === 'HOD' || (u.designation || '').toLowerCase().includes('head of department')) && u.hodType !== 'AHOD';
+      return !isMainHod;
+    });
+    const activePeriods = state.getActivePeriods(cleanDept);
 
     let submittedCount = 0;
     let fullDayFreeCount = 0;
     let notSubmittedCount = 0;
 
-    const facultyStatuses = deptFaculty.map(faculty => {
+    const facultyStatuses = deptFaculty.map((faculty) => {
       const key = `${faculty.uid}_${date}`;
-      const schedule = state.schedules[key];
+      let schedule: FacultySchedule | undefined = state.schedules[key];
+      if (!schedule && faculty.email) {
+        const cleanEmail = faculty.email.toLowerCase().trim();
+        schedule = Object.values(state.schedules).find(
+          (s) => (s.facultyEmail || '').toLowerCase().trim() === cleanEmail && s.date === date
+        );
+      }
 
       let status: FacultySchedule['status'] = 'NOT_SUBMITTED';
       let assignedCount = 0;
@@ -419,7 +450,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         if (status === 'SUBMITTED') {
           submittedCount++;
           assignedCount = Object.values(schedule.periods || {}).filter(
-            p => p && p.type !== 'FREE'
+            (p) => p && p.type !== 'FREE'
           ).length;
         } else if (status === 'FULL_DAY_FREE') {
           fullDayFreeCount++;
@@ -444,15 +475,20 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     });
 
     // Build period-wise matrix
-    const periodAvailability: PeriodAvailabilitySummary[] = activePeriods.map(period => {
+    const periodAvailability: PeriodAvailabilitySummary[] = activePeriods.map((period) => {
       const freeFaculty: PeriodAvailabilitySummary['freeFaculty'] = [];
       const busyFaculty: PeriodAvailabilitySummary['busyFaculty'] = [];
 
-      deptFaculty.forEach(faculty => {
+      deptFaculty.forEach((faculty) => {
         const key = `${faculty.uid}_${date}`;
-        const schedule = state.schedules[key];
+        let schedule: FacultySchedule | undefined = state.schedules[key];
+        if (!schedule && faculty.email) {
+          const cleanEmail = faculty.email.toLowerCase().trim();
+          schedule = Object.values(state.schedules).find(
+            (s) => (s.facultyEmail || '').toLowerCase().trim() === cleanEmail && s.date === date
+          );
+        }
 
-        // ONLY count faculty who have explicitly submitted or marked full day free
         if (!schedule || schedule.status === 'NOT_SUBMITTED') {
           return;
         }
@@ -467,7 +503,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           return;
         }
 
-        const entry = schedule.periods[period.id];
+        const entry = schedule.periods?.[period.id];
         if (!entry || entry.type === 'FREE') {
           freeFaculty.push({
             facultyId: faculty.uid,
@@ -526,29 +562,52 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   getFacultyHistory: (facultyId: string): FacultySchedule[] => {
     const state = get();
     return Object.values(state.schedules)
-      .filter(s => s.facultyId === facultyId)
+      .filter((s) => s.facultyId === facultyId)
       .sort((a, b) => b.date.localeCompare(a.date));
   },
 
   getDepartmentSubjects: (departmentId: string) => {
-    return get().subjects
-      .filter(s => s.departmentId === departmentId && s.active)
-      .sort((a, b) => a.subjectCode.localeCompare(b.subjectCode));
+    const state = get();
+    const cleanDept = normalizeDepartmentId(departmentId);
+    return state.subjects
+      .filter((s) => {
+        if (!s || s.active === false) return false;
+        const sDept = normalizeDepartmentId(s.departmentId);
+        return !s.departmentId || s.departmentId === 'GLOBAL' || sDept === cleanDept;
+      })
+      .sort((a, b) => (a.subjectCode || '').localeCompare(b.subjectCode || ''));
   },
 
   addSubject: (subjectData) => {
-    const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const cleanDept = normalizeDepartmentId(subjectData.departmentId);
+    const cleanCode = (subjectData.subjectCode || '').trim().toUpperCase();
+    const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
+    const id = safeCodeStr
+      ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}`
+      : `sub_${cleanDept.toLowerCase()}_${Date.now().toString(36)}`;
     const now = new Date().toISOString();
     const newSubject: Subject = {
       ...subjectData,
+      subjectCode: cleanCode,
+      subjectName: subjectData.subjectName.trim(),
+      departmentId: cleanDept,
       id,
+      active: subjectData.active !== false,
       createdAt: now,
       updatedAt: now
     };
-    const next = [...get().subjects, newSubject];
-    set({ subjects: next });
+
+    const currentSubjects = [...get().subjects];
+    const existingIdx = currentSubjects.findIndex((s) => s.id === id);
+    if (existingIdx >= 0) {
+      currentSubjects[existingIdx] = newSubject;
+    } else {
+      currentSubjects.push(newSubject);
+    }
+
+    set({ subjects: currentSubjects });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: next }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: currentSubjects }));
     } catch {}
 
     firestoreService.saveSubject(newSubject);
@@ -557,9 +616,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   updateSubject: (id, updates) => {
     let updated: Subject | undefined;
-    const next = get().subjects.map(s => {
+    const next = get().subjects.map((s) => {
       if (s.id === id) {
-        updated = { ...s, ...updates, updatedAt: new Date().toISOString() };
+        updated = {
+          ...s,
+          ...updates,
+          ...(updates.departmentId ? { departmentId: normalizeDepartmentId(updates.departmentId) } : {}),
+          updatedAt: new Date().toISOString()
+        };
         return updated;
       }
       return s;
@@ -573,7 +637,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   deleteSubject: (id) => {
-    const next = get().subjects.filter(s => s.id !== id);
+    const next = get().subjects.filter((s) => s.id !== id);
     set({ subjects: next });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: next }));
@@ -584,7 +648,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   toggleSubjectActive: (id, active) => {
     let updated: Subject | undefined;
-    const next = get().subjects.map(s => {
+    const next = get().subjects.map((s) => {
       if (s.id === id) {
         updated = { ...s, active, updatedAt: new Date().toISOString() };
         return updated;
@@ -601,7 +665,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   bulkDeleteSubjects: (ids) => {
     const setIds = new Set(ids);
-    const next = get().subjects.filter(s => !setIds.has(s.id));
+    const next = get().subjects.filter((s) => !setIds.has(s.id));
     set({ subjects: next });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: next }));
@@ -611,38 +675,67 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   bulkImportSubjects: (departmentId, items) => {
+    const cleanDept = normalizeDepartmentId(departmentId);
     const now = new Date().toISOString();
-    const newSubjects: Subject[] = items.map(it => ({
-      ...it,
-      id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      departmentId,
-      active: true,
-      createdAt: now,
-      updatedAt: now
-    }));
-    const next = [...get().subjects, ...newSubjects];
-    set({ subjects: next });
+    const newSubjects: Subject[] = items.map((it) => {
+      const cleanCode = (it.subjectCode || '').trim().toUpperCase();
+      const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
+      const id = safeCodeStr
+        ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}`
+        : `sub_${cleanDept.toLowerCase()}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 4)}`;
+      return {
+        ...it,
+        subjectCode: cleanCode,
+        subjectName: it.subjectName.trim(),
+        id,
+        departmentId: cleanDept,
+        active: true,
+        createdAt: now,
+        updatedAt: now
+      };
+    });
+
+    const currentSubjects = [...get().subjects];
+    newSubjects.forEach((newSub) => {
+      const existingIdx = currentSubjects.findIndex((s) => s.id === newSub.id);
+      if (existingIdx >= 0) {
+        currentSubjects[existingIdx] = newSub;
+      } else {
+        currentSubjects.push(newSub);
+      }
+    });
+
+    set({ subjects: currentSubjects });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: next }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: currentSubjects }));
     } catch {}
 
-    newSubjects.forEach(s => firestoreService.saveSubject(s));
+    newSubjects.forEach((s) => firestoreService.saveSubject(s));
     return newSubjects.length;
   },
 
   getActivePeriods: (departmentId?: string) => {
-    // Periods are always "active" — disabling was removed. Kept for compatibility.
-    return get().periods
-      .filter(p => !p.departmentId || p.departmentId === departmentId || p.departmentId === 'GLOBAL')
-      .sort((a, b) => a.sequence - b.sequence);
+    const all = get().periods;
+    const cleanDept = normalizeDepartmentId(departmentId) || 'CSE';
+    const deptPeriods = all.filter(
+      (p) => normalizeDepartmentId(p.departmentId) === cleanDept && p.active !== false
+    );
+    if (deptPeriods.length > 0) {
+      return deptPeriods.sort((a, b) => a.sequence - b.sequence);
+    }
+    return createDefaultPeriodsForDepartment(cleanDept);
   },
 
-  // Includes disabled periods — needed for historical views/exports so past
-  // records for periods that were later disabled remain visible
   getAllDepartmentPeriods: (departmentId?: string) => {
-    return get().periods
-      .filter(p => !p.departmentId || p.departmentId === departmentId || p.departmentId === 'GLOBAL')
-      .sort((a, b) => a.sequence - b.sequence);
+    const all = get().periods;
+    const cleanDept = normalizeDepartmentId(departmentId) || 'CSE';
+    const deptPeriods = all.filter(
+      (p) => normalizeDepartmentId(p.departmentId) === cleanDept
+    );
+    if (deptPeriods.length > 0) {
+      return deptPeriods.sort((a, b) => a.sequence - b.sequence);
+    }
+    return createDefaultPeriodsForDepartment(cleanDept);
   },
 
   getAllPeriods: () => {
@@ -650,34 +743,55 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   addPeriod: (periodData) => {
-    // Generate a collision-proof id: never reuse an id that already exists
-    // (deleting a period must not cause a future add to overwrite old docs)
-    const existingIds = new Set(get().periods.map(p => p.id));
-    let id = `P${String(get().periods.length + 1).padStart(2, '0')}`;
-    while (existingIds.has(id)) {
-      id = `P${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
-    }
-    const nextSequence = get().periods.reduce((max, p) => Math.max(max, p.sequence), 0) + 1;
+    const cleanDept = normalizeDepartmentId(periodData.departmentId) || 'CSE';
+    const deptPeriods = get().periods.filter((p) => normalizeDepartmentId(p.departmentId) === cleanDept);
+    const nextSequence = periodData.sequence || (deptPeriods.reduce((max, p) => Math.max(max, p.sequence), 0) + 1);
+    const id = `P_${cleanDept}_${nextSequence}`;
     const newPeriod: Period = {
       ...periodData,
+      departmentId: cleanDept,
       id,
-      sequence: periodData.sequence || nextSequence
+      sequence: nextSequence,
+      name: periodData.name || `Period ${nextSequence}`,
+      shortName: periodData.shortName || `Period ${nextSequence}`,
+      active: true
     };
-    const next = [...get().periods, newPeriod];
-    set({ periods: next });
+    const nextPeriods = [...get().periods.filter((p) => p.id !== id), newPeriod];
+
+    // Period count changed: invalidate TODAY'S schedules for this department so faculties are notified to resubmit
+    const today = getTodayDateString();
+    const nextSchedules = { ...get().schedules };
+    let schedulesChanged = false;
+
+    Object.keys(nextSchedules).forEach((key) => {
+      const s = nextSchedules[key];
+      if (normalizeDepartmentId(s.departmentId) === cleanDept && s.date === today) {
+        delete nextSchedules[key];
+        schedulesChanged = true;
+      }
+    });
+
+    set({ periods: nextPeriods, ...(schedulesChanged ? { schedules: nextSchedules } : {}) });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: next }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: nextPeriods, ...(schedulesChanged ? { schedules: nextSchedules } : {}) }));
     } catch {}
 
     firestoreService.savePeriod(newPeriod);
+    if (schedulesChanged) {
+      firestoreService.deleteTodaySchedulesForDepartment(cleanDept, today);
+    }
     return newPeriod;
   },
 
   updatePeriod: (id, updates) => {
     let updated: Period | undefined;
-    const next = get().periods.map(p => {
+    const next = get().periods.map((p) => {
       if (p.id === id) {
-        updated = { ...p, ...updates };
+        updated = {
+          ...p,
+          ...updates,
+          ...(updates.departmentId ? { departmentId: normalizeDepartmentId(updates.departmentId) } : {})
+        };
         return updated;
       }
       return p;
@@ -690,89 +804,205 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     if (updated) firestoreService.savePeriod(updated);
   },
 
-  // Deletes a period and renumbers the remaining ones (1..n) so they stay
-  // aligned. Historical schedules are NEVER modified — the deletion only
-  // affects future daily forms and views built from the current period list.
   deletePeriod: (id) => {
-    const remaining = get().periods
-      .filter(p => p.id !== id)
-      .sort((a, b) => a.sequence - b.sequence)
-      .map((p, index) => ({ ...p, sequence: index + 1 }));
+    const all = get().periods;
+    const removed = all.find((p) => p.id === id);
+    if (!removed) return;
+    const cleanDept = normalizeDepartmentId(removed.departmentId) || 'CSE';
 
-    set({ periods: remaining });
+    // Renumber only the remaining periods of this department with sequential names & canonical IDs: P_${cleanDept}_1...
+    const remaining = all
+      .filter((p) => p.id !== id && normalizeDepartmentId(p.departmentId) === cleanDept)
+      .sort((a, b) => a.sequence - b.sequence)
+      .map((p, index) => {
+        const seq = index + 1;
+        return {
+          ...p,
+          id: `P_${cleanDept}_${seq}`,
+          departmentId: cleanDept,
+          sequence: seq,
+          name: `Period ${seq}`,
+          shortName: `Period ${seq}`
+        };
+      });
+
+    const otherDeptsPeriods = all.filter((p) => normalizeDepartmentId(p.departmentId) !== cleanDept);
+    const nextPeriods = [...otherDeptsPeriods, ...remaining];
+
+    // Period count changed: invalidate TODAY'S schedules for this department so faculties are notified to resubmit
+    const today = getTodayDateString();
+    const nextSchedules = { ...get().schedules };
+    let schedulesChanged = false;
+
+    Object.keys(nextSchedules).forEach((key) => {
+      const s = nextSchedules[key];
+      if (normalizeDepartmentId(s.departmentId) === cleanDept && s.date === today) {
+        delete nextSchedules[key];
+        schedulesChanged = true;
+      }
+    });
+
+    set({ periods: nextPeriods, ...(schedulesChanged ? { schedules: nextSchedules } : {}) });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: remaining }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: nextPeriods, ...(schedulesChanged ? { schedules: nextSchedules } : {}) }));
     } catch {}
 
-    remaining.forEach(p => firestoreService.savePeriod(p));
+    firestoreService.deletePeriodDoc(removed.id);
+    if (remaining.length > 0) {
+      firestoreService.savePeriodsBatch(remaining);
+    }
+    if (schedulesChanged) {
+      firestoreService.deleteTodaySchedulesForDepartment(cleanDept, today);
+    }
+  },
+
+  cloneGlobalPeriodsForDepartment: (departmentId: string): Period[] => {
+    const state = get();
+    const cleanDept = normalizeDepartmentId(departmentId) || 'CSE';
+    const existing = state.periods.filter((p) => normalizeDepartmentId(p.departmentId) === cleanDept);
+    if (existing.length > 0) return existing;
+
+    const initial = createDefaultPeriodsForDepartment(cleanDept);
+    const next = [...state.periods, ...initial];
+    set({ periods: next });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: next }));
+    } catch {}
+    initial.forEach((p: Period) => firestoreService.savePeriod(p));
+    return initial;
   },
 
   addUser: (userData) => {
     const uid = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const now = new Date().toISOString();
+    const state = get();
+    const cleanEmail = userData.email.trim().toLowerCase();
+    const cleanDept = normalizeDepartmentId(userData.departmentId);
+    const resolvedDeptName = userData.departmentName || state.departments.find((d) => d.id === cleanDept || d.code === cleanDept)?.name || 'General Faculty';
+
     const newUser: KalyaniUser = {
       ...userData,
+      departmentId: cleanDept,
+      email: cleanEmail,
+      departmentName: resolvedDeptName,
       uid,
       createdAt: now,
       updatedAt: now
     };
-    const next = [...get().users, newUser];
-    set({ users: next });
+
+    const isHod = userData.role === 'HOD' && userData.hodType !== 'AHOD';
+    const isAhod = userData.hodType === 'AHOD';
+
+    let usersToSave: KalyaniUser[] = [newUser];
+    let nextUsers = state.users.map((u) => {
+      // If newly added user is HOD, existing HOD becomes regular FACULTY safely
+      if (isHod && normalizeDepartmentId(u.departmentId) === cleanDept && u.role === 'HOD' && u.hodType !== 'AHOD') {
+        const demoted: KalyaniUser = {
+          ...u,
+          role: 'FACULTY',
+          hodType: null,
+          updatedAt: now
+        };
+        usersToSave.push(demoted);
+        return demoted;
+      }
+      return u;
+    });
+    nextUsers.push(newUser);
+
+    // Update department leadership records
+    let deptToSave: Department | undefined;
+    const nextDepts = state.departments.map((d) => {
+      if (d.id === cleanDept || d.code === cleanDept) {
+        let newDept = { ...d };
+        if (isHod) {
+          newDept.hodUid = newUser.uid;
+          newDept.hodName = newUser.name;
+          newDept.ahodUids = (newDept.ahodUids || []).filter((id) => id !== newUser.uid);
+          newDept.ahodNames = (newDept.ahodNames || []).filter((name) => name !== newUser.name);
+          deptToSave = newDept;
+        } else if (isAhod) {
+          const uids = newDept.ahodUids ? [...newDept.ahodUids] : [];
+          const names = newDept.ahodNames ? [...newDept.ahodNames] : [];
+          if (!uids.includes(newUser.uid)) {
+            uids.push(newUser.uid);
+            names.push(newUser.name);
+          }
+          newDept.ahodUids = uids;
+          newDept.ahodNames = names;
+          newDept.ahodUid = uids[0];
+          newDept.ahodName = names[0];
+          if (newDept.hodUid === newUser.uid) {
+            newDept.hodUid = null;
+            newDept.hodName = null;
+          }
+          deptToSave = newDept;
+        }
+        return newDept;
+      }
+      return d;
+    });
+
+    set({ users: nextUsers, departments: nextDepts });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: next }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: nextUsers, departments: nextDepts }));
     } catch {}
 
-    firestoreService.saveUser(newUser);
+    usersToSave.forEach((u) => firestoreService.saveUser(u));
+    if (deptToSave) firestoreService.saveDepartment(deptToSave);
+
     return newUser;
   },
 
   updateUser: (uid, updates) => {
     let updated: KalyaniUser | undefined;
     const state = get();
-    const currentUserObj = state.users.find(u => u.uid === uid);
+    const currentUserObj = state.users.find((u) => u.uid === uid);
     if (!currentUserObj) return;
 
     let usersToSave: KalyaniUser[] = [];
-    const deptId = updates.departmentId || currentUserObj.departmentId;
+    const rawDept = updates.departmentId !== undefined ? updates.departmentId : currentUserObj.departmentId;
+    const deptId = normalizeDepartmentId(rawDept);
+    const resolvedDeptName = updates.departmentName || (deptId ? state.departments.find((d) => d.id === deptId || d.code === deptId)?.name : currentUserObj.departmentName);
 
     const isBecomingHod = updates.role === 'HOD' && updates.hodType !== 'AHOD';
     const isBecomingAhod = updates.hodType === 'AHOD';
     const isDemotingFromHod = updates.role && updates.role !== 'HOD' && currentUserObj.role === 'HOD';
     const isDemotingFromAhod = updates.hodType === null && currentUserObj.hodType === 'AHOD';
 
-    const next = state.users.map(u => {
+    const now = new Date().toISOString();
+    const normalizedUpdates = {
+      ...updates,
+      departmentId: deptId,
+      ...(updates.email ? { email: updates.email.trim().toLowerCase() } : {}),
+      departmentName: resolvedDeptName
+    };
+
+    let next = state.users.map((u) => {
       if (u.uid === uid) {
-        updated = { ...u, ...updates, updatedAt: new Date().toISOString() };
+        updated = { ...u, ...normalizedUpdates, updatedAt: now };
         usersToSave.push(updated);
         return updated;
       }
-
-      // If user is becoming HOD, demote old HOD in that department
-      if (isBecomingHod && u.departmentId === deptId && u.role === 'HOD' && u.uid !== uid) {
-        const demoted: KalyaniUser = {
-          ...u,
-          role: 'FACULTY' as UserRole,
-          hodType: null,
-          designation: u.designation.includes('Head of Department') ? 'Professor' : u.designation,
-          updatedAt: new Date().toISOString()
-        };
+      // If user is becoming HOD, other HOD in same department safely becomes regular FACULTY
+      if (isBecomingHod && normalizeDepartmentId(u.departmentId) === deptId && u.role === 'HOD' && u.uid !== uid) {
+        const demoted: KalyaniUser = { ...u, role: 'FACULTY', hodType: null, updatedAt: now };
         usersToSave.push(demoted);
         return demoted;
       }
-
       return u;
     });
 
-    // Also synchronize departments
+    // Synchronize departments
     let deptToSave: Department | undefined;
-    const updatedDepts = state.departments.map(d => {
-      if (d.id === deptId) {
+    const updatedDepts = state.departments.map((d) => {
+      if (d.id === deptId || d.code === deptId) {
         let newDept = { ...d };
         if (isBecomingHod && updated) {
           newDept.hodUid = updated.uid;
           newDept.hodName = updated.name;
-          newDept.ahodUids = (newDept.ahodUids || []).filter(id => id !== updated!.uid);
-          newDept.ahodNames = (newDept.ahodNames || []).filter(name => name !== updated!.name);
+          newDept.ahodUids = (newDept.ahodUids || []).filter((id) => id !== updated!.uid);
+          newDept.ahodNames = (newDept.ahodNames || []).filter((name) => name !== updated!.name);
           deptToSave = newDept;
         } else if (isBecomingAhod && updated) {
           const uids = newDept.ahodUids ? [...newDept.ahodUids] : [];
@@ -795,12 +1025,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           newDept.hodName = null;
           deptToSave = newDept;
         } else if (isDemotingFromAhod && (newDept.ahodUids?.includes(uid) || newDept.ahodUid === uid)) {
-          const uids = (newDept.ahodUids || []).filter(id => id !== uid);
-          const names = (newDept.ahodNames || []).filter(name => name !== currentUserObj.name);
+          const uids = (newDept.ahodUids || []).filter((id) => id !== uid);
+          const names = (newDept.ahodNames || []).filter((name) => name !== currentUserObj.name);
           newDept.ahodUids = uids;
           newDept.ahodNames = names;
-          newDept.ahodUid = uids[0];
-          newDept.ahodName = names[0];
+          newDept.ahodUid = uids[0] || null;
+          newDept.ahodName = names[0] || null;
           deptToSave = newDept;
         } else if (updates.name && (newDept.hodUid === uid || newDept.ahodUids?.includes(uid))) {
           if (newDept.hodUid === uid) newDept.hodName = updates.name;
@@ -815,16 +1045,15 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       return d;
     });
 
-    // Clear ghost HOD/AHOD pointers in OTHER departments when a user
-    // transfers out (e.g. HOD of dept A assigned as HOD of dept B)
+    // Clear ghost HOD/AHOD pointers in other departments
     let ghostDeptsToSave: Department[] = [];
-    const cleanedDepts = updatedDepts.map(d => {
-      if (d.id === deptId) return d;
+    const cleanedDepts = updatedDepts.map((d) => {
+      if (d.id === deptId || d.code === deptId) return d;
       const referencesUser = d.hodUid === uid || d.ahodUids?.includes(uid) || d.ahodUid === uid;
       if (!referencesUser) return d;
-      const uids = (d.ahodUids || []).filter(id => id !== uid);
+      const uids = (d.ahodUids || []).filter((id) => id !== uid);
       const names = (d.ahodNames || []).filter((_, i) => (d.ahodUids || [])[i] !== uid);
-      ghostDeptsToSave.push({
+      const ghostDept = {
         ...d,
         hodUid: d.hodUid === uid ? null : d.hodUid,
         hodName: d.hodUid === uid ? null : d.hodName,
@@ -832,8 +1061,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         ahodNames: names,
         ahodUid: uids[0] || null,
         ahodName: names[0] || null
-      });
-      return ghostDeptsToSave[ghostDeptsToSave.length - 1];
+      };
+      ghostDeptsToSave.push(ghostDept);
+      return ghostDept;
     });
 
     set({ users: next, departments: cleanedDepts });
@@ -841,22 +1071,30 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: next, departments: cleanedDepts }));
     } catch {}
 
-    usersToSave.forEach(u => firestoreService.saveUser(u));
+    usersToSave.forEach((u) => firestoreService.saveUser(u));
     if (deptToSave) firestoreService.saveDepartment(deptToSave);
-    ghostDeptsToSave.forEach(d => firestoreService.saveDepartment(d));
+    ghostDeptsToSave.forEach((d) => firestoreService.saveDepartment(d));
   },
 
   deleteUser: (uid) => {
-    const userToDelete = get().users.find(u => u.uid === uid);
+    const userToDelete = get().users.find((u) => u.uid === uid);
     if (userToDelete?.role === 'ADMIN' || uid === 'usr_admin') {
       console.warn('Security Protection: Cannot delete institutional Administrator account.');
       return;
     }
 
-    const next = get().users.filter(u => u.uid !== uid);
-    
-    // Also clean up any department referencing this user as HOD or AHOD
-    const updatedDepts = get().departments.map(d => {
+    const next = get().users.filter((u) => u.uid !== uid);
+
+    // Clean up schedules belonging to this user
+    const nextSchedules = { ...get().schedules };
+    Object.keys(nextSchedules).forEach((k) => {
+      if (nextSchedules[k].facultyId === uid || k.startsWith(`${uid}_`)) {
+        delete nextSchedules[k];
+      }
+    });
+
+    // Clean up department leadership references
+    const updatedDepts = get().departments.map((d) => {
       let changed = false;
       let newDept = { ...d };
       if (d.hodUid === uid) {
@@ -865,13 +1103,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         changed = true;
       }
       if (d.ahodUids?.includes(uid) || d.ahodUid === uid) {
-        const uids = (d.ahodUids || []).filter(id => id !== uid);
-        const user = get().users.find(u => u.uid === uid);
-        const names = (d.ahodNames || []).filter(name => name !== user?.name);
+        const uids = (d.ahodUids || []).filter((id) => id !== uid);
+        const user = get().users.find((u) => u.uid === uid);
+        const names = (d.ahodNames || []).filter((name) => name !== user?.name);
         newDept.ahodUids = uids;
         newDept.ahodNames = names;
-        newDept.ahodUid = uids[0];
-        newDept.ahodName = names[0];
+        newDept.ahodUid = uids[0] || null;
+        newDept.ahodName = names[0] || null;
         changed = true;
       }
       if (changed) {
@@ -880,116 +1118,84 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       return newDept;
     });
 
-    set({ users: next, departments: updatedDepts });
+    set({ users: next, departments: updatedDepts, schedules: nextSchedules });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: next, departments: updatedDepts }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: next, departments: updatedDepts, schedules: nextSchedules }));
     } catch {}
 
     firestoreService.deleteUser(uid);
+    firestoreService.deleteSchedulesForUser(uid);
   },
 
   bulkImportUsers: (newUserData) => {
     const now = new Date().toISOString();
-    const added: KalyaniUser[] = newUserData.map(u => ({
+    const added: KalyaniUser[] = newUserData.map((u) => ({
       ...u,
+      departmentId: normalizeDepartmentId(u.departmentId),
       uid: `usr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       createdAt: now,
       updatedAt: now
     }));
-    const next = [...get().users, ...added];
-    set({ users: next });
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: next }));
-    } catch {}
 
-    added.forEach(u => firestoreService.saveUser(u));
-    return added.length;
-  },
-
-  assignHod: (departmentId, userUid, type) => {
     const state = get();
-    const user = state.users.find((u) => u.uid === userUid);
-    if (!user) return;
+    let updatedUsers = [...state.users];
+    let updatedDepts = [...state.departments];
+    let deptsToSave: Department[] = [];
 
-    let usersToSave: KalyaniUser[] = [];
+    added.forEach((newUser) => {
+      const deptId = newUser.departmentId;
+      const isHod = newUser.role === 'HOD' && newUser.hodType !== 'AHOD';
+      const isAhod = newUser.hodType === 'AHOD';
 
-    // 1. If type is HOD, find previous HOD of this department and demote them to Faculty
-    const updatedUsers = state.users.map((u) => {
-      if (u.uid === userUid) {
-        let updated: KalyaniUser;
-        if (type === 'HOD') {
-          updated = {
-            ...u,
-            role: 'HOD' as UserRole,
-            hodType: 'HOD',
-            departmentId,
-            designation: u.designation.includes('Head of Department') ? u.designation : 'Professor & Head of Department',
-            updatedAt: new Date().toISOString()
-          };
-        } else {
-          updated = {
-            ...u,
-            role: 'FACULTY' as UserRole,
-            hodType: 'AHOD',
-            departmentId,
-            designation: 'Assistant HOD',
-            updatedAt: new Date().toISOString()
-          };
-        }
-        usersToSave.push(updated);
-        return updated;
-      }
-
-      // If assigning a new HOD, demote old HOD of this department
-      if (type === 'HOD' && u.departmentId === departmentId && u.role === 'HOD' && u.uid !== userUid) {
-        const demoted: KalyaniUser = {
-          ...u,
-          role: 'FACULTY' as UserRole,
-          hodType: null,
-          designation: u.designation.includes('Head of Department') ? 'Professor' : u.designation,
-          updatedAt: new Date().toISOString()
-        };
-        usersToSave.push(demoted);
-        return demoted;
-      }
-
-      return u;
-    });
-
-    // 2. Update department record
-    let updatedDeptObj: Department | undefined;
-    const updatedDepts = state.departments.map((d) => {
-      if (d.id === departmentId) {
-        if (type === 'HOD') {
-          updatedDeptObj = {
-            ...d,
-            hodUid: user.uid,
-            hodName: user.name,
-            ahodUids: (d.ahodUids || []).filter((id) => id !== user.uid),
-            ahodNames: (d.ahodNames || []).filter((name) => name !== user.name)
-          };
-          return updatedDeptObj;
-        } else {
-          // Multiple AHODs support
-          const currentAhodUids = d.ahodUids ? [...d.ahodUids] : d.ahodUid ? [d.ahodUid] : [];
-          const currentAhodNames = d.ahodNames ? [...d.ahodNames] : d.ahodName ? [d.ahodName] : [];
-
-          if (!currentAhodUids.includes(user.uid)) {
-            currentAhodUids.push(user.uid);
-            currentAhodNames.push(user.name);
+      if (isHod) {
+        updatedUsers = updatedUsers.map((u) => {
+          if (normalizeDepartmentId(u.departmentId) === deptId && u.role === 'HOD' && u.hodType !== 'AHOD' && u.uid !== newUser.uid) {
+            const demoted: KalyaniUser = { ...u, role: 'FACULTY', hodType: null, updatedAt: now };
+            firestoreService.saveUser(demoted);
+            return demoted;
           }
+          return u;
+        });
 
-          updatedDeptObj = {
-            ...d,
-            ahodUid: currentAhodUids[0] || user.uid,
-            ahodName: currentAhodNames[0] || user.name,
-            ahodUids: currentAhodUids,
-            ahodNames: currentAhodNames,
-          };
-          return updatedDeptObj;
-        }
+        updatedDepts = updatedDepts.map((d) => {
+          if (d.id === deptId || d.code === deptId) {
+            const newDept = {
+              ...d,
+              hodUid: newUser.uid,
+              hodName: newUser.name,
+              ahodUids: (d.ahodUids || []).filter((id) => id !== newUser.uid),
+              ahodNames: (d.ahodNames || []).filter((name) => name !== newUser.name)
+            };
+            deptsToSave.push(newDept);
+            return newDept;
+          }
+          return d;
+        });
+      } else if (isAhod) {
+        updatedDepts = updatedDepts.map((d) => {
+          if (d.id === deptId || d.code === deptId) {
+            const uids = d.ahodUids ? [...d.ahodUids] : [];
+            const names = d.ahodNames ? [...d.ahodNames] : [];
+            if (!uids.includes(newUser.uid)) {
+              uids.push(newUser.uid);
+              names.push(newUser.name);
+            }
+            const newDept = {
+              ...d,
+              ahodUids: uids,
+              ahodNames: names,
+              ahodUid: uids[0],
+              ahodName: names[0]
+            };
+            deptsToSave.push(newDept);
+            return newDept;
+          }
+          return d;
+        });
       }
-      return d;
+
+      updatedUsers.push(newUser);
+      firestoreService.saveUser(newUser);
     });
 
     set({ users: updatedUsers, departments: updatedDepts });
@@ -997,42 +1203,114 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: updatedUsers, departments: updatedDepts }));
     } catch {}
 
-    usersToSave.forEach((u) => firestoreService.saveUser(u));
-    if (updatedDeptObj) firestoreService.saveDepartment(updatedDeptObj);
+    deptsToSave.forEach((d) => firestoreService.saveDepartment(d));
+    return added.length;
+  },
 
-    // Clear ghost HOD/AHOD pointers in the user's PREVIOUS department
-    const previousDeptId = user.departmentId;
-    if (previousDeptId && previousDeptId !== departmentId) {
-      let ghostDept: Department | undefined;
-      const cleanedDepts = get().departments.map((d) => {
-        if (d.id !== previousDeptId) return d;
-        const referencesUser = d.hodUid === userUid || d.ahodUids?.includes(userUid) || d.ahodUid === userUid;
-        if (!referencesUser) return d;
-        const uids = (d.ahodUids || []).filter((id) => id !== userUid);
-        const names = (d.ahodNames || []).filter((name) => name !== user.name);
-        ghostDept = {
-          ...d,
-          hodUid: d.hodUid === userUid ? null : d.hodUid,
-          hodName: d.hodUid === userUid ? null : d.hodName,
-          ahodUids: uids,
-          ahodNames: names,
-          ahodUid: uids[0] || null,
-          ahodName: names[0] || null
-        };
-        return ghostDept;
-      });
-      if (ghostDept) {
-        set({ departments: cleanedDepts });
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), departments: cleanedDepts }));
-        } catch {}
-        firestoreService.saveDepartment(ghostDept);
+  assignHod: (departmentId, userUid, type) => {
+    const state = get();
+    const cleanDept = normalizeDepartmentId(departmentId);
+    const user = state.users.find((u) => u.uid === userUid);
+    if (!user) return;
+
+    let usersToSave: KalyaniUser[] = [];
+    const now = new Date().toISOString();
+    let updatedUsers = state.users.map((u) => {
+      if (type === 'HOD' && normalizeDepartmentId(u.departmentId) === cleanDept && u.role === 'HOD' && u.uid !== userUid) {
+        const demoted: KalyaniUser = { ...u, role: 'FACULTY', hodType: null, updatedAt: now };
+        usersToSave.push(demoted);
+        return demoted;
       }
-    }
+      if (u.uid === userUid) {
+        let updated: KalyaniUser;
+        if (type === 'HOD') {
+          updated = {
+            ...u,
+            role: 'HOD' as UserRole,
+            hodType: 'HOD',
+            departmentId: cleanDept,
+            designation: u.designation.includes('Head of Department') ? u.designation : 'Professor & Head of Department',
+            updatedAt: now
+          };
+        } else {
+          updated = {
+            ...u,
+            role: 'FACULTY' as UserRole,
+            hodType: 'AHOD',
+            departmentId: cleanDept,
+            designation: 'Assistant HOD',
+            updatedAt: now
+          };
+        }
+        usersToSave.push(updated);
+        return updated;
+      }
+      return u;
+    });
+
+    let deptToSave: Department | undefined;
+    const updatedDepts = state.departments.map((d) => {
+      if (d.id === cleanDept || d.code === cleanDept) {
+        let newDept = { ...d };
+        if (type === 'HOD') {
+          newDept.hodUid = user.uid;
+          newDept.hodName = user.name;
+          newDept.ahodUids = (newDept.ahodUids || []).filter((id) => id !== userUid);
+          newDept.ahodNames = (newDept.ahodNames || []).filter((name) => name !== user.name);
+        } else {
+          const uids = newDept.ahodUids ? [...newDept.ahodUids] : [];
+          const names = newDept.ahodNames ? [...newDept.ahodNames] : [];
+          if (!uids.includes(userUid)) {
+            uids.push(userUid);
+            names.push(user.name);
+          }
+          newDept.ahodUids = uids;
+          newDept.ahodNames = names;
+          newDept.ahodUid = uids[0];
+          newDept.ahodName = names[0];
+          if (newDept.hodUid === userUid) {
+            newDept.hodUid = null;
+            newDept.hodName = null;
+          }
+        }
+        deptToSave = newDept;
+        return newDept;
+      }
+      return d;
+    });
+
+    let ghostDept: Department | undefined;
+    const cleanedDepts = updatedDepts.map((d) => {
+      if (d.id === cleanDept || d.code === cleanDept) return d;
+      const referencesUser = d.hodUid === userUid || d.ahodUids?.includes(userUid) || d.ahodUid === userUid;
+      if (!referencesUser) return d;
+      const uids = (d.ahodUids || []).filter((id) => id !== userUid);
+      const names = (d.ahodNames || []).filter((name) => name !== user.name);
+      ghostDept = {
+        ...d,
+        hodUid: d.hodUid === userUid ? null : d.hodUid,
+        hodName: d.hodUid === userUid ? null : d.hodName,
+        ahodUids: uids,
+        ahodNames: names,
+        ahodUid: uids[0] || null,
+        ahodName: names[0] || null
+      };
+      return ghostDept;
+    });
+
+    set({ users: updatedUsers, departments: cleanedDepts });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), users: updatedUsers, departments: cleanedDepts }));
+    } catch {}
+
+    usersToSave.forEach((u) => firestoreService.saveUser(u));
+    if (deptToSave) firestoreService.saveDepartment(deptToSave);
+    if (ghostDept) firestoreService.saveDepartment(ghostDept);
   },
 
   removeAhod: (departmentId, userUid) => {
     const state = get();
+    const cleanDept = normalizeDepartmentId(departmentId);
     let updatedUserObj: KalyaniUser | undefined;
     const updatedUsers = state.users.map((u) => {
       if (u.uid === userUid) {
@@ -1050,7 +1328,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
     let updatedDeptObj: Department | undefined;
     const updatedDepts = state.departments.map((d) => {
-      if (d.id === departmentId) {
+      if (d.id === cleanDept || d.code === cleanDept) {
         const uids = (d.ahodUids || (d.ahodUid ? [d.ahodUid] : [])).filter((id) => id !== userUid);
         const removedUser = state.users.find((u) => u.uid === userUid);
         const names = (d.ahodNames || (d.ahodName ? [d.ahodName] : [])).filter(
@@ -1079,21 +1357,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   purgeDatabaseToCleanSlate: () => {
-    const adminUser = get().users.find(u => u.role === 'ADMIN') || {
-      uid: 'usr_admin',
-      name: 'Dr. K. S. Rajan',
-      email: 'admin@krce.ac.in',
-      departmentId: 'dept_cse',
-      departmentName: 'Computer Science & Engineering',
-      designation: 'Principal & Chief Administrator',
-      role: 'ADMIN' as UserRole,
-      hodType: null,
-      active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const adminUser = get().users.find((u) => u.role === 'ADMIN') || INITIAL_USERS[0];
 
-    const cleanDepts = get().departments.map(d => ({
+    const cleanDepts = get().departments.map((d) => ({
       ...d,
       hodUid: null,
       hodName: null,
@@ -1107,6 +1373,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       users: [adminUser],
       departments: cleanDepts,
       schedules: {},
+      subjects: [],
+      periods: INITIAL_PERIODS
     });
 
     try {
@@ -1114,41 +1382,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         ...get(),
         users: [adminUser],
         departments: cleanDepts,
-        schedules: {}
+        schedules: {},
+        subjects: [],
+        periods: INITIAL_PERIODS
       }));
     } catch {}
 
     firestoreService.purgeDatabaseForProduction();
-  },
-
-  getDepartmentConfig: (departmentId: string) => {
-    const state = get();
-    return state.academicConfigs[departmentId] || {
-      departmentId,
-      maxAssignedPeriodsPerDay: state.systemSettings.defaultMaxPeriods || 3,
-      allowCustomSubjects: true,
-      allowFutureEditing: true,
-      reminderIntervalMinutes: 30,
-      autoLockPastDays: true,
-      updatedAt: new Date().toISOString()
-    };
-  },
-
-  updateDepartmentConfig: (departmentId, updates) => {
-    const state = get();
-    const current = state.getDepartmentConfig(departmentId);
-    const updated: AcademicConfiguration = {
-      ...current,
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-    const nextConfigs = { ...state.academicConfigs, [departmentId]: updated };
-    set({ academicConfigs: nextConfigs });
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), academicConfigs: nextConfigs }));
-    } catch {}
-
-    firestoreService.saveAcademicConfig(departmentId, updated);
   },
 
   updateSystemSettings: (updates) => {
@@ -1162,13 +1402,22 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   addDepartment: (deptData) => {
-    const id = `dept_${Date.now()}`;
+    const cleanCode = (deptData.code || '').trim().toUpperCase();
     const newDept: Department = {
       ...deptData,
-      id,
+      id: cleanCode,
+      code: cleanCode,
+      name: deptData.name.trim(),
+      active: deptData.active !== false,
+      hodUid: null,
+      hodName: null,
+      ahodUid: null,
+      ahodName: null,
+      ahodUids: [],
+      ahodNames: [],
       createdAt: new Date().toISOString()
     };
-    const next = [...get().departments, newDept];
+    const next = [...get().departments.filter((d) => d.id !== cleanCode), newDept];
     set({ departments: next });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), departments: next }));
@@ -1180,7 +1429,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   updateDepartment: (id, updates) => {
     let updated: Department | undefined;
-    const next = get().departments.map(d => {
+    const next = get().departments.map((d) => {
       if (d.id === id) {
         updated = { ...d, ...updates };
         return updated;
@@ -1193,5 +1442,16 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     } catch {}
 
     if (updated) firestoreService.saveDepartment(updated);
+  },
+
+  deleteDepartment: (id) => {
+    const cleanId = (id || '').trim().toUpperCase();
+    const next = get().departments.filter((d) => d.id !== cleanId && d.code !== cleanId);
+    set({ departments: next });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), departments: next }));
+    } catch {}
+
+    firestoreService.deleteDepartment(cleanId);
   }
 }));

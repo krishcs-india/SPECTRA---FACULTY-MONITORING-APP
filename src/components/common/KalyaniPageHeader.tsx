@@ -31,8 +31,8 @@ export const KalyaniPageHeader: React.FC<KalyaniPageHeaderProps> = ({
           </nav>
         )}
 
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl sm:text-3xl font-normal font-marcellus text-slate-100 tracking-wide">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-normal font-marcellus text-slate-100 tracking-wide">
             {title}
           </h1>
           {badge}

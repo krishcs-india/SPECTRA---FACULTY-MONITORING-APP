@@ -10,20 +10,16 @@ import { authService } from '../../services/authService';
 import { AlertCircle, Lock, ShieldCheck, KeyRound, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { loginWithEmail, loginWithAdminSecret, error, clearError, isLoading } = useAuth();
+  const { loginWithEmail, loginWithAdminCredentials, error, clearError, isLoading } = useAuth();
   const [inputEmail, setInputEmail] = useState('');
   
-  // Admin Secret Dialog State
+  // Admin Credentials Dialog State
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const [adminSecret, setAdminSecret] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [showSecret, setShowSecret] = useState(false);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
-
-  const handleGoogleSignIn = async () => {
-    clearError();
-    await authService.signInWithGoogle();
-  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,24 +27,25 @@ export const LoginPage: React.FC = () => {
     await loginWithEmail(inputEmail.trim());
   };
 
-  const handleAdminSecretSubmit = async (e: React.FormEvent) => {
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminSecret.trim()) {
-      setAdminError('Please enter the Administrator Secret Key.');
+    if (!adminPassword.trim()) {
+      setAdminError('Please enter the administrator password.');
       return;
     }
 
     setAdminError(null);
     setIsAdminLoading(true);
 
-    const result = await loginWithAdminSecret(adminSecret.trim());
+    const result = await loginWithAdminCredentials(adminEmail.trim(), adminPassword);
     setIsAdminLoading(false);
 
     if (!result.success) {
-      setAdminError(result.error || 'Invalid Administrator Secret Key. Access Denied.');
+      setAdminError(result.error || 'Invalid administrator credentials. Access Denied.');
     } else {
       setIsAdminModalOpen(false);
-      setAdminSecret('');
+      setAdminEmail('');
+      setAdminPassword('');
     }
   };
 
@@ -102,86 +99,68 @@ export const LoginPage: React.FC = () => {
 
           {/* Direct Sign-In Section */}
           <div className="space-y-4">
+            {/* Direct Institutional Email Login Form */}
+            <form onSubmit={handleEmailSubmit} className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-kalyani-gold-300 uppercase tracking-wider text-left">
+                  Faculty / HOD Email
+                </label>
+                <KalyaniInput
+                  type="email"
+                  placeholder="e.g. arun.cse@krce.ac.in"
+                  value={inputEmail}
+                  onChange={(e) => {
+                    setInputEmail(e.target.value);
+                    if (error) clearError();
+                  }}
+                  required
+                />
+              </div>
+
+              <KalyaniButton
+                type="submit"
+                variant="gold"
+                size="md"
+                className="w-full h-12 rounded-2xl font-bold shadow-gold-md flex items-center justify-center gap-2 text-sm tracking-wide"
+                isLoading={isLoading}
+              >
+                <span>Sign In to Faculty Portal</span>
+              </KalyaniButton>
+            </form>
+
+            <div className="relative flex items-center justify-center my-4">
+              <div className="border-t border-kalyani-gold-500/20 w-full" />
+              <span className="bg-kalyani-crimson-900/90 px-3 text-[10px] uppercase font-bold text-kalyani-gold-300/80 shrink-0 tracking-wider">
+                System Administrator
+              </span>
+            </div>
+
             {/* Dedicated Login as Administrator Button */}
             <KalyaniButton
               type="button"
-              variant="gold"
+              variant="outline-gold"
               size="md"
-              className="w-full h-12 rounded-2xl font-bold shadow-gold-md flex items-center justify-center gap-2.5 text-sm tracking-wide"
-              leftIcon={<ShieldCheck className="w-5 h-5 text-kalyani-crimson-950" />}
+              className="w-full h-11 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2"
+              leftIcon={<ShieldCheck className="w-4 h-4 text-kalyani-gold-400" />}
               onClick={() => {
                 setAdminError(null);
-                setAdminSecret('');
+                setAdminEmail('');
+                setAdminPassword('');
                 setIsAdminModalOpen(true);
               }}
             >
               <span>Login as Administrator</span>
             </KalyaniButton>
 
-            <div className="relative flex items-center justify-center my-3">
-              <div className="border-t border-kalyani-gold-500/20 w-full" />
-              <span className="bg-kalyani-crimson-900/90 px-3 text-[10px] uppercase font-bold text-kalyani-gold-300/80 shrink-0 tracking-wider">
-                Or HOD / AHOD / Faculty Sign-In
-              </span>
-            </div>
-
-            {/* Primary Google Workspace SSO Button */}
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl apple-hover disabled:opacity-50"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-
-            {/* Email direct verification sign-in */}
-            <form onSubmit={handleEmailSubmit} className="space-y-3 pt-1">
-              <KalyaniInput
-                type="email"
-                placeholder="Enter college email (e.g. arun.cse@krce.ac.in)"
-                value={inputEmail}
-                onChange={(e) => setInputEmail(e.target.value)}
-                required
-              />
-              <KalyaniButton
-                type="submit"
-                variant="outline-gold"
-                size="md"
-                className="w-full h-11 rounded-2xl text-xs font-semibold"
-                isLoading={isLoading}
-              >
-                Verify &amp; Sign In
-              </KalyaniButton>
-            </form>
-
-            <p className="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1 mt-3">
+            <p className="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1 mt-2">
               <Lock className="w-3 h-3 text-kalyani-gold-400" />
-              <span>Authorized institutional college account required</span>
+              <span>Authorized institutional account required</span>
             </p>
           </div>
         </KalyaniCard>
       </div>
 
-      {/* Admin Secret Authorization Modal */}
+      {/* Admin Credentials Authorization Modal */}
       <KalyaniModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
@@ -189,12 +168,12 @@ export const LoginPage: React.FC = () => {
         title={
           <div className="flex items-center gap-2 text-kalyani-gold-300">
             <ShieldCheck className="w-5 h-5 text-kalyani-gold-400" />
-            <span>Administrator Passkey Verification</span>
+            <span>Administrator Login</span>
           </div>
         }
-        subtitle="Enter the master administrator secret key to authorize full system control"
+        subtitle="Sign in with your registered administrator email and password"
       >
-        <form onSubmit={handleAdminSecretSubmit} className="space-y-5 py-2">
+        <form onSubmit={handleAdminLoginSubmit} className="space-y-5 py-2">
           {adminError && (
             <div className="p-3 rounded-2xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -204,33 +183,53 @@ export const LoginPage: React.FC = () => {
 
           <div className="space-y-2">
             <label className="block text-xs font-semibold text-kalyani-gold-200 uppercase tracking-wider text-left">
-              Admin Secret Key
+              Admin Email
             </label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400" />
               <input
-                type={showSecret ? 'text' : 'password'}
-                value={adminSecret}
+                type="email"
+                value={adminEmail}
                 onChange={(e) => {
-                  setAdminSecret(e.target.value);
+                  setAdminEmail(e.target.value);
                   if (adminError) setAdminError(null);
                 }}
-                placeholder="Enter Administrator Secret Key"
-                className="w-full h-11 bg-kalyani-crimson-950/80 border border-kalyani-gold-500/30 text-slate-100 text-sm rounded-2xl pl-10 pr-10 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 transition-all font-mono"
+                placeholder="e.g. admin@krce.ac.in"
+                className="w-full h-11 bg-kalyani-crimson-950/80 border border-kalyani-gold-500/30 text-slate-100 text-sm rounded-2xl pl-10 pr-4 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 transition-all"
                 autoFocus
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-kalyani-gold-200 uppercase tracking-wider text-left">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400" />
+              <input
+                type={showSecret ? 'text' : 'password'}
+                value={adminPassword}
+                onChange={(e) => {
+                  setAdminPassword(e.target.value);
+                  if (adminError) setAdminError(null);
+                }}
+                placeholder="Enter administrator password"
+                className="w-full h-11 bg-kalyani-crimson-950/80 border border-kalyani-gold-500/30 text-slate-100 text-sm rounded-2xl pl-10 pr-10 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 transition-all"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowSecret(!showSecret)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-kalyani-gold-300 transition-colors p-1"
-                title={showSecret ? 'Hide secret' : 'Show secret'}
+                title={showSecret ? 'Hide password' : 'Show password'}
               >
                 {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             <p className="text-[11px] text-slate-400 text-left">
-              Secured master administrative credential for institutional management.
+              Verified securely by Firebase Authentication — the password is never stored in the app.
             </p>
           </div>
 

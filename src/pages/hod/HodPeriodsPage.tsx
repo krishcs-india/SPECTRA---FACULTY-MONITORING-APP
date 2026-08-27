@@ -11,12 +11,9 @@ import { Period } from '../../types/period';
 import { Plus, Edit2, Trash2, CheckCircle2, Info } from 'lucide-react';
 
 export const HodPeriodsPage: React.FC = () => {
-  const { allPeriods, addPeriod, updatePeriod, deletePeriod } = usePeriods();
   const { currentUser } = useAuth();
-
-  // Admin-created periods are GLOBAL defaults shared by every department.
-  // HOD-created periods are scoped to their own department only.
-  const newPeriodDepartmentId = currentUser?.role === 'ADMIN' ? undefined : currentUser?.departmentId;
+  const departmentId = currentUser?.departmentId || 'CSE';
+  const { activePeriods, addPeriod, updatePeriod, deletePeriod } = usePeriods(departmentId);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPeriod, setEditingPeriod] = useState<Period | null>(null);
@@ -36,7 +33,7 @@ export const HodPeriodsPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const openAddModal = () => {
-    setName(`Period ${allPeriods.length + 1}`);
+    setName(`Period ${activePeriods.length + 1}`);
     setFormError(null);
     setIsAddModalOpen(true);
   };
@@ -59,6 +56,7 @@ export const HodPeriodsPage: React.FC = () => {
       updatePeriod(editingPeriod.id, {
         name: cleanName,
         shortName: cleanName,
+        departmentId: departmentId,
       });
       setEditingPeriod(null);
       setNotificationMsg(`${cleanName} updated successfully.`);
@@ -68,12 +66,12 @@ export const HodPeriodsPage: React.FC = () => {
         shortName: cleanName,
         startTime: '',
         endTime: '',
-        sequence: allPeriods.reduce((max, p) => Math.max(max, p.sequence), 0) + 1,
+        sequence: activePeriods.reduce((max, p) => Math.max(max, p.sequence), 0) + 1,
         active: true,
-        departmentId: newPeriodDepartmentId,
+        departmentId: departmentId,
       });
       setIsAddModalOpen(false);
-      setNotificationMsg(`${cleanName} added to dynamic timetable.`);
+      setNotificationMsg(`${cleanName} added.`);
     }
   };
 
@@ -122,9 +120,9 @@ export const HodPeriodsPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       <KalyaniPageHeader
-        title="Dynamic Period Configurator"
+        title="Department Period Manager"
         subtitle="Add, edit, or delete periods for your department. Deleting a period automatically renumbers the remaining ones — past submissions are never modified."
-        breadcrumbs={[{ label: 'HOD' }, { label: 'Periods' }]}
+        breadcrumbs={[{ label: 'HOD' }, { label: 'Period Manager' }]}
         actions={
           <KalyaniButton
             variant="gold"
@@ -156,7 +154,7 @@ export const HodPeriodsPage: React.FC = () => {
       {/* Table */}
       <KalyaniTable
         columns={columns}
-        data={allPeriods}
+        data={activePeriods}
         keyExtractor={(row) => row.id}
         emptyMessage="No periods configured."
       />
@@ -171,7 +169,7 @@ export const HodPeriodsPage: React.FC = () => {
           }}
           maxWidth="md"
           title={editingPeriod ? 'Edit Period' : 'Add New Academic Period'}
-          subtitle={`Will be numbered as Period ${editingPeriod ? editingPeriod.sequence : allPeriods.length + 1}`}
+          subtitle={`Will be numbered as Period ${editingPeriod ? editingPeriod.sequence : activePeriods.length + 1}`}
           footer={
             <>
               <KalyaniButton

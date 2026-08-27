@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
+import { isLiveFirebaseConfigured } from '../config/firebase';
 import { AppLayout } from '../components/layout/AppLayout';
 import { RoleGuard } from '../components/layout/RoleGuard';
 import { LoginPage } from '../pages/auth/LoginPage';
@@ -17,7 +18,6 @@ import { HodAvailabilityPage } from '../pages/hod/HodAvailabilityPage';
 import { HodFacultyPage } from '../pages/hod/HodFacultyPage';
 import { HodSubjectsPage } from '../pages/hod/HodSubjectsPage';
 import { HodPeriodsPage } from '../pages/hod/HodPeriodsPage';
-import { HodConfigurationPage } from '../pages/hod/HodConfigurationPage';
 import { HodHistoryPage } from '../pages/hod/HodHistoryPage';
 
 // Admin Pages
@@ -25,12 +25,14 @@ import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { AdminHodManagementPage } from '../pages/admin/AdminHodManagementPage';
 import { AdminDepartmentsPage } from '../pages/admin/AdminDepartmentsPage';
-import { AdminPeriodsPage } from '../pages/admin/AdminPeriodsPage';
 import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
 
 export const AppRouter: React.FC = () => {
   const { isAuthenticated, currentUser, isLoading } = useAuth();
-  const maintenanceMode = useAppStore((state) => state.systemSettings.maintenanceMode);
+  const maintenanceMode = useAppStore((state) => state.systemSettings?.maintenanceMode);
+  const isCloudHydrated = useAppStore((state) => state.isCloudHydrated);
+  // MUST be declared here — before any conditional returns — to satisfy React Rules of Hooks
+  const users = useAppStore((state) => state.users);
 
   // Get default landing route based on active user role
   const getDefaultPath = () => {
@@ -41,42 +43,59 @@ export const AppRouter: React.FC = () => {
     return '/faculty/schedule';
   };
 
-  const [currentPath, setCurrentPath] = useState<string>(() => {
-    return window.location.pathname !== '/' ? window.location.pathname : getDefaultPath();
-  });
+  const normalizePath = (rawPath: string): string => {
+    if (!rawPath || rawPath === '/' || rawPath === '/index.html' || rawPath.endsWith('/index.html')) {
+      return '';
+    }
+    return rawPath;
+  };
 
   // Helper to verify if path is allowed for role
   const isPathAllowedForRole = (path: string, role?: string, hodType?: string | null) => {
-    if (!role) return false;
+    if (!role || !path) return false;
     if (path.startsWith('/admin') && role !== 'ADMIN') return false;
     // ONLY Main HOD (not AHOD) can access /hod routes
     if (path.startsWith('/hod') && (role !== 'HOD' || hodType === 'AHOD') && role !== 'ADMIN') return false;
     return true;
   };
 
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    const raw = typeof window !== 'undefined' ? window.location.pathname : '';
+    const normalized = normalizePath(raw);
+    return normalized && isPathAllowedForRole(normalized, currentUser?.role, currentUser?.hodType)
+      ? normalized
+      : getDefaultPath();
+  });
+
   // Keep route strictly synchronized whenever user/role changes
   useEffect(() => {
     if (isAuthenticated && currentUser) {
+      const normalized = normalizePath(currentPath);
       if (
-        currentPath === '/login' ||
-        currentPath === '/' ||
-        !isPathAllowedForRole(currentPath, currentUser.role, currentUser.hodType)
+        !normalized ||
+        normalized === '/login' ||
+        !isPathAllowedForRole(normalized, currentUser.role, currentUser.hodType)
       ) {
         setCurrentPath(getDefaultPath());
       }
     } else if (!isAuthenticated) {
       setCurrentPath('/login');
     }
-  }, [isAuthenticated, currentUser?.uid, currentUser?.role, currentUser?.hodType]);
+  }, [isAuthenticated, currentUser?.uid, currentUser?.role, currentUser?.hodType, currentPath]);
 
   // Support browser Back/Forward navigation
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+      const normalized = normalizePath(window.location.pathname);
+      if (normalized && isPathAllowedForRole(normalized, currentUser?.role, currentUser?.hodType)) {
+        setCurrentPath(normalized);
+      } else {
+        setCurrentPath(getDefaultPath());
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [currentUser?.role, currentUser?.hodType]);
 
   if (isLoading) {
     return (
@@ -88,6 +107,19 @@ export const AppRouter: React.FC = () => {
 
   if (!isAuthenticated || !currentUser) {
     return <LoginPage />;
+  }
+
+
+  // Live mode: briefly show spinner for non-admin on first boot with no data
+  if (isLiveFirebaseConfigured && !isCloudHydrated && (users || []).length === 0 && currentUser?.role !== 'ADMIN') {
+    return (
+      <div className="min-h-screen bg-kalyani-crimson-950 flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-3 border-kalyani-gold-500/30 border-t-kalyani-gold-400 rounded-full animate-spin" />
+        <p className="text-kalyani-gold-300 font-semibold text-xs tracking-widest uppercase">
+          Synchronizing with Cloud Database…
+        </p>
+      </div>
+    );
   }
 
   // Maintenance mode: only Administrators may pass through
@@ -105,10 +137,14 @@ export const AppRouter: React.FC = () => {
 
   const navigateTo = (path: string) => {
     setCurrentPath(path);
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, '', path);
+    try {
+      if (typeof window !== 'undefined' && window.location.pathname !== path) {
+        window.history.pushState({}, '', path);
+      }
+    } catch {}
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Render matching view
@@ -165,12 +201,6 @@ export const AppRouter: React.FC = () => {
             <HodPeriodsPage />
           </RoleGuard>
         );
-      case '/hod/configuration':
-        return (
-          <RoleGuard allowedRoles={['HOD', 'ADMIN']} onRedirectToDefault={() => navigateTo(getDefaultPath())}>
-            <HodConfigurationPage />
-          </RoleGuard>
-        );
       case '/hod/history':
         return (
           <RoleGuard allowedRoles={['HOD', 'ADMIN']} onRedirectToDefault={() => navigateTo(getDefaultPath())}>
@@ -207,12 +237,6 @@ export const AppRouter: React.FC = () => {
         return (
           <RoleGuard allowedRoles={['ADMIN']} onRedirectToDefault={() => navigateTo(getDefaultPath())}>
             <AdminDepartmentsPage />
-          </RoleGuard>
-        );
-      case '/admin/periods':
-        return (
-          <RoleGuard allowedRoles={['ADMIN']} onRedirectToDefault={() => navigateTo(getDefaultPath())}>
-            <AdminPeriodsPage />
           </RoleGuard>
         );
       case '/admin/settings':

@@ -6,21 +6,23 @@
 
 ## 📖 Overview
 
-**KALYANI** is an institutional academic operations and faculty availability management platform designed for colleges and universities. It replaces slow paper registers and fragmented messaging groups with a synchronized cloud system.
+**KALYANI** is a real-time institutional academic operations and faculty period-availability tracking system built for colleges and universities. It replaces slow paper registers and fragmented communication groups with a centralized, real-time Cloud Firestore platform.
 
-Faculty members can allocate their daily subject teaching loads or mark themselves as **Full Day Free** with a single tap. Department Heads (HODs) gain real-time visibility into available substitution faculty for every teaching period, while institutional Administrators retain centralized governance over users, departments, and dynamic timetable configurations.
+- **Faculty Members** allocate their daily teaching load or declare themselves as **Full Day Free** with a single tap.
+- **Department Heads (HODs & AHODs)** monitor a **Live Real-Time Dashboard** to identify available free faculty for instant substitution dispatching in any period.
+- **Institutional Administrators** govern users, departments, dynamic period configurations, and system-wide policies with one-click production reset capabilities.
 
 ---
 
 ## 🏛️ Distinctive Design System & Aesthetic
 
-KALYANI is built with a **Royal Indian Heritage** aesthetic combined with **Apple-inspired fluid micro-interactions**:
+KALYANI combines a **Royal Indian Heritage** theme with **Apple-inspired fluid ergonomics**:
 
-- **Color Palette**: Deep Royal Velvet Crimson (`#4A0404`, `#7B1113`, `#9B1A39`) paired with Warm Lustrous Gold (`#D4AF37`, `#F3E5AB`, `#996515`) and Emerald/Teal operational indicators.
-- **Typography**: Classic serif headings (**Marcellus**, **Playfair Display**) combined with modern sans-serif readability (**Inter**, **Outfit**).
-- **Glassmorphism & Depth**: Multi-layered backdrop blurs (`backdrop-blur-2xl`), ambient glow drop-shadows, and luxury gold border framing.
-- **Dynamic Micro-Interactions**: Continuous 360° swirling logo emblem, tactile scale effects on touch, pulsing operational indicators, and celebratory confetti particles upon schedule submission.
-- **Auto-Dismiss Notification Architecture**: All success confirmation cards display for 5 seconds and smoothly vanish automatically without requiring manual dismissal.
+- **Curated Color Palette**: Deep Royal Crimson Velvet (`#4A0404`, `#7B1113`, `#9B1A39`), Warm Lustrous Gold (`#D4AF37`, `#F3E5AB`, `#996515`), and Emerald/Teal operational badges.
+- **Modern Typography**: Luxury serif headings (**Marcellus**, **Playfair Display**) combined with elegant script lettering for faculty signatures and crisp UI sans-serif (**Inter**, **Outfit**).
+- **Glassmorphism & Depth**: Multi-layer frosted glass (`backdrop-blur-2xl`), ambient gold glows, and subtle border accents.
+- **Dynamic Micro-Interactions**: Rotating gold emblem, tactile tap responses (`active:scale-[0.98]`), confetti bursts on schedule submission, and live pulsing status dots.
+- **Auto-Dismiss Notification Architecture**: All success messages display for 5 seconds and smoothly vanish automatically.
 
 ---
 
@@ -30,105 +32,182 @@ KALYANI is built with a **Royal Indian Heritage** aesthetic combined with **Appl
 | :--- | :--- |
 | **Frontend Framework** | [React 18](https://react.dev/) with [TypeScript 5.6](https://www.typescriptlang.org/) |
 | **Build & Bundler** | [Vite 6](https://vitejs.dev/) |
-| **Styling & Design** | [Tailwind CSS 3.4](https://tailwindcss.com/) with Custom HSL Tokens & Glassmorphism |
-| **State Management** | [Zustand 4.5](https://github.com/pmndrs/zustand) with Persistent Local Storage & Snapshot Caching |
-| **Backend & Cloud DB** | [Google Firebase 12](https://firebase.google.com/) (Cloud Firestore Real-Time DB & Google Workspace SSO) |
-| **Mobile App Engine** | [Capacitor 8](https://capacitorjs.com/) (Native Android & iOS Hybrid Container, Local Push Notifications) |
-| **Spreadsheet Engine** | [SheetJS (XLSX)](https://sheetjs.com/) (Zero-latency Excel Bulk Import & Matrix Exports) |
+| **Styling (CSS)** | [Tailwind CSS 3.4](https://tailwindcss.com/) with Custom Design Tokens & Glassmorphism Utilities |
+| **State Management** | [Zustand 4.5](https://github.com/pmndrs/zustand) with Real-Time Firestore Sync & Offline Cache |
+| **Database & Cloud Backend** | [Google Firebase 12](https://firebase.google.com/) (Cloud Firestore Real-Time DB & Firebase Auth) |
+| **Mobile App Engine** | [Capacitor 8](https://capacitorjs.com/) (Native Android APK & iOS Container) |
+| **Spreadsheet Engine** | [SheetJS (XLSX)](https://sheetjs.com/) (Excel Roster Import, Subject Import & Report Export) |
 | **Date & Calendar** | [date-fns 3.6](https://date-fns.org/) |
 | **Iconography** | [Lucide React](https://lucide.dev/) |
 | **Visual FX** | [Canvas Confetti](https://www.npmjs.com/package/canvas-confetti) |
 
 ---
 
-## 👥 Role-Based Access Control (RBAC)
+## ⚡ Single Canonical Strategy (Zero-Inconsistency Architecture)
 
-KALYANI defines four distinct institutional roles with strictly compartmentalized authorization:
+To guarantee 100% data consistency across Cloud Firestore, web browsers, and mobile devices, the system strictly enforces a **Single Canonical Data Strategy**:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│               ADMINISTRATOR (Super-Admin)              │
-│  Central Directory • Departments • Global Timetables   │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-             ┌─────────────┴─────────────┐
-             ▼                           ▼
-┌─────────────────────────┐  ┌─────────────────────────┐
-│     HEAD OF DEPT (HOD)  │  │  ASSISTANT HOD (AHOD)    │
-│  Live Availability Roster│  │  Co-Leadership &        │
-│  Subject Master & Rules │  │  Teaching Availability   │
-└────────────┬────────────┘  └───────────┬─────────────┘
-             │                           │
-             └─────────────┬─────────────┘
-                           ▼
-             ┌───────────────────────────┐
-             │    FACULTY (Professors)   │
-             │ Daily Period Allocations  │
-             │ Full Day Free One-Tap     │
-             └───────────────────────────┘
+┌─────────────────────────┬────────────────────────────────────────────────────────┬───────────────────────────┐
+│ Entity                  │ Single Canonical Strategy                              │ Concrete Example          │
+├─────────────────────────┼────────────────────────────────────────────────────────┼───────────────────────────┤
+│ Period IDs              │ `P_${departmentId}_${sequence}`                        │ `P_CSE_1`, `P_CSE_2`...   │
+│ Schedule Period Keys    │ Strictly indexed by `period.id`                        │ `periods['P_CSE_1']`      │
+│ Schedule Document IDs   │ `${facultyId}_${date}`                                 │ `usr_123_2026-08-27`      │
+│ Subject IDs             │ `sub_${departmentId.toLowerCase()}_${cleanCode}`       │ `sub_cse_cs501`           │
+│ Assigned Load Counter   │ Strictly `count(entry.type !== 'FREE')`                │ 3 subjects = 3 Periods    │
+│ Period Deletion Rule    │ Auto-renumbers remaining periods (`1, 2, ...`)         │ Writes clean batch to DB  │
+└─────────────────────────┴────────────────────────────────────────────────────────┴───────────────────────────┘
 ```
 
-### 1. 🛡️ Administrator (`ADMIN`)
-- **Central User Directory**: Create, edit, toggle active status, or permanently delete user accounts. Includes protective guards preventing accidental deletion or deactivation of the master administrator.
-- **Excel User Bulk Import**: One-click upload of institutional faculty rosters with automatic duplicate email detection.
-- **Department Leadership Management**: Appoint or re-assign HODs and multiple Assistant HODs (AHODs) across departments.
-- **Dynamic Period Configurator**: Define, rename, enable, or disable institution-wide teaching periods (e.g. `Period 1` to `Period 8`).
-- **Global Settings & Database Purge**: Configure institutional domain verification, academic year, and execute clean production database resets.
-
-### 2. 👑 Head of Department (`HOD`)
-- **Live Operations Dashboard (`/hod/dashboard`)**: Real-time period-by-period matrix displaying free vs. busy faculty members for immediate substitution dispatching.
-- **Subject Master Management (`/hod/subjects`)**: Simplified institutional catalog (Subject Code & Official Name). Supports manual entry, multi-select batch deletion, single permanent deletion from Cloud Firestore, and Excel bulk importing.
-- **Department Faculty Monitoring (`/hod/faculty`)**: Tracks individual submissions with search by faculty name, subject code, or designation. *The Main HOD and Administrator are automatically excluded from the faculty submission roster to maintain operational focus.*
-- **Academic Rules Configurator (`/hod/rules`)**: Sets maximum assigned teaching periods per day and toggles future-date advance submission permissions.
-- **Historical Availability Matrix (`/hod/history`)**: Audit past allocations by date and export comprehensive daily rosters directly to formatted Excel spreadsheets.
-- **HOD My Profile (`/hod/profile`)**: Dedicated personal profile and departmental badge hub.
-
-### 3. 🎖️ Assistant Head of Department (`AHOD`)
-- Departmental co-leadership access with full faculty availability submission capabilities.
-
-### 4. 🎓 Faculty Member (`FACULTY`)
-- **Interactive Daily Schedule Form (`/faculty/schedule`)**: Fast period-by-period allocation selecting official department subjects or custom academic duties.
-- **One-Tap "Full Day Free"**: Instantly signals total availability for the entire day with equal-height tactile button ergonomics.
-- **Unsaved Changes Sentinel**: Real-time warning card and browser unload guards to prevent accidental data loss before clicking *Update & Save Schedule*.
-- **Visual Status Feedback**: Clear badges and pulsing indicators notifying faculty when today's schedule is pending submission.
-- **Submission History (`/faculty/history`)**: Chronological audit log of past daily allocations.
-- **Faculty Profile (`/faculty/profile`)**: Personal details, designation, and department affiliation.
+- **Strict Ascending Sorting**: All period views (Live Dashboard, Timeline Modals, Period Management, and Faculty History) always render top-to-bottom in numerical order: **Period 1 $\rightarrow$ Period 2 $\rightarrow$ Period 3 $\rightarrow$ Period 4 $\dots$**
+- **Live Reactive Modals**: Detail popups (Faculty Timeline Modal and Period Drilldown Modal) are bound to dynamic entity IDs (`selectedFacultyId`, `selectedPeriodId`). If a faculty submits or modifies their schedule while the HOD has the popup open, the modal updates live in real time on-screen.
 
 ---
 
-## 📱 Mobile App Design & Ergonomics
+## 👥 Role-Based Access Control & User Workflows
 
-KALYANI has been built from the ground up to operate seamlessly both as a high-resolution desktop web application and as an **installed mobile app** (Android APK & iOS IPA via Capacitor):
-
-1. **Touch-Friendly Controls**: Minimum touch targets of 48px to 54px. The `Assigned Load` counter and `Full Day Free` button maintain identical 54px heights with tactile tap animations (`active:scale-[0.98]`).
-2. **Off-Canvas Navigation Drawer**: Smooth slide-over sidebar drawer on mobile screens (`< 1024px`) with frosted glass backdrop blur and auto-closing on route navigation.
-3. **Adaptive Date Ribbon & Popup Calendar**: Interactive horizontal date scroll strip accompanied by a full-screen responsive calendar popup with direct Month and Year selectors that never overflow narrow mobile viewports.
-4. **Responsive Horizontal Scrolling Tables**: All tabular data is wrapped in smooth momentum-scrolling containers (`overflow-x-auto`) with sticky headers.
-5. **Auto-Vanishing Alerts**: All green confirmation banners vanish after 5 seconds, preventing notification clutter on small screens.
+```
+                               ┌─────────────────────────────┐
+                               │  System Administrator       │
+                               │  (Institutional Governance) │
+                               └──────────────┬──────────────┘
+                                              │
+                       ┌──────────────────────┴──────────────────────┐
+                       ▼                                             ▼
+        ┌─────────────────────────────┐               ┌─────────────────────────────┐
+        │  Head of Department (HOD)   │               │  Teaching Faculty           │
+        │  (Live Monitoring & Matrix) │               │  (Daily Availability & Log) │
+        └─────────────────────────────┘               └─────────────────────────────┘
+```
 
 ---
 
-## 🚀 Getting Started
+### 1. 🛡️ System Administrator (`ADMIN`)
+The Administrator maintains root governance over the entire institution:
+
+- **User Directory & XLS Import (`/admin/users`)**:
+  - Add individual faculty, AHODs, and HODs.
+  - Download official Excel template and bulk import entire college rosters with automatic email validation and role classification.
+  - Activate, deactivate, or permanently delete user accounts (with safeguard preventing accidental deletion of the root administrator).
+- **Department Leadership (`/admin/hod-assignment`)**:
+  - Appoint or re-assign Main HODs and Assistant HODs (AHODs) per department with real-time sync.
+- **Department Management (`/admin/departments`)**:
+  - Create and configure academic departments (e.g. `CSE`, `AIDS`, `ECE`, `MECH`).
+- **Global Settings & Clean-Slate Purge (`/admin/settings`)**:
+  - Set institutional name, academic year, semester, and allowed email domains.
+  - **Clean Slate & Production Reset**: One-click purge that clears previous test schedules and seeds canonical baseline periods (`P_CSE_1`–`P_CSE_8`, `P_AIDS_1`–`P_AIDS_8`) directly into Cloud Firestore.
+- **Sovereign Profile (`/admin/profile`)**:
+  - Independent root administrative profile.
+
+---
+
+### 2. 👑 Head of Department (`HOD` & `AHOD`)
+The HOD monitors and manages daily departmental operations in real time:
+
+- **Live Real-Time Dashboard (`/hod/dashboard`)**:
+  - **Live Availability Matrix**: Interactive cards for each period showing real-time counts of *Free* vs *Busy* faculty. Clicking any card opens the drilldown modal showing available substitution candidates.
+  - **Faculty Submissions Table**: Displays every faculty member's submission status (**Submitted**, **Full Day Free**, or **Pending**), exact **Assigned Load** count (e.g. `3 Periods`), and submission timestamp.
+  - **Schedule Timeline Modal**: Clicking **View** on any faculty displays their full chronological period breakdown (**Period 1 to Period 8**), updating live if the faculty changes entries.
+  - **Excel Export**: Export the live daily availability roster to a formatted `.xlsx` spreadsheet.
+- **Subject Master (`/hod/subjects`)**:
+  - Manage official departmental course codes and subject titles.
+  - Download Excel template and bulk import curriculum courses with deterministic IDs (`sub_cse_cs501`).
+- **Department Staff Directory (`/hod/staff`)**:
+  - View and manage department teaching staff, activate/deactivate accounts, and import faculty rosters.
+- **Period Management (`/hod/periods`)**:
+  - Add new periods or delete periods. When a period is removed, remaining periods are automatically renumbered (`Period 1`, `Period 2`...) and synchronized to Cloud Firestore in a single batch.
+- **Reports & History (`/hod/reports`)**:
+  - View historical availability, period utilization heatmaps, and workload distribution across custom date ranges.
+
+---
+
+### 3. 🎓 Teaching Faculty (`FACULTY`)
+Faculty members submit their daily availability and track past schedules:
+
+- **Daily Schedule Submission (`/faculty/schedule`)**:
+  - **Interactive Date Ribbon**: Navigate between dates. Past dates are locked in read-only archive mode; today and future dates are editable.
+  - **Period-by-Period Selection**: Click any period row to assign an official department subject (searchable by code or title) or enter custom academic duties (Lab, Exam Duty, Valuation, Mentorship, Meeting).
+  - **One-Tap "Full Day Free"**: Instantly mark all periods as Free with confirmation dialog.
+  - **Unsaved Changes Sentinel**: Visual warnings and browser-close guards prevent accidental navigation before clicking **Update & Save Schedule**.
+  - **Real-Time HOD Modification Alerts**: If the HOD changes the period structure, faculty receive an instant live notification to review and submit for the updated slots.
+- **History & Records (`/faculty/history`)**:
+  - Audit log and calendar view of all past submissions with chronological period breakdowns and CSV/Excel export.
+- **Faculty Profile (`/faculty/profile`)**:
+  - View official designation, department affiliation, college email ID, and edit display name.
+
+---
+
+## 📊 Excel Bulk Import & Export Specifications
+
+### 1. User Roster Excel Format
+| Full Name | Email Address | Department | Designation | Role |
+| :--- | :--- | :--- | :--- | :--- |
+| Dr. Rajesh Kumar | rajesh@krce.ac.in | CSE | Professor & Head | HOD |
+| Dr. Priya Sharma | priya@krce.ac.in | CSE | Associate Professor | AHOD |
+| Prof. Arun V | arun@krce.ac.in | CSE | Assistant Professor | FACULTY |
+
+### 2. Subject Master Excel Format
+| Subject Code | Subject Name | Department | Short Name |
+| :--- | :--- | :--- | :--- |
+| CS501 | Database Management Systems | CSE | DBMS |
+| CS502 | Operating Systems | CSE | OS |
+| CS503 | Theory of Computation | CSE | TOC |
+
+---
+
+## 📱 Mobile App Container (Capacitor)
+
+KALYANI is fully optimized for responsive mobile browsers and native mobile app compilation:
+
+- **Touch Ergonomics**: All interactive buttons maintain a minimum height of 48px–54px with tactile scale animations (`active:scale-[0.98]`).
+- **Off-Canvas Drawer**: Mobile navigation sidebar slides over smoothly with glassmorphism backdrop blur and auto-closes on route change.
+- **Horizontal Ribbon Navigation**: Date strip and tables feature momentum touch-scrolling.
+
+### Android Build Commands
+```bash
+# 1. Build the production web assets
+npm run build
+
+# 2. Sync web bundle to Android container
+npx cap sync android
+
+# 3. Open project in Android Studio to build APK / AAB
+npx cap open android
+```
+
+### iOS Build Commands
+```bash
+# 1. Build the production web assets
+npm run build
+
+# 2. Sync web bundle to iOS container
+npx cap sync ios
+
+# 3. Open project in Xcode to build iOS App
+npx cap open ios
+```
+
+---
+
+## 🚀 Setup & Deployment Guide
 
 ### Prerequisites
 - **Node.js**: v18.0.0 or higher
 - **npm**: v9.0.0 or higher
 
-### 1. Clone & Install Dependencies
+### 1. Clone Repository & Install
 ```bash
-# Clone the repository
-git clone https://github.com/your-institution/kalyani-faculty-system.git
-cd kalyani-faculty-system
-
-# Install dependencies
+git clone https://github.com/Krish-CS/KALYANI-FACULTY-PERIOD-MONTIORING-SYSTEM.git
+cd KALYANI
 npm install
 ```
 
-### 2. Configure Firebase Environment
-Create a `.env` file in the project root with your Google Firebase credentials:
+### 2. Configure Firebase Credentials
+Create a `.env` file in the root directory:
 
 ```env
-VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
@@ -136,93 +215,48 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-> **Note**: If Firebase environment variables are not provided, KALYANI automatically runs in **Offline Demo Mode** with local storage snapshot persistence.
-
 ### 3. Launch Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### 4. Build for Production Web
+### 4. Build for Production
 ```bash
 npm run build
-```
-Generates optimized static bundles in the `dist/` directory.
-
----
-
-## 📲 Mobile App Build Workflow (Capacitor)
-
-KALYANI includes Capacitor integration for building native mobile packages:
-
-### Android Build
-```bash
-# 1. Build the production web bundle
-npm run build
-
-# 2. Add Android platform (first-time only)
-npx cap add android
-
-# 3. Sync web assets with native project
-npx cap sync android
-
-# 4. Open in Android Studio to build APK / AAB
-npx cap open android
-```
-
-### iOS Build
-```bash
-# 1. Build the production web bundle
-npm run build
-
-# 2. Add iOS platform (first-time only)
-npx cap add ios
-
-# 3. Sync web assets with native project
-npx cap sync ios
-
-# 4. Open in Xcode to build iOS App
-npx cap open ios
 ```
 
 ---
 
-## 📂 Project Structure
+## 📂 Project Directory Structure
 
 ```
 d:/KALYANI/
-├── public/
-│   └── assets/                  # Institutional logos, top-text emblem, & icons
 ├── src/
 │   ├── components/
 │   │   ├── admin/               # UserManager, DepartmentManager, GlobalSettings, HodAssignment
-│   │   ├── common/              # KalyaniButton, Card, Table, Modal, DatePicker, Logo, SplashScreen
+│   │   ├── common/              # KalyaniButton, Card, Table, Modal, Badge, DatePicker, Logo
 │   │   ├── faculty/             # DailyScheduleForm, PeriodSelectorRow, SubjectPickerModal
-│   │   ├── hod/                 # SubjectMasterManager, PeriodAvailabilityGrid, FacultyStatusList
-│   │   └── layout/              # AppNavbar, AppSidebar, AppLayout
+│   │   ├── hod/                 # SubjectMasterManager, PeriodAvailabilityGrid, FacultyStatusList, FacultyDetailModal
+│   │   └── layout/              # AppNavbar, AppSidebar, AppLayout, RoleGuard
 │   ├── hooks/                   # useAuth, usePeriods, useSubjects, useAcademicConfiguration
 │   ├── pages/
-│   │   ├── admin/               # AdminDashboardPage, AdminPeriodsPage, AdminUsersPage, etc.
-│   │   ├── auth/                # LoginPage (Google Workspace SSO & Administrator Key entry)
+│   │   ├── admin/               # AdminDashboardPage, AdminUsersPage, AdminDepartmentsPage, AdminSettingsPage
+│   │   ├── auth/                # LoginPage (Institutional Credentials & Admin Access)
 │   │   ├── faculty/             # FacultySchedulePage, FacultyHistoryPage, FacultyProfilePage
-│   │   └── hod/                 # HodDashboardPage, HodPeriodsPage, HodFacultyPage, HodHistoryPage
-│   ├── routes/                  # Route definitions & Role-based route protection
+│   │   └── hod/                 # HodDashboardPage, HodPeriodsPage, HodSubjectsPage, HodStaffPage, HodReportsPage
 │   ├── services/                # authService, firestoreService, excelService, seedDataService
-│   ├── store/                   # useAppStore (Zustand central state), useAuthStore
-│   ├── styles/                  # index.css (Custom Tailwind animations, glassmorphism, fonts)
+│   ├── store/                   # useAppStore (Zustand state & Firestore sync), useAuthStore
 │   ├── types/                   # user.ts, period.ts, subject.ts, schedule.ts, department.ts
-│   ├── utils/                   # dateUtils, validation, exportUtils
-│   ├── App.tsx                  # Root Application Component
+│   ├── utils/                   # dateUtils.ts, validation.ts, exportUtils.ts
+│   ├── App.tsx                  # Root application router & real-time sync listeners
 │   └── main.tsx                 # Vite entry point
-├── capacitor.config.ts          # Mobile app container configuration
-├── tailwind.config.js           # Custom Royal Crimson & Gold theme configuration
-├── package.json                 # Project dependencies & scripts
-└── tsconfig.json                # TypeScript compiler configuration
+├── firestore.rules              # Cloud Firestore security rules
+├── tailwind.config.js           # Royal Crimson & Gold theme tokens
+└── package.json                 # Project configuration & scripts
 ```
 
 ---
 
-## 📄 License & Institutional Rights
+## 📄 Institutional License & Rights
 
 Designed and maintained for **Higher Education Institutional Operations**. All rights reserved.

@@ -49,7 +49,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { label: 'Faculty Directory', path: '/hod/faculty', icon: Users },
     { label: 'Subject Master', path: '/hod/subjects', icon: BookOpen },
     { label: 'Period Manager', path: '/hod/periods', icon: Clock },
-    { label: 'Academic Rules', path: '/hod/configuration', icon: Settings },
     { label: 'Historical Matrix', path: '/hod/history', icon: CalendarRange },
     { label: 'My Profile', path: '/hod/profile', icon: User },
   ];
@@ -59,7 +58,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { label: 'User Directory & XLS', path: '/admin/users', icon: Users },
     { label: 'HOD Assignments', path: '/admin/hod-management', icon: Sparkles },
     { label: 'Departments', path: '/admin/departments', icon: Building2 },
-    { label: 'Global Periods', path: '/admin/periods', icon: Clock },
     { label: 'System Settings', path: '/admin/settings', icon: ShieldCheck },
     { label: 'My Profile', path: '/admin/profile', icon: User },
   ];
@@ -139,15 +137,21 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {/* Bottom Department Tag / Footer Badge */}
         <div className="pt-4 border-t border-kalyani-gold-500/15">
           <div className="p-3 rounded-2xl kalyani-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 flex items-center justify-center shrink-0 text-kalyani-gold-400 text-xs font-bold">
-              K
+            <div className="w-8 h-8 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 flex items-center justify-center shrink-0 text-kalyani-gold-400 text-xs font-bold select-none">
+              {currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || (role === 'ADMIN' ? 'A' : 'F')}
             </div>
             <div className="overflow-hidden">
               <p className="text-[11px] font-bold text-slate-200 truncate">
-                {currentUser?.departmentName || 'Kalyani College'}
+                {role === 'ADMIN'
+                  ? 'Institutional Administration'
+                  : currentUser?.departmentName || 'Academic Department'}
               </p>
-              <p className="text-[10px] text-kalyani-gold-400/80 truncate">
-                Academic Portal • Live Sync
+              <p className="text-[10px] text-kalyani-gold-400/80 truncate font-medium">
+                {role === 'ADMIN'
+                  ? 'System Root • Live Sync'
+                  : role === 'HOD' && currentUser?.hodType !== 'AHOD'
+                  ? 'HOD Portal • Live Sync'
+                  : 'Faculty Portal • Live Sync'}
               </p>
             </div>
           </div>

@@ -5,16 +5,20 @@ class AudioService {
   private listeners: Set<(playing: boolean, muted: boolean) => void> = new Set();
 
   constructor() {
-    // Lazy-init on client
+    // Lazy-init on client safely
     if (typeof window !== 'undefined') {
-      this.audio = new Audio('/assets/kalyani-bg-music.mp3');
-      this.audio.loop = false; // Plays once without looping back as requested
-      this.audio.volume = 0.5;
+      try {
+        this.audio = new Audio('/assets/kalyani-bg-music.mp3');
+        this.audio.loop = false; // Plays once without looping back as requested
+        this.audio.volume = 0.5;
 
-      this.audio.addEventListener('ended', () => {
-        this.isPlaying = false;
-        this.notify();
-      });
+        this.audio.addEventListener('ended', () => {
+          this.isPlaying = false;
+          this.notify();
+        });
+      } catch (err) {
+        console.warn('Audio service initialization note:', err);
+      }
     }
   }
 
@@ -23,12 +27,15 @@ class AudioService {
     try {
       this.audio.muted = false;
       this.isMuted = false;
-      await this.audio.play();
+      const playPromise = this.audio.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+      }
       this.isPlaying = true;
       this.notify();
       return true;
     } catch (err) {
-      console.warn('Audio play prevented by browser autoplay policy:', err);
+      // Graceful fallback for mobile autoplay policy
       this.isPlaying = false;
       this.notify();
       return false;
@@ -37,9 +44,11 @@ class AudioService {
 
   public pause(): void {
     if (!this.audio) return;
-    this.audio.pause();
-    this.isPlaying = false;
-    this.notify();
+    try {
+      this.audio.pause();
+      this.isPlaying = false;
+      this.notify();
+    } catch {}
   }
 
   public toggle(): boolean {
@@ -54,15 +63,21 @@ class AudioService {
 
   public toggleMute(): boolean {
     if (!this.audio) return false;
-    this.isMuted = !this.isMuted;
-    this.audio.muted = this.isMuted;
-    this.notify();
-    return this.isMuted;
+    try {
+      this.isMuted = !this.isMuted;
+      this.audio.muted = this.isMuted;
+      this.notify();
+      return this.isMuted;
+    } catch {
+      return false;
+    }
   }
 
   public setVolume(vol: number): void {
     if (!this.audio) return;
-    this.audio.volume = Math.max(0, Math.min(1, vol));
+    try {
+      this.audio.volume = Math.max(0, Math.min(1, vol));
+    } catch {}
   }
 
   public getIsPlaying(): boolean {
@@ -75,14 +90,20 @@ class AudioService {
 
   public subscribe(listener: (playing: boolean, muted: boolean) => void): () => void {
     this.listeners.add(listener);
-    listener(this.isPlaying, this.isMuted);
+    try {
+      listener(this.isPlaying, this.isMuted);
+    } catch {}
     return () => {
       this.listeners.delete(listener);
     };
   }
 
   private notify(): void {
-    this.listeners.forEach((fn) => fn(this.isPlaying, this.isMuted));
+    this.listeners.forEach((fn) => {
+      try {
+        fn(this.isPlaying, this.isMuted);
+      } catch {}
+    });
   }
 }
 
