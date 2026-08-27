@@ -7,6 +7,7 @@ import { getTodayDateString } from './utils/dateUtils';
 
 import { KalyaniSplashScreen } from './components/common/KalyaniSplashScreen';
 import { InternetConnectivityScreen } from './components/common/InternetConnectivityScreen';
+import { isDeviceOnline } from './utils/networkUtils';
 
 export const App: React.FC = () => {
   const initStore = useAppStore((state) => state.initStore);
@@ -15,29 +16,13 @@ export const App: React.FC = () => {
   const isCloudHydrated = useAppStore((state) => state.isCloudHydrated);
   const [showSplash, setShowSplash] = useState(true);
   const [showOfflineScreen, setShowOfflineScreen] = useState(false);
-  const isOnlineAtStartupRef = React.useRef<boolean>(navigator.onLine);
+  const isOnlineAtStartupRef = React.useRef<boolean | null>(null);
 
   // Background probe while splash screen is displaying
   useEffect(() => {
     const probe = async () => {
-      if (!navigator.onLine) {
-        isOnlineAtStartupRef.current = false;
-        return;
-      }
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        await fetch(`https://www.google.com/favicon.ico?_kalyani_probe=${Date.now()}`, {
-          method: 'HEAD',
-          mode: 'no-cors',
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        isOnlineAtStartupRef.current = true;
-      } catch {
-        isOnlineAtStartupRef.current = navigator.onLine;
-      }
+      const online = await isDeviceOnline();
+      isOnlineAtStartupRef.current = online;
     };
     probe();
   }, []);
@@ -77,10 +62,13 @@ export const App: React.FC = () => {
     );
   }, [currentUser?.uid, isCloudHydrated]);
 
-  const handleSplashComplete = () => {
+  const handleSplashComplete = async () => {
     setShowSplash(false);
-    // If not online at startup, show the dedicated connectivity screen to wait for connection
-    if (!isOnlineAtStartupRef.current && !navigator.onLine) {
+    let isOnline = isOnlineAtStartupRef.current;
+    if (isOnline === null) {
+      isOnline = await isDeviceOnline();
+    }
+    if (!isOnline) {
       setShowOfflineScreen(true);
     }
   };

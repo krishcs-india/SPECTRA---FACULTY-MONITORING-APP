@@ -4,6 +4,7 @@ import { KalyaniButton } from './KalyaniButton';
 import { KalyaniMandalaBackground } from './KalyaniMandalaBackground';
 import { WifiOff, Wifi, RefreshCw, CheckCircle2, Sparkles, ShieldAlert } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { isDeviceOnline, subscribeNetworkStatus } from '../../utils/networkUtils';
 
 interface InternetConnectivityScreenProps {
   onConnected: () => void;
@@ -15,31 +16,10 @@ export const InternetConnectivityScreen: React.FC<InternetConnectivityScreenProp
   const [redirectCountdown, setRedirectCountdown] = useState<number>(2);
   const hasTriggeredConnectRef = useRef(false);
 
-  // Ping probe to verify actual internet reachability beyond just local network interface
-  const checkInternetReachability = useCallback(async (): Promise<boolean> => {
-    if (!navigator.onLine) return false;
-    try {
-      // Use lightweight probe with cache-busting
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      await fetch(`https://www.google.com/favicon.ico?_kalyani_ping=${Date.now()}`, {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-store',
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      return true;
-    } catch {
-      // Fallback: If navigator.onLine is true, consider connected
-      return navigator.onLine;
-    }
-  }, []);
-
   const verifyConnection = useCallback(async () => {
     if (hasTriggeredConnectRef.current) return;
     setIsChecking(true);
-    const reachable = await checkInternetReachability();
+    const reachable = await isDeviceOnline();
     setIsChecking(false);
 
     if (reachable) {
@@ -54,23 +34,24 @@ export const InternetConnectivityScreen: React.FC<InternetConnectivityScreenProp
         });
       } catch {}
     }
-  }, [checkInternetReachability]);
+  }, []);
 
-  // Live real-time network event listeners & interval polling
+  // Live real-time network listener (Capacitor Native + Browser) + backup interval polling
   useEffect(() => {
-    const handleOnlineEvent = () => {
-      verifyConnection();
-    };
+    const unsubscribe = subscribeNetworkStatus((online) => {
+      if (online && !hasTriggeredConnectRef.current) {
+        verifyConnection();
+      }
+    });
 
-    window.addEventListener('online', handleOnlineEvent);
     const pollInterval = setInterval(() => {
       if (connectionStatus === 'DISCONNECTED' && !hasTriggeredConnectRef.current) {
         verifyConnection();
       }
-    }, 2500);
+    }, 2000);
 
     return () => {
-      window.removeEventListener('online', handleOnlineEvent);
+      unsubscribe();
       clearInterval(pollInterval);
     };
   }, [verifyConnection, connectionStatus]);
