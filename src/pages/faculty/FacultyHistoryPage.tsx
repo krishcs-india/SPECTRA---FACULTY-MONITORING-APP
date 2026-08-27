@@ -138,9 +138,9 @@ export const FacultyHistoryPage: React.FC = () => {
                                   {isFree ? 'FREE' : isSubject ? 'Assigned' : 'Other'}
                                 </span>
                               </div>
-                              <p className="mt-1 font-medium text-slate-100 truncate">
+                              <p className="mt-1 font-medium text-slate-100 break-words whitespace-normal leading-snug text-[11px]">
                                 {isFree && 'Available'}
-                                {isSubject && `${entry?.subjectCode || ''} ${entry?.subjectName || ''}`}
+                                {isSubject && `${entry?.subjectCode ? `${entry.subjectCode} — ` : ''}${entry?.subjectName || ''}`}
                                 {entry?.type === 'CUSTOM' && `Other: ${entry?.customText}`}
                               </p>
                             </div>

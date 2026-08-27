@@ -53,8 +53,8 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
         className="fixed inset-0 bg-black/85 backdrop-blur-2xl transition-opacity animate-in fade-in duration-300"
       />
 
-      {/* Centering Viewport Container with Generous 4-sided Padding */}
-      <div className="min-h-full flex items-center justify-center p-6 sm:p-10 md:p-14 text-center">
+      {/* Centering Viewport Container with Balanced Responsive Padding */}
+      <div className="min-h-full flex items-center justify-center p-4 sm:p-10 md:p-14 text-center">
         {/* Compact Floating Modal Dialog Card Container */}
         <div
           onClick={(e) => e.stopPropagation()}

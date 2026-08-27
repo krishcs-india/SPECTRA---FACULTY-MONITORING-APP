@@ -33,28 +33,26 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
           : 'bg-amber-950/30 border-amber-500/30'
       }`}
     >
-      {/* Left: Period Info */}
-      <div className="flex items-center gap-3.5">
+      {/* Top / Left: Period Info & Badge */}
+      <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto">
         <div className="px-3 py-1.5 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-400/30 flex items-center justify-center shrink-0">
           <span className="text-xs font-bold text-kalyani-gold-300">
             {period.name || period.shortName}
           </span>
         </div>
 
-        <div>
-          <div className="flex items-center gap-2.5">
-            <KalyaniBadge entryType={entry?.type || 'FREE'} size="sm" />
-          </div>
+        <div className="flex items-center gap-2">
+          <KalyaniBadge entryType={entry?.type || 'FREE'} size="sm" />
         </div>
       </div>
 
-      {/* Right: Current Assignment Pill / Selection Action */}
-      <div className="flex items-center gap-2 self-end sm:self-center w-full sm:w-auto justify-end">
+      {/* Bottom / Right: Assignment Button with Multi-Line Expansion */}
+      <div className="flex items-center gap-2 w-full sm:w-auto sm:max-w-[70%] justify-end min-w-0">
         <button
           type="button"
           disabled={isReadOnly}
           onClick={onOpenPicker}
-          className={`flex-1 sm:flex-initial flex items-center justify-between sm:justify-start gap-2.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all apple-hover border ${
+          className={`flex-1 flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all apple-hover border min-h-[44px] min-w-0 text-left ${
             isFree
               ? 'bg-teal-950/60 border-teal-500/30 text-teal-300 hover:bg-teal-900/50'
               : isSubject
@@ -62,19 +60,19 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
               : 'bg-amber-950/60 border-amber-500/40 text-amber-300 hover:bg-amber-900/50'
           } ${isReadOnly ? 'cursor-default opacity-85' : 'cursor-pointer'}`}
         >
-          <div className="flex items-center gap-2 truncate max-w-[260px]">
-            {isFree && <Coffee className="w-3.5 h-3.5 text-teal-400 shrink-0" />}
-            {isSubject && <BookOpen className="w-3.5 h-3.5 text-kalyani-gold-400 shrink-0" />}
-            {isCustom && <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            {isFree && <Coffee className="w-4 h-4 text-teal-400 shrink-0" />}
+            {isSubject && <BookOpen className="w-4 h-4 text-kalyani-gold-400 shrink-0" />}
+            {isCustom && <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />}
 
-            <span className="truncate">
+            <span className="whitespace-normal break-words leading-relaxed text-xs">
               {isFree && 'FREE (Available)'}
               {isSubject && (entry?.subjectCode ? `${entry.subjectCode} — ${entry.subjectName}` : entry?.subjectName)}
               {isCustom && `Other: ${entry?.customText || 'Custom Entry'}`}
             </span>
           </div>
 
-          {!isReadOnly && <ChevronRight className="w-3.5 h-3.5 opacity-60 shrink-0" />}
+          {!isReadOnly && <ChevronRight className="w-4 h-4 opacity-60 shrink-0 ml-1.5 self-center" />}
         </button>
 
         {!isReadOnly && !isFree && (
@@ -82,7 +80,7 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
             type="button"
             onClick={onQuickToggleFree}
             title="Quick toggle to Free"
-            className="p-2 rounded-xl hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors"
+            className="p-2.5 rounded-xl hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors shrink-0 flex items-center justify-center min-h-[44px] min-w-[44px]"
           >
             <Coffee className="w-4 h-4" />
           </button>

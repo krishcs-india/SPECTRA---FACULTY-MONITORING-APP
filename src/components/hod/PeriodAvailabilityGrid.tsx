@@ -155,8 +155,8 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                         <p className="text-xs text-slate-400 font-marcellus">{f.facultyDesignation}</p>
                       </div>
 
-                      <div className="text-right">
-                        <span className="px-3 py-1 text-xs font-semibold rounded-xl bg-kalyani-gold-500/15 border border-kalyani-gold-400/30 text-kalyani-gold-200 shadow-sm font-marcellus">
+                      <div className="text-right max-w-[60%] sm:max-w-[70%]">
+                        <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-kalyani-gold-500/15 border border-kalyani-gold-400/30 text-kalyani-gold-200 shadow-sm font-sans whitespace-normal break-words leading-relaxed inline-block text-right">
                           {f.activity}
                         </span>
                       </div>
