@@ -67,7 +67,7 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
 
             <span className="whitespace-normal break-words leading-relaxed text-xs">
               {isFree && 'FREE (Available)'}
-              {isSubject && (entry?.subjectCode ? `${entry.subjectCode} — ${entry.subjectName}` : entry?.subjectName)}
+              {isSubject && (entry?.subjectCode ? `${entry.subjectCode} — ${entry?.subjectName || ''}` : entry?.subjectName || 'Subject')}
               {isCustom && `Other: ${entry?.customText || 'Custom Entry'}`}
             </span>
           </div>

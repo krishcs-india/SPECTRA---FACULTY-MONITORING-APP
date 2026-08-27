@@ -176,14 +176,14 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                         FREE
                       </span>
                     )}
-                    {isSubject && (
+                    {isSubject && entry && (
                       <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-kalyani-gold-500/15 border border-kalyani-gold-400/40 text-kalyani-gold-200 shadow-sm whitespace-normal break-words leading-relaxed text-right max-w-full">
-                        {entry.subjectCode ? `${entry.subjectCode} — ${entry.subjectName}` : entry.subjectName}
+                        {entry.subjectCode ? `${entry.subjectCode} — ${entry.subjectName || ''}` : entry.subjectName || 'Subject'}
                       </span>
                     )}
                     {entry?.type === 'CUSTOM' && (
                       <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-200 whitespace-normal break-words leading-relaxed text-right max-w-full">
-                        Other: {entry.customText}
+                        Other: {entry.customText || 'Custom Activity'}
                       </span>
                     )}
                   </div>
