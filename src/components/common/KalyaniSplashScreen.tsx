@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { audioService } from '../../services/audioService';
 import { MilkyWayCanvas } from './MilkyWayCanvas';
 import { Sparkles } from 'lucide-react';
@@ -39,11 +39,11 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
     >
       <MilkyWayCanvas />
 
-      <div className="absolute -top-36 -right-36 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] pointer-events-none opacity-20 z-0">
-        <img src="/assets/main-design.png" alt="Mandala Background" className="w-full h-full object-contain animate-spin-slow" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+      <div className="absolute -top-36 -right-36 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] pointer-events-none opacity-20 z-0 select-none">
+        <img src="/assets/main-design.png" alt="Mandala Background" draggable={false} className="w-full h-full object-contain animate-spin-slow pointer-events-none select-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
       </div>
-      <div className="absolute -bottom-36 -left-36 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] pointer-events-none opacity-20 z-0">
-        <img src="/assets/main-design.png" alt="Mandala Background" className="w-full h-full object-contain animate-spin-slow [animation-direction:reverse]" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+      <div className="absolute -bottom-36 -left-36 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] pointer-events-none opacity-20 z-0 select-none">
+        <img src="/assets/main-design.png" alt="Mandala Background" draggable={false} className="w-full h-full object-contain animate-spin-slow [animation-direction:reverse] pointer-events-none select-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
       </div>
 
       <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-kalyani-gold-500/10 border border-kalyani-gold-400/30 text-kalyani-gold-300 text-xs tracking-widest uppercase font-semibold animate-in fade-in slide-in-from-top duration-700 shadow-[0_0_25px_rgba(212,175,55,0.2)]">
@@ -55,7 +55,7 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
         <div className="relative group my-2">
           <div className="absolute -inset-8 bg-gradient-to-r from-kalyani-gold-400/50 via-kalyani-crimson-600/60 to-kalyani-gold-500/50 rounded-[40px] blur-3xl opacity-90 animate-pulse-ring" />
           <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-64 md:h-64 rounded-[32px] p-1.5 bg-gradient-to-br from-kalyani-gold-300 via-kalyani-gold-500 to-kalyani-crimson-800 shadow-[0_0_75px_rgba(212,175,55,0.6)] flex items-center justify-center overflow-hidden">
-            <img src="/assets/krish-cs-logo.png" alt="Krish CS Logo" className="w-full h-full object-cover rounded-[28px]" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <img src="/assets/krish-cs-logo.png" alt="Krish CS Logo" draggable={false} className="w-full h-full object-cover rounded-[28px] pointer-events-none select-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           </div>
         </div>
 

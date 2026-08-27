@@ -248,13 +248,18 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
 
     if (result.success) {
       userTouchedRef.current = false;
-      setSubmitSuccessMsg('Your schedule has been successfully synchronized and saved!');
+      const isAllFree = assignedCount === 0;
+      setSubmitSuccessMsg(
+        isAllFree
+          ? 'Full day marked as Free! All periods are set to available for substitution.'
+          : 'Your schedule has been successfully synchronized and saved!'
+      );
       try {
         confetti({
           particleCount: 70,
           spread: 60,
           origin: { y: 0.85 },
-          colors: ['#D4AF37', '#FFF5D1', '#9B1A39', '#10B981'],
+          colors: isAllFree ? ['#2DD4BF', '#D4AF37', '#10B981'] : ['#D4AF37', '#FFF5D1', '#9B1A39', '#10B981'],
         });
       } catch {}
     } else {
@@ -446,13 +451,13 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
             )}
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <KalyaniButton
               variant="teal"
               size="md"
               leftIcon={<Coffee className="w-4 h-4" />}
               onClick={() => setShowFullDayFreeConfirm(true)}
-              className="flex-1 sm:flex-initial"
+              className="h-12 min-h-[48px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold shadow-teal-sm"
             >
               Full Day Free
             </KalyaniButton>
@@ -463,7 +468,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
               leftIcon={<Save className="w-4 h-4" />}
               onClick={handleSubmitSchedule}
               isLoading={isSubmitting}
-              className={`flex-1 sm:flex-initial ${
+              className={`h-12 min-h-[48px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold ${
                 hasUnsavedChanges ? 'shadow-gold-md ring-2 ring-kalyani-gold-400/50' : ''
               }`}
             >

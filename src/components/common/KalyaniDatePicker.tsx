@@ -15,6 +15,8 @@ import {
   isPastDate,
   isTodayDate,
   getTodayDateString,
+  isDateExpiredBeyondRetention,
+  getMinRetentionDateString
 } from '../../utils/dateUtils';
 import {
   parseISO,
@@ -77,9 +79,11 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
   const nearbyDates = getNearbyDates(selectedDate, 7);
   const isPast = isPastDate(selectedDate);
   const isToday = isTodayDate(selectedDate);
+  const isSelectedExpired = isDateExpiredBeyondRetention(selectedDate);
 
   const handlePrevDay = () => {
     const prev = format(subDays(parseISO(selectedDate), 1), 'yyyy-MM-dd');
+    if (isDateExpiredBeyondRetention(prev)) return;
     onDateChange(prev);
   };
 
@@ -112,6 +116,7 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
 
   const handleSelectDay = (day: Date) => {
     const formatted = format(day, 'yyyy-MM-dd');
+    if (isDateExpiredBeyondRetention(formatted)) return;
     onDateChange(formatted);
     setIsCalendarOpen(false);
   };
@@ -308,13 +313,17 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
               const isCurrentMonth = isSameMonth(day, monthStart);
               const isDayToday = isSameDay(day, new Date());
               const isDayPast = isPastDate(dateStr);
+              const isExpired = isDateExpiredBeyondRetention(dateStr);
 
               return (
                 <button
                   key={dateStr}
+                  disabled={isExpired}
                   onClick={() => handleSelectDay(day)}
                   className={`h-9 rounded-xl text-xs flex flex-col items-center justify-center relative transition-all duration-150 ${
-                    isSelected
+                    isExpired
+                      ? 'text-slate-600 opacity-25 cursor-not-allowed line-through'
+                      : isSelected
                       ? 'bg-gradient-to-br from-kalyani-crimson-800 to-kalyani-gold-600 border border-kalyani-gold-300 text-white font-bold shadow-gold-md scale-105'
                       : !isCurrentMonth
                       ? 'text-slate-600 opacity-40 hover:bg-white/5'
@@ -324,6 +333,7 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
                       ? 'text-slate-400 hover:bg-kalyani-gold-500/15 hover:text-kalyani-gold-100'
                       : 'text-slate-200 hover:bg-kalyani-gold-500/20 hover:text-kalyani-gold-200'
                   }`}
+                  title={isExpired ? 'Dates older than 6 days are purged from records' : undefined}
                 >
                   <span>{format(day, 'd')}</span>
                   {isDayToday && !isSelected && (
@@ -356,16 +366,21 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
           const parsed = parseISO(dateStr);
           const isDayToday = isTodayDate(dateStr);
           const isDayPast = isPastDate(dateStr);
+          const isExpired = isDateExpiredBeyondRetention(dateStr);
 
           return (
             <button
               key={dateStr}
+              disabled={isExpired}
               onClick={() => onDateChange(dateStr)}
               className={`p-2.5 sm:p-3 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 ${
-                isSelected
+                isExpired
+                  ? 'opacity-25 cursor-not-allowed bg-slate-900/30 border border-slate-800 text-slate-600'
+                  : isSelected
                   ? 'bg-gradient-to-b from-kalyani-crimson-800 to-kalyani-crimson-900 border-2 border-kalyani-gold-400 text-white shadow-gold-sm scale-[1.02]'
                   : 'kalyani-glass hover:border-kalyani-gold-500/40 text-slate-300 hover:text-white hover:bg-kalyani-crimson-900/30'
               }`}
+              title={isExpired ? 'Dates older than 6 days are purged from records' : undefined}
             >
               <span className="text-[10px] sm:text-xs uppercase font-semibold text-kalyani-gold-300/80">
                 {format(parsed, 'EEE')}

@@ -56,10 +56,16 @@ To guarantee 100% data consistency across Cloud Firestore, web browsers, and mob
 │ Schedule Document IDs   │ `${facultyId}_${date}`                                 │ `usr_123_2026-08-27`      │
 │ Subject IDs             │ `sub_${departmentId.toLowerCase()}_${cleanCode}`       │ `sub_cse_cs501`           │
 │ Assigned Load Counter   │ Strictly `count(entry.type !== 'FREE')`                │ 3 subjects = 3 Periods    │
+│ Zero-Period Parity      │ 0 assigned periods evaluates to `FULL_DAY_FREE`        │ Status: `FULL_DAY_FREE`   │
+│ 6-Day Rolling Retention │ Keeps past 6 days + today + future records only        │ Purges date < Today - 6d  │
 │ Period Deletion Rule    │ Auto-renumbers remaining periods (`1, 2, ...`)         │ Writes clean batch to DB  │
 └─────────────────────────┴────────────────────────────────────────────────────────┴───────────────────────────┘
 ```
 
+- **6-Day Rolling Data Retention Engine**: Automatically scans and purges Cloud Firestore schedule records older than 6 days relative to current date on startup and filters historical datepickers to prevent stale clutter.
+- **Background Startup Internet Check & Live Reconnection**: Probes internet reachability during splash screen; if offline, transitions to a royal connectivity screen that actively live-tracks network status and redirects to the sign-in portal upon reconnection.
+- **Embedded `@krce.ac.in` Domain**: Fixed, interactive institutional domain badge built directly into the login input container.
+- **Anti-Drag Asset Protection**: Global security styling preventing users from dragging or extracting institutional logos and imagery.
 - **Strict Ascending Sorting**: All period views (Live Dashboard, Timeline Modals, Period Management, and Faculty History) always render top-to-bottom in numerical order: **Period 1 $\rightarrow$ Period 2 $\rightarrow$ Period 3 $\rightarrow$ Period 4 $\dots$**
 - **Live Reactive Modals**: Detail popups (Faculty Timeline Modal and Period Drilldown Modal) are bound to dynamic entity IDs (`selectedFacultyId`, `selectedPeriodId`). If a faculty submits or modifies their schedule while the HOD has the popup open, the modal updates live in real time on-screen.
 

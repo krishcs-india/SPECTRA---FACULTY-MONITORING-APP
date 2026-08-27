@@ -66,6 +66,44 @@ export function isFutureDate(dateStr: string): boolean {
   }
 }
 
+export const RETENTION_PAST_DAYS = 6;
+
+/**
+ * Returns the earliest date string in the retention window (today minus 6 days)
+ * e.g., if today is 2026-08-27, returns 2026-08-21
+ */
+export function getMinRetentionDateString(): string {
+  try {
+    const today = startOfDay(new Date());
+    const minDate = addDays(today, -RETENTION_PAST_DAYS);
+    return format(minDate, 'yyyy-MM-dd');
+  } catch {
+    return getTodayDateString();
+  }
+}
+
+/**
+ * Returns true if dateStr is strictly older than 6 days from today
+ */
+export function isDateExpiredBeyondRetention(dateStr: string): boolean {
+  if (!dateStr) return false;
+  try {
+    const target = startOfDay(parseISO(dateStr));
+    const minAllowed = startOfDay(addDays(new Date(), -RETENTION_PAST_DAYS));
+    return isBefore(target, minAllowed);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Returns true if dateStr is within the retention window:
+ * (Today - 6 days) <= dateStr <= any future date
+ */
+export function isDateWithinRetentionWindow(dateStr: string): boolean {
+  return !isDateExpiredBeyondRetention(dateStr);
+}
+
 export function getNearbyDates(baseDateStr: string = getTodayDateString(), range: number = 7): string[] {
   try {
     const base = parseISO(baseDateStr);

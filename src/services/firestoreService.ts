@@ -21,6 +21,7 @@ import {
   INITIAL_PERIODS,
   INITIAL_SETTINGS
 } from './seedDataService';
+import { isDateExpiredBeyondRetention } from '../utils/dateUtils';
 
 // Realtime Firestore synchronization for institutional academic data
 export interface CloudSyncHandlers {
@@ -66,6 +67,7 @@ export const firestoreService = {
 
     this.detachCloudSync();
     this.ensureDatabaseInitialized();
+    this.purgeExpiredPastSchedules();
 
     const subs = [
       this.subscribeSchedules((data) => syncHandlers?.onSchedules(data)),
@@ -210,7 +212,11 @@ export const firestoreService = {
       return onSnapshot(collection(db, 'schedules'), (snapshot) => {
         const schedules: Record<string, FacultySchedule> = {};
         snapshot.forEach((docSnap) => {
-          schedules[docSnap.id] = docSnap.data() as FacultySchedule;
+          const data = docSnap.data() as FacultySchedule;
+          // Only sync records within the 6-day past + today + future retention window
+          if (data.date && !isDateExpiredBeyondRetention(data.date)) {
+            schedules[docSnap.id] = data;
+          }
         });
         onUpdate(schedules);
       }, (err) => {
@@ -347,6 +353,31 @@ export const firestoreService = {
       }
     } catch (err) {
       console.error('Error deleting today schedules for department:', err);
+    }
+  },
+
+  /**
+   * Automatically deletes any past schedules older than 6 days from Cloud Firestore
+   */
+  async purgeExpiredPastSchedules(): Promise<number> {
+    if (!isLiveFirebaseConfigured || !db) return 0;
+    try {
+      const snap = await getDocs(collection(db, 'schedules'));
+      let deletedCount = 0;
+      for (const d of snap.docs) {
+        const data = d.data() as FacultySchedule;
+        if (data.date && isDateExpiredBeyondRetention(data.date)) {
+          await deleteDoc(d.ref);
+          deletedCount++;
+        }
+      }
+      if (deletedCount > 0) {
+        console.log(`🧹 Auto-purged ${deletedCount} expired past schedule records (> 6 days old) from Cloud Firestore.`);
+      }
+      return deletedCount;
+    } catch (err) {
+      console.warn('Error auto-purging expired past schedules:', err);
+      return 0;
     }
   },
 

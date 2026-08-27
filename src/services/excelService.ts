@@ -87,29 +87,29 @@ export const excelService = {
   async downloadUserTemplate(): Promise<string> {
     const templateData = [
       {
-        "Full Name": "Dr. Arun Kumar",
-        "College Email": "arun.cse@krce.ac.in",
+        "Full Name": "Dr. Kalyani",
+        "College Email": "kalyani.cse@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Professor & Head of Department",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "HOD",
       },
       {
-        "Full Name": "Dr. Meenakshi Sundaram",
-        "College Email": "meenakshi.cse@krce.ac.in",
+        "Full Name": "Prof. Kalyani R",
+        "College Email": "kalyani.r@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Assistant HOD",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "AHOD",
       },
       {
-        "Full Name": "Prof. Priya Sharma",
-        "College Email": "priya.cse@krce.ac.in",
+        "Full Name": "Prof. Kalyani Sundaram",
+        "College Email": "kalyani.s@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Associate Professor",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "FACULTY",
       },
       {
-        "Full Name": "Prof. Rajesh Kumar",
-        "College Email": "rajesh.cse@krce.ac.in",
+        "Full Name": "Prof. Kalyani Devi",
+        "College Email": "kalyani.devi@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Assistant Professor",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "FACULTY",

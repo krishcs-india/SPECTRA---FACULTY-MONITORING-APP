@@ -7,6 +7,7 @@ import { TodaySummaryStats } from '../../components/hod/TodaySummaryStats';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { subDays, format } from 'date-fns';
+import { isDateExpiredBeyondRetention, getMinRetentionDateString } from '../../utils/dateUtils';
 
 export const HodHistoryPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -14,6 +15,15 @@ export const HodHistoryPage: React.FC = () => {
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState<string>(yesterday);
   const [statFilter, setStatFilter] = useState<'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED'>('ALL');
+
+  // Ensure selectedDate never exceeds the 6-day retention threshold
+  const handleDateChange = (newDate: string) => {
+    if (isDateExpiredBeyondRetention(newDate)) {
+      setSelectedDate(getMinRetentionDateString());
+    } else {
+      setSelectedDate(newDate);
+    }
+  };
 
   const getDepartmentAvailability = useAppStore((state) => state.getDepartmentAvailability);
   const schedules = useAppStore((state) => state.schedules);
@@ -44,7 +54,7 @@ export const HodHistoryPage: React.FC = () => {
         breadcrumbs={[{ label: 'HOD' }, { label: 'Historical Archives' }]}
       />
 
-      <KalyaniDatePicker selectedDate={selectedDate} onDateChange={setSelectedDate} />
+      <KalyaniDatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
 
       <TodaySummaryStats overview={overview} onFilterStatus={setStatFilter} />
 

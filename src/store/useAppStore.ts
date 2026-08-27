@@ -16,7 +16,11 @@ import {
 import { firestoreService } from '../services/firestoreService';
 import { isLiveFirebaseConfigured } from '../config/firebase';
 import { validateSchedulePeriods } from '../utils/validation';
-import { getTodayDateString } from '../utils/dateUtils';
+import {
+  getTodayDateString,
+  isDateExpiredBeyondRetention,
+  isDateWithinRetentionWindow
+} from '../utils/dateUtils';
 
 interface AppStoreState {
   users: KalyaniUser[];
@@ -270,7 +274,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         },
         onSchedules: (data) => {
           if (data && typeof data === 'object') {
-            set({ schedules: data as Record<string, FacultySchedule> });
+            const validSchedules: Record<string, FacultySchedule> = {};
+            Object.entries(data).forEach(([key, schedule]) => {
+              if (schedule.date && isDateWithinRetentionWindow(schedule.date)) {
+                validSchedules[key] = schedule as FacultySchedule;
+              }
+            });
+            set({ schedules: validSchedules });
             persist();
           }
         }
@@ -340,10 +350,19 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       return { success: false, error: 'Faculty record not found' };
     }
 
+    if (isDateExpiredBeyondRetention(date)) {
+      return { success: false, error: 'Schedules older than 6 days are expired and cannot be modified.' };
+    }
+
     const validation = validateSchedulePeriods(periods);
     if (!validation.isValid) {
       return { success: false, error: validation.error };
     }
+
+    const hasAssignedPeriods = Object.values(periods).some(
+      (p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')
+    );
+    const calculatedStatus: FacultySchedule['status'] = hasAssignedPeriods ? 'SUBMITTED' : 'FULL_DAY_FREE';
 
     const key = `${facultyId}_${date}`;
     const now = new Date().toISOString();
@@ -356,7 +375,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       facultyEmail: faculty.email,
       departmentId: faculty.departmentId,
       date,
-      status: 'SUBMITTED',
+      status: calculatedStatus,
       periods,
       submittedAt: now,
       updatedAt: now
@@ -379,6 +398,10 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const faculty = state.users.find((u) => u.uid === facultyId);
     if (!faculty) {
       return { success: false, error: 'Faculty record not found' };
+    }
+
+    if (isDateExpiredBeyondRetention(date)) {
+      return { success: false, error: 'Schedules older than 6 days are expired and cannot be modified.' };
     }
 
     const activePeriods = state.getActivePeriods(faculty.departmentId);
@@ -446,16 +469,21 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       let assignedCount = 0;
 
       if (schedule) {
-        status = schedule.status;
-        if (status === 'SUBMITTED') {
-          submittedCount++;
-          assignedCount = Object.values(schedule.periods || {}).filter(
-            (p) => p && p.type !== 'FREE'
-          ).length;
-        } else if (status === 'FULL_DAY_FREE') {
+        const periodsAssigned = Object.values(schedule.periods || {}).filter(
+          (p) => p && p.type !== 'FREE'
+        ).length;
+
+        // If explicitly FULL_DAY_FREE or submitted with 0 assigned periods -> strictly FULL_DAY_FREE
+        if (schedule.status === 'FULL_DAY_FREE' || (schedule.status === 'SUBMITTED' && periodsAssigned === 0)) {
+          status = 'FULL_DAY_FREE';
           fullDayFreeCount++;
           assignedCount = 0;
+        } else if (schedule.status === 'SUBMITTED') {
+          status = 'SUBMITTED';
+          submittedCount++;
+          assignedCount = periodsAssigned;
         } else {
+          status = schedule.status;
           notSubmittedCount++;
         }
       } else {
@@ -562,7 +590,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   getFacultyHistory: (facultyId: string): FacultySchedule[] => {
     const state = get();
     return Object.values(state.schedules)
-      .filter((s) => s.facultyId === facultyId)
+      .filter((s) => s.facultyId === facultyId && isDateWithinRetentionWindow(s.date))
       .sort((a, b) => b.date.localeCompare(a.date));
   },
 

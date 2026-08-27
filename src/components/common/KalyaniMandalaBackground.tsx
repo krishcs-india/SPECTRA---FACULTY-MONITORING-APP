@@ -13,7 +13,8 @@ export const KalyaniMandalaBackground: React.FC = () => {
         <img
           src="/assets/main-design.png"
           alt="Swirling Mandala Art"
-          className="w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-[0_0_50px_rgba(212,175,55,0.35)]"
+          draggable={false}
+          className="w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-[0_0_50px_rgba(212,175,55,0.35)] pointer-events-none select-none"
         />
       </div>
 
@@ -25,7 +26,8 @@ export const KalyaniMandalaBackground: React.FC = () => {
         <img
           src="/assets/main-design.png"
           alt="Swirling Mandala Art"
-          className="w-full h-full object-contain filter contrast-125 brightness-105"
+          draggable={false}
+          className="w-full h-full object-contain filter contrast-125 brightness-105 pointer-events-none select-none"
         />
       </div>
 

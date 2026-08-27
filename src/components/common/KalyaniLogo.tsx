@@ -39,7 +39,8 @@ export const KalyaniLogo: React.FC<KalyaniLogoProps> = ({
         <img
           src="/assets/app-icon-logo.png"
           alt="Kalyani Logo"
-          className="w-full h-full object-contain rounded-full"
+          draggable={false}
+          className="w-full h-full object-contain rounded-full pointer-events-none select-none"
           onError={(e) => {
             // Fallback to stylized golden K if image path is unavailable
             e.currentTarget.style.display = 'none';
@@ -67,7 +68,8 @@ export const KalyaniLogo: React.FC<KalyaniLogoProps> = ({
             <img
               src="/assets/top-text-logo.png"
               alt="Kalyani Top Logo"
-              className="relative w-full h-full object-contain rounded-full drop-shadow-[0_0_3px_rgba(212,175,55,0.45)]"
+              draggable={false}
+              className="relative w-full h-full object-contain rounded-full drop-shadow-[0_0_3px_rgba(212,175,55,0.45)] pointer-events-none select-none"
             />
           </div>
         </div>

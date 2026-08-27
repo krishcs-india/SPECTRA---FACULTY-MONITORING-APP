@@ -23,21 +23,29 @@ export const LoginPage: React.FC = () => {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputEmail.trim()) return;
-    await loginWithEmail(inputEmail.trim());
+    const cleanPrefix = inputEmail.trim().toLowerCase().replace(/@.*$/, '');
+    if (!cleanPrefix) return;
+    const finalEmail = `${cleanPrefix}@krce.ac.in`;
+    await loginWithEmail(finalEmail);
   };
 
   const handleAdminLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanPrefix = adminEmail.trim().toLowerCase().replace(/@.*$/, '');
+    if (!cleanPrefix) {
+      setAdminError('Please enter administrator username.');
+      return;
+    }
     if (!adminPassword.trim()) {
       setAdminError('Please enter the administrator password.');
       return;
     }
 
+    const finalAdminEmail = `${cleanPrefix}@krce.ac.in`;
     setAdminError(null);
     setIsAdminLoading(true);
 
-    const result = await loginWithAdminCredentials(adminEmail.trim(), adminPassword);
+    const result = await loginWithAdminCredentials(finalAdminEmail, adminPassword);
     setIsAdminLoading(false);
 
     if (!result.success) {
@@ -50,7 +58,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-kalyani-crimson-950 flex flex-col justify-between relative overflow-hidden text-slate-100 font-sans">
+    <div className="min-h-screen bg-kalyani-crimson-950 flex flex-col justify-between relative overflow-hidden text-slate-100 font-sans select-none">
       <KalyaniMandalaBackground />
 
       {/* Top Bar Header */}
@@ -71,7 +79,8 @@ export const LoginPage: React.FC = () => {
               <img
                 src="/assets/app-icon-logo.png"
                 alt="Kalyani App Logo"
-                className="w-full h-full object-contain drop-shadow-[0_2px_12px_rgba(212,175,55,0.6)]"
+                draggable={false}
+                className="w-full h-full object-contain drop-shadow-[0_2px_12px_rgba(212,175,55,0.6)] pointer-events-none select-none"
               />
             </div>
 
@@ -100,21 +109,33 @@ export const LoginPage: React.FC = () => {
           {/* Direct Sign-In Section */}
           <div className="space-y-4">
             {/* Direct Institutional Email Login Form */}
-            <form onSubmit={handleEmailSubmit} className="space-y-3">
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-kalyani-gold-300 uppercase tracking-wider text-left">
                   Faculty / HOD Email
                 </label>
-                <KalyaniInput
-                  type="email"
-                  placeholder="e.g. arun.cse@krce.ac.in"
-                  value={inputEmail}
-                  onChange={(e) => {
-                    setInputEmail(e.target.value);
-                    if (error) clearError();
-                  }}
-                  required
-                />
+
+                <div className="relative flex items-center group">
+                  <input
+                    type="text"
+                    placeholder="e.g. kalyani or kalyani.cse"
+                    value={inputEmail}
+                    onChange={(e) => {
+                      let val = e.target.value.trim().toLowerCase();
+                      if (val.includes('@')) {
+                        val = val.split('@')[0];
+                      }
+                      setInputEmail(val);
+                      if (error) clearError();
+                    }}
+                    className="w-full h-12 bg-kalyani-crimson-950/90 border border-kalyani-gold-500/30 text-slate-100 text-sm font-sans rounded-2xl pl-4 pr-32 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/25 transition-all shadow-inner"
+                    required
+                    autoFocus
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center px-3 py-1.5 rounded-xl bg-kalyani-crimson-900/90 border border-kalyani-gold-500/30 text-xs font-bold text-kalyani-gold-300 pointer-events-none select-none tracking-wide shadow-gold-sm">
+                    @krce.ac.in
+                  </div>
+                </div>
               </div>
 
               <KalyaniButton
@@ -185,20 +206,27 @@ export const LoginPage: React.FC = () => {
             <label className="block text-xs font-semibold text-kalyani-gold-200 uppercase tracking-wider text-left">
               Admin Email
             </label>
-            <div className="relative">
+            <div className="relative flex items-center">
               <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400" />
               <input
-                type="email"
+                type="text"
                 value={adminEmail}
                 onChange={(e) => {
-                  setAdminEmail(e.target.value);
+                  let val = e.target.value.trim().toLowerCase();
+                  if (val.includes('@')) {
+                    val = val.split('@')[0];
+                  }
+                  setAdminEmail(val);
                   if (adminError) setAdminError(null);
                 }}
-                placeholder="e.g. admin@krce.ac.in"
-                className="w-full h-11 bg-kalyani-crimson-950/80 border border-kalyani-gold-500/30 text-slate-100 text-sm rounded-2xl pl-10 pr-4 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 transition-all"
+                placeholder="e.g. admin"
+                className="w-full h-11 bg-kalyani-crimson-950/80 border border-kalyani-gold-500/30 text-slate-100 text-sm rounded-2xl pl-10 pr-32 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 transition-all"
                 autoFocus
                 required
               />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center px-2.5 py-1 rounded-xl bg-kalyani-crimson-900/90 border border-kalyani-gold-500/30 text-xs font-bold text-kalyani-gold-300 pointer-events-none select-none tracking-wide shadow-gold-sm">
+                @krce.ac.in
+              </div>
             </div>
           </div>
 

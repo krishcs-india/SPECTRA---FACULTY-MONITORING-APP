@@ -5,7 +5,7 @@ import { KalyaniBadge } from '../../components/common/KalyaniBadge';
 import { KalyaniEmptyState } from '../../components/common/KalyaniEmptyState';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
-import { formatDateDisplay, formatTimeDisplay } from '../../utils/dateUtils';
+import { formatDateDisplay, formatTimeDisplay, isDateWithinRetentionWindow } from '../../utils/dateUtils';
 import { Calendar, History, Clock, BookOpen, Coffee, Sparkles } from 'lucide-react';
 
 export const FacultyHistoryPage: React.FC = () => {
@@ -15,7 +15,7 @@ export const FacultyHistoryPage: React.FC = () => {
 
   const history = useAppStore((state) =>
     Object.values(state.schedules)
-      .filter((s) => s.facultyId === facultyId)
+      .filter((s) => s.facultyId === facultyId && isDateWithinRetentionWindow(s.date))
       .sort((a, b) => b.date.localeCompare(a.date))
   );
   const allPeriods = useAppStore((state) => state.getAllDepartmentPeriods(departmentId));

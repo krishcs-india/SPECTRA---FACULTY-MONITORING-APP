@@ -451,7 +451,7 @@ export const UserManager: React.FC = () => {
               label="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Dr. Arun Kumar"
+              placeholder="e.g. Dr. Kalyani"
               required
             />
 
@@ -460,7 +460,7 @@ export const UserManager: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. arun.cse@krce.ac.in"
+              placeholder="e.g. kalyani.cse@krce.ac.in"
               required
             />
 
