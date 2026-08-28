@@ -378,16 +378,17 @@ export const excelService = {
    * Generates and downloads a department staff Excel template for HODs
    */
   async downloadDepartmentStaffTemplate(departmentCode = 'CSE'): Promise<string> {
+    const safeDeptCode = (departmentCode || 'CSE').trim().toUpperCase().replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
     const templateData = [
       {
         "Faculty Name": "Dr. S. Karthikeyan",
-        "College Email": `karthik.${departmentCode.toLowerCase()}@krce.ac.in`,
+        "College Email": `karthik.${safeDeptCode.toLowerCase()}@krce.ac.in`,
         "Position / Designation": "Associate Professor",
         "Role Assignment (Faculty / Assistant HOD)": "Faculty"
       },
       {
         "Faculty Name": "Mrs. Priya R.",
-        "College Email": `priya.${departmentCode.toLowerCase()}@krce.ac.in`,
+        "College Email": `priya.${safeDeptCode.toLowerCase()}@krce.ac.in`,
         "Position / Designation": "Assistant HOD",
         "Role Assignment (Faculty / Assistant HOD)": "Assistant HOD"
       }
@@ -397,7 +398,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Department_Staff_Template");
-    return await saveWorkbook(wb, `KRCE_${departmentCode}_Staff_Template.xlsx`, "Department staff template excel");
+    return await saveWorkbook(wb, `KRCE_${safeDeptCode}_Staff_Template.xlsx`, "Department staff template excel");
   },
 
   /**
