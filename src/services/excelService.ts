@@ -42,6 +42,68 @@ async function saveWorkbook(wb: XLSX.WorkBook, fileName: string): Promise<string
   return `✅ ${fileName} downloaded successfully.`;
 }
 
+/**
+ * Applies professional formatting, typography, and spacing to an Excel worksheet:
+ * 1. Auto-calculates generous column widths with padding so no text is truncated
+ * 2. Sets Times New Roman font style, sizes (12pt bold for headers, 11pt regular for data)
+ * 3. Applies clean row heights and vertical/horizontal cell alignments
+ */
+function formatWorksheet(ws: XLSX.WorkSheet, data: Record<string, any>[]): void {
+  if (!data || data.length === 0) return;
+
+  const headers = Object.keys(data[0]);
+
+  // Calculate generous column widths based on maximum content length
+  const colWidths = headers.map(header => {
+    let maxLen = header.length;
+    for (const row of data) {
+      const val = row[header];
+      if (val !== undefined && val !== null) {
+        const str = String(val);
+        if (str.length > maxLen) {
+          maxLen = str.length;
+        }
+      }
+    }
+    // Generous breathing room: +4 chars padding, minimum width 16, max 55
+    return { wch: Math.min(Math.max(maxLen + 4, 16), 55) };
+  });
+
+  ws['!cols'] = colWidths;
+
+  // Set default row heights (header row: 24pt, data rows: 20pt)
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+  const rowHeights: { hpt: number }[] = [];
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    rowHeights.push({ hpt: R === 0 ? 24 : 20 });
+  }
+  ws['!rows'] = rowHeights;
+
+  // Apply Times New Roman font and cell alignment across all cells
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = ws[cellAddress];
+      if (!cell) continue;
+
+      const isHeader = R === 0;
+      cell.s = {
+        font: {
+          name: 'Times New Roman',
+          sz: isHeader ? 12 : 11,
+          bold: isHeader,
+          color: isHeader ? { rgb: '000000' } : { rgb: '1A1A1A' }
+        },
+        alignment: {
+          vertical: 'center',
+          horizontal: isHeader ? 'center' : (typeof cell.v === 'number' ? 'center' : 'left'),
+          wrapText: false
+        }
+      };
+    }
+  }
+}
+
 export interface UserImportRow {
   name: string;
   email: string;
@@ -117,6 +179,7 @@ export const excelService = {
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
+    formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users_Template");
     return await saveWorkbook(wb, "KRCE_Users_Import_Template.xlsx");
@@ -146,6 +209,7 @@ export const excelService = {
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
+    formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Subjects_Template");
     return await saveWorkbook(wb, "KRCE_Subjects_Import_Template.xlsx");
@@ -248,6 +312,7 @@ export const excelService = {
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
+    formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Department_Staff_Template");
     return await saveWorkbook(wb, `KRCE_${departmentCode}_Staff_Template.xlsx`);
@@ -417,6 +482,7 @@ export const excelService = {
     });
 
     const ws = XLSX.utils.json_to_sheet(data);
+    formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Faculty_Availability");
     return await saveWorkbook(wb, `Kalyani_Availability_${departmentName}_${overview.date}.xlsx`);
@@ -436,6 +502,7 @@ export const excelService = {
       "Status": u.active ? 'Active' : 'Inactive'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
+    formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Staff_Directory");
     return await saveWorkbook(wb, `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
