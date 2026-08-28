@@ -37,6 +37,8 @@ class NativeNotificationBridge {
           id: Date.now() % 2000000000,
           title,
           body,
+          largeBody: body,
+          summaryText: 'Kalyani',
           smallIcon: 'ic_launcher',
           iconColor: '#D4AF37'
         }]
@@ -62,6 +64,8 @@ class NativeNotificationBridge {
           id: NativeNotificationBridge.DAILY_REMINDER_ID,
           title: 'Kalyani — Ready for a Great Day! ☀️',
           body: 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.',
+          largeBody: 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.',
+          summaryText: 'Kalyani Reminder',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
           smallIcon: 'ic_launcher',
           iconColor: '#D4AF37'
@@ -104,6 +108,8 @@ class NativeNotificationBridge {
           id,
           title: 'Report Ready for You! 📂',
           body: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
+          largeBody: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
+          summaryText: 'Kalyani Export',
           smallIcon: 'ic_launcher',
           iconColor: '#D4AF37'
         }]

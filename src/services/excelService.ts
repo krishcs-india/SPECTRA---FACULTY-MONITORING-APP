@@ -12,7 +12,7 @@ import { formatTimeDisplay } from '../utils/dateUtils';
  *   since WebView downloads are silently dropped
  * Returns a human-friendly confirmation message.
  */
-async function saveWorkbook(wb: any, fileName: string): Promise<string> {
+async function saveWorkbook(wb: any, fileName: string, reportLabel = 'Excel file'): Promise<string> {
   if (Capacitor.isNativePlatform?.()) {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
     const { Share } = await import('@capacitor/share');
@@ -25,21 +25,21 @@ async function saveWorkbook(wb: any, fileName: string): Promise<string> {
       recursive: true
     });
 
-    // Chrome-style system notification: "Download complete — tap to open"
+    // Chrome-style system notification: "Report Ready for You! 📂"
     const { notificationService } = await import('./notificationService');
     await notificationService.native.notifyDownloadComplete(fileName, result.uri);
 
     try {
       await Share.share({ title: fileName, url: result.uri, dialogTitle: 'Save Excel File' });
-      return `✅ ${fileName} saved — choose a folder in the share sheet.`;
+      return `✅ ${reportLabel} is saved successfully.`;
     } catch {
       // User dismissed the share sheet; the file is still saved
-      return `✅ ${fileName} saved to your device's Documents folder.`;
+      return `✅ ${reportLabel} is saved successfully to your device's Documents folder.`;
     }
   }
 
   XLSX.writeFile(wb, fileName, { cellStyles: true });
-  return `✅ ${fileName} downloaded successfully.`;
+  return `✅ ${reportLabel} is downloaded successfully.`;
 }
 
 /**
@@ -99,10 +99,10 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
           fgColor: { rgb: 'F5E6BD' } // Subtle gold/cream header tint
         } : undefined,
         border: {
-          top: { style: 'thin', color: { rgb: isHeader ? '000000' : '808080' } },
-          bottom: { style: isHeader ? 'medium' : 'thin', color: { rgb: isHeader ? '000000' : '808080' } },
-          left: { style: 'thin', color: { rgb: isHeader ? '000000' : '808080' } },
-          right: { style: 'thin', color: { rgb: isHeader ? '000000' : '808080' } }
+          top: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'D4AF37' } },
+          bottom: { style: isHeader ? 'medium' : 'thin', color: { rgb: isHeader ? 'BA9225' : 'D4AF37' } },
+          left: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'D4AF37' } },
+          right: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'D4AF37' } }
         },
         alignment: {
           vertical: 'center',
@@ -192,7 +192,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users_Template");
-    return await saveWorkbook(wb, "KRCE_Users_Import_Template.xlsx");
+    return await saveWorkbook(wb, "KRCE_Users_Import_Template.xlsx", "User import template excel");
   },
 
   /**
@@ -222,7 +222,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Subjects_Template");
-    return await saveWorkbook(wb, "KRCE_Subjects_Import_Template.xlsx");
+    return await saveWorkbook(wb, "KRCE_Subjects_Import_Template.xlsx", "Subject import template excel");
   },
 
   /**
@@ -325,7 +325,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Department_Staff_Template");
-    return await saveWorkbook(wb, `KRCE_${departmentCode}_Staff_Template.xlsx`);
+    return await saveWorkbook(wb, `KRCE_${departmentCode}_Staff_Template.xlsx`, "Department staff template excel");
   },
 
   /**
@@ -495,7 +495,7 @@ export const excelService = {
     formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Faculty_Availability");
-    return await saveWorkbook(wb, `Kalyani_Availability_${departmentName}_${overview.date}.xlsx`);
+    return await saveWorkbook(wb, `Kalyani_Availability_${departmentName}_${overview.date}.xlsx`, "Faculty daily submission excel");
   },
 
   /**
@@ -515,6 +515,6 @@ export const excelService = {
     formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Staff_Directory");
-    return await saveWorkbook(wb, `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    return await saveWorkbook(wb, `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`, "Staff directory excel");
   }
 };

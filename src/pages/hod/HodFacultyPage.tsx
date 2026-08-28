@@ -213,9 +213,13 @@ export const HodFacultyPage: React.FC = () => {
     }
   };
 
-  const handleExportStaffExcel = () => {
-    excelService.exportUserDirectory(deptStaff, `${departmentName.replace(/\s+/g, '_')}_Staff_Roster`);
-    setNotificationMsg('Staff roster exported to Excel.');
+  const handleExportStaffExcel = async () => {
+    try {
+      const msg = await excelService.exportUserDirectory(deptStaff, `${departmentName.replace(/\s+/g, '_')}_Staff_Roster`);
+      setNotificationMsg(msg);
+    } catch (err: any) {
+      setNotificationMsg(`Excel export failed: ${err?.message || 'unknown error'}`);
+    }
   };
 
   const staffColumns = [
