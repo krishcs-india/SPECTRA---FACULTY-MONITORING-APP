@@ -87,16 +87,22 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
       if (!cell) continue;
 
       const isHeader = R === 0;
+      const cellValueStr = cell.v !== undefined && cell.v !== null ? String(cell.v).trim() : '';
+      const isFree = !isHeader && (cellValueStr === 'FREE' || cellValueStr.startsWith('FREE') || cellValueStr === 'Full Day Free');
+
       cell.s = {
         font: {
           name: 'Times New Roman',
           sz: isHeader ? 12 : 11,
-          bold: isHeader,
-          color: { rgb: isHeader ? '000000' : '1A1A1A' }
+          bold: isHeader || isFree,
+          color: { rgb: isHeader ? '000000' : isFree ? '854D0E' : '1A1A1A' }
         },
         fill: isHeader ? {
           patternType: 'solid',
           fgColor: { rgb: 'F5E6BD' } // Subtle gold/cream header tint
+        } : isFree ? {
+          patternType: 'solid',
+          fgColor: { rgb: 'FEF3C7' } // Light golden yellow highlight for FREE period slots
         } : undefined,
         border: {
           top: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'D4AF37' } },
@@ -106,7 +112,7 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
         },
         alignment: {
           vertical: 'center',
-          horizontal: isHeader ? 'center' : (typeof cell.v === 'number' ? 'center' : 'left'),
+          horizontal: isHeader || isFree ? 'center' : (typeof cell.v === 'number' ? 'center' : 'left'),
           wrapText: false
         }
       };
