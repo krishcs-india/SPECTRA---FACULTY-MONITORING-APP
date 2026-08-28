@@ -6,40 +6,106 @@ import { DayAvailabilityOverview } from '../types/schedule';
 import { formatTimeDisplay } from '../utils/dateUtils';
 
 /**
+ * Sanitizes a string for use as a safe, cross-platform filename
+ */
+function sanitizeFileName(name: string): string {
+  return name
+    .replace(/[/\\?%*:|"<>]/g, '_') // Remove illegal OS characters
+    .replace(/&/g, 'and')           // Replace & with 'and'
+    .replace(/\s+/g, '_')           // Replace whitespace with underscores
+    .replace(/_+/g, '_');           // Collapse multiple underscores
+}
+
+/**
  * Saves a workbook for the current platform:
- * - Web: triggers a browser download
- * - Android/iOS app: writes the file natively and opens the share sheet,
- *   since WebView downloads are silently dropped
+ * - Web: triggers a direct browser blob download with fallback to XLSX.writeFile
+ * - Android/iOS app: writes to Directory.Cache (always writable on Android 10-15 without scoped storage blocks),
+ *   falls back to Directory.Documents / Directory.Data, then triggers the native Share sheet & notification.
  * Returns a human-friendly confirmation message.
  */
 async function saveWorkbook(wb: any, fileName: string, reportLabel = 'Excel file'): Promise<string> {
+  const safeFileName = sanitizeFileName(fileName);
+
   if (Capacitor.isNativePlatform?.()) {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
     const { Share } = await import('@capacitor/share');
 
     const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64', cellStyles: true });
-    const result = await Filesystem.writeFile({
-      path: fileName,
-      data: base64,
-      directory: Directory.Documents,
-      recursive: true
-    });
+    
+    let fileUri = '';
 
-    // Chrome-style system notification: "Report Ready for You! 📂"
-    const { notificationService } = await import('./notificationService');
-    await notificationService.native.notifyDownloadComplete(fileName, result.uri);
-
+    // Step 1: Write file to Cache directory (most reliable on Android 10/11/12/13/14/15)
     try {
-      await Share.share({ title: fileName, url: result.uri, dialogTitle: 'Save Excel File' });
+      const result = await Filesystem.writeFile({
+        path: safeFileName,
+        data: base64,
+        directory: Directory.Cache,
+        recursive: true
+      });
+      fileUri = result.uri;
+    } catch (cacheErr) {
+      console.warn('Cache write failed, attempting Documents directory:', cacheErr);
+      try {
+        const result = await Filesystem.writeFile({
+          path: safeFileName,
+          data: base64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+        fileUri = result.uri;
+      } catch (docErr) {
+        console.warn('Documents write failed, attempting Data directory:', docErr);
+        const result = await Filesystem.writeFile({
+          path: safeFileName,
+          data: base64,
+          directory: Directory.Data,
+          recursive: true
+        });
+        fileUri = result.uri;
+      }
+    }
+
+    // Step 2: Dispatch system notification "Report Ready for You! 📂"
+    try {
+      const { notificationService } = await import('./notificationService');
+      await notificationService.native.notifyDownloadComplete(safeFileName, fileUri);
+    } catch (notifErr) {
+      console.warn('Download notification error:', notifErr);
+    }
+
+    // Step 3: Open native Share/Save sheet so user can view/save to any app/folder
+    try {
+      await Share.share({
+        title: safeFileName,
+        url: fileUri,
+        dialogTitle: 'Save / Open Excel File'
+      });
       return `✅ ${reportLabel} is saved successfully.`;
     } catch {
-      // User dismissed the share sheet; the file is still saved
-      return `✅ ${reportLabel} is saved successfully to your device's Documents folder.`;
+      // User dismissed the share sheet; file is safely created on device
+      return `✅ ${reportLabel} is saved successfully.`;
     }
   }
 
-  XLSX.writeFile(wb, fileName, { cellStyles: true });
-  return `✅ ${reportLabel} is downloaded successfully.`;
+  // Web Browser Environment: Use robust Blob download
+  try {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeFileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1500);
+    return `✅ ${reportLabel} is downloaded successfully.`;
+  } catch (webErr) {
+    XLSX.writeFile(wb, safeFileName, { cellStyles: true });
+    return `✅ ${reportLabel} is downloaded successfully.`;
+  }
 }
 
 /**
@@ -465,29 +531,35 @@ export const excelService = {
    * Exports Daily Department Availability Matrix to Excel
    */
   async exportAvailabilityReport(overview: DayAvailabilityOverview, departmentName: string): Promise<string> {
+    if (!overview || !overview.facultyStatuses || overview.facultyStatuses.length === 0) {
+      return '⚠️ No faculty records available to export for this date.';
+    }
+
     const sanitize = (v: any) => excelService.sanitizeCell(v);
+    const periods = overview.periodAvailability || [];
+
     const data = overview.facultyStatuses.map(f => {
       const row: Record<string, any> = {
-        "Faculty Name": sanitize(f.facultyName),
-        "Designation": sanitize(f.facultyDesignation),
+        "Faculty Name": sanitize(f.facultyName || 'Unknown Faculty'),
+        "Designation": sanitize(f.facultyDesignation || 'Faculty'),
         "Status": f.status === 'SUBMITTED' ? 'Submitted' : f.status === 'FULL_DAY_FREE' ? 'Full Day Free' : 'Not Submitted',
         "Submitted At": f.submittedAt ? formatTimeDisplay(f.submittedAt) : 'N/A',
-        "Assigned Periods": f.assignedPeriodsCount
+        "Assigned Periods": f.assignedPeriodsCount || 0
       };
 
-      // Add period columns
-      overview.periodAvailability.forEach(p => {
-        const colTitle = `${p.periodName || p.shortName}`;
+      // Add period columns safely
+      periods.forEach(p => {
+        const colTitle = `${p.periodName || p.shortName || 'Period'}`;
         if (!f.schedule || f.status === 'NOT_SUBMITTED') {
           row[colTitle] = 'Not Submitted';
         } else if (f.status === 'FULL_DAY_FREE') {
           row[colTitle] = 'FREE (Full Day)';
         } else {
-          const entry = f.schedule.periods[p.periodId];
+          const entry = f.schedule.periods ? f.schedule.periods[p.periodId] : undefined;
           if (!entry || entry.type === 'FREE') {
             row[colTitle] = 'FREE';
           } else if (entry.type === 'SUBJECT') {
-            row[colTitle] = sanitize(`${entry.subjectCode || ''} ${entry.subjectName || ''}`.trim());
+            row[colTitle] = sanitize(`${entry.subjectCode || ''} ${entry.subjectName || ''}`.trim() || 'Assigned Subject');
           } else {
             row[colTitle] = sanitize(`Other: ${entry.customText || ''}`);
           }
@@ -497,24 +569,31 @@ export const excelService = {
       return row;
     });
 
+    const reportDate = overview.date || new Date().toISOString().slice(0, 10);
+    const safeDept = (departmentName || 'Department').trim();
+
     const ws = XLSX.utils.json_to_sheet(data);
     formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Faculty_Availability");
-    return await saveWorkbook(wb, `Kalyani_Availability_${departmentName}_${overview.date}.xlsx`, "Faculty daily submission excel");
+    return await saveWorkbook(wb, `Kalyani_Availability_${safeDept}_${reportDate}.xlsx`, "Faculty daily submission excel");
   },
 
   /**
    * Exports User / Staff Directory to Excel
    */
   async exportUserDirectory(userList: KalyaniUser[], fileNamePrefix = 'Kalyani_Staff_Directory'): Promise<string> {
+    if (!userList || userList.length === 0) {
+      return '⚠️ No staff records available to export.';
+    }
+
     const sanitize = (v: any) => excelService.sanitizeCell(v);
     const data = userList.map(u => ({
-      "Full Name": sanitize(u.name),
-      "Email ID": sanitize(u.email),
-      "Department": sanitize(u.departmentName || u.departmentId),
-      "Designation": sanitize(u.designation),
-      "Role": u.hodType === 'AHOD' ? 'Assistant HOD' : u.role,
+      "Full Name": sanitize(u.name || 'Unknown User'),
+      "Email ID": sanitize(u.email || 'N/A'),
+      "Department": sanitize(u.departmentName || u.departmentId || 'General'),
+      "Designation": sanitize(u.designation || 'Staff'),
+      "Role": u.hodType === 'AHOD' ? 'Assistant HOD' : (u.role || 'FACULTY'),
       "Status": u.active ? 'Active' : 'Inactive'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
