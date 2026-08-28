@@ -57,8 +57,8 @@ class NativeNotificationBridge {
       await LocalNotifications.schedule({
         notifications: [{
           id: NativeNotificationBridge.DAILY_REMINDER_ID,
-          title: 'Kalyani — Daily Period Reminder',
-          body: 'A new day has begun. Update your period availability or mark Full Day Free.',
+          title: 'Kalyani — Ready for a Great Day! ☀️',
+          body: 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
           smallIcon: 'ic_launcher',
           iconColor: '#D4AF37'
@@ -78,8 +78,8 @@ class NativeNotificationBridge {
     const key = `kalyani_pending_notified_${userId}_${new Date().toISOString().slice(0, 10)}`;
     if (localStorage.getItem(key)) return;
     await this.notifyNow(
-      "Kalyani — Today's Periods Pending",
-      `Namaste ${userName}, you have not updated today's subjects/periods yet. Please submit your schedule.`
+      'Kalyani — Quick Schedule Check ✨',
+      `Welcome back, ${userName}! Let’s get today’s schedule lined up. Please confirm your periods or mark yourself free in just a tap.`
     );
     localStorage.setItem(key, '1');
   }
@@ -99,8 +99,8 @@ class NativeNotificationBridge {
       await LocalNotifications.schedule({
         notifications: [{
           id,
-          title: '✅ Download complete',
-          body: `${fileName} — tap to open or save`,
+          title: 'Report Ready for You! 📂',
+          body: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           smallIcon: 'ic_launcher',
           iconColor: '#D4AF37'
         }]
@@ -237,16 +237,16 @@ class KalyaniNotificationManager {
 
   async notifySchedulePending(facultyName: string, remainingTime?: string): Promise<void> {
     await this.provider.sendNotification({
-      title: 'Kalyani — Daily Period Schedule Pending',
-      body: `Namaste ${facultyName}, please submit your period availability or mark Full Day Free for today.`,
+      title: 'Kalyani — Almost Done! 🌟',
+      body: `Dear, ${facultyName}, you are just a step away. Please finalize your period slots or select Full Day Free to complete your day's schedule.`,
       icon: '/favicon.svg'
     });
   }
 
   async notifySubmissionSuccess(date: string): Promise<void> {
     await this.provider.sendNotification({
-      title: 'Kalyani — Schedule Submitted Successfully',
-      body: `Your period availability for ${date} has been synchronized in real-time.`,
+      title: 'Kalyani — Schedule Confirmed! 🎉',
+      body: `All set! Your availability for ${date} has been successfully updated. Wishing you a smooth, engaging, and productive day ahead!`,
       icon: '/favicon.svg'
     });
   }
