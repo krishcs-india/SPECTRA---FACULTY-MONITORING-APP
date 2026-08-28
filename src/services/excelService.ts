@@ -79,7 +79,7 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
   }
   ws['!rows'] = rowHeights;
 
-  // Apply Times New Roman font, header background fill, and cell borders across all cells
+  // Apply Times New Roman font, header background fill, and full borders on all sides of every cell
   for (let R = range.s.r; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -99,10 +99,10 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
           fgColor: { rgb: 'F5E6BD' } // Subtle gold/cream header tint
         } : undefined,
         border: {
-          top: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'E0E0E0' } },
-          bottom: { style: isHeader ? 'medium' : 'thin', color: { rgb: isHeader ? 'BA9225' : 'E0E0E0' } },
-          left: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'EAEAEA' } },
-          right: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'EAEAEA' } }
+          top: { style: 'thin', color: { rgb: isHeader ? '000000' : '808080' } },
+          bottom: { style: isHeader ? 'medium' : 'thin', color: { rgb: isHeader ? '000000' : '808080' } },
+          left: { style: 'thin', color: { rgb: isHeader ? '000000' : '808080' } },
+          right: { style: 'thin', color: { rgb: isHeader ? '000000' : '808080' } }
         },
         alignment: {
           vertical: 'center',
