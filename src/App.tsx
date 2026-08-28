@@ -64,6 +64,14 @@ export const App: React.FC = () => {
 
   const handleSplashComplete = async () => {
     setShowSplash(false);
+
+    // Request notification and system permissions right after the splash screen finishes
+    try {
+      await notificationService.requestPermissions();
+    } catch (err) {
+      console.warn('Post-splash permission request error:', err);
+    }
+
     let isOnline = isOnlineAtStartupRef.current;
     if (isOnline === null) {
       isOnline = await isDeviceOnline();

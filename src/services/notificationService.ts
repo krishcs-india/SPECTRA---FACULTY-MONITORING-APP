@@ -18,9 +18,12 @@ class NativeNotificationBridge {
     if (!isNative()) return false;
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const check = await LocalNotifications.checkPermissions();
+      if (check.display === 'granted') return true;
       const res = await LocalNotifications.requestPermissions();
       return res.display === 'granted';
-    } catch {
+    } catch (err) {
+      console.warn('Native notification permission error:', err);
       return false;
     }
   }
@@ -194,8 +197,7 @@ class MobileLocalNotificationProvider implements INotificationProvider {
   name = 'MobileLocalNotificationProvider';
 
   isSupported(): boolean {
-    // Check if Capacitor LocalNotifications plugin is injected on window
-    return typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform());
+    return isNative();
   }
 
   async requestPermission(): Promise<boolean> {
@@ -221,18 +223,28 @@ class KalyaniNotificationManager {
 
   constructor() {
     // Select active provider depending on environment
-    const mobile = new MobileLocalNotificationProvider();
-    if (mobile.isSupported()) {
-      this.provider = mobile;
+    if (isNative()) {
+      this.provider = new MobileLocalNotificationProvider();
     } else {
       this.provider = new WebNotificationProvider();
     }
   }
 
-  async init(): Promise<void> {
-    if (this.provider.isSupported()) {
-      await this.provider.requestPermission();
+  async requestPermissions(): Promise<boolean> {
+    try {
+      if (isNative()) {
+        return await nativeBridge.requestPermission();
+      } else {
+        return await this.provider.requestPermission();
+      }
+    } catch (err) {
+      console.warn('Permission request failed:', err);
+      return false;
     }
+  }
+
+  async init(): Promise<void> {
+    // Setup
   }
 
   async notifySchedulePending(facultyName: string, remainingTime?: string): Promise<void> {
