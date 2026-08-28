@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { Capacitor } from '@capacitor/core';
 import { KalyaniUser, UserRole, HodType } from '../types/user';
 import { Subject } from '../types/subject';
@@ -12,12 +12,12 @@ import { formatTimeDisplay } from '../utils/dateUtils';
  *   since WebView downloads are silently dropped
  * Returns a human-friendly confirmation message.
  */
-async function saveWorkbook(wb: XLSX.WorkBook, fileName: string): Promise<string> {
+async function saveWorkbook(wb: any, fileName: string): Promise<string> {
   if (Capacitor.isNativePlatform?.()) {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
     const { Share } = await import('@capacitor/share');
 
-    const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64', cellStyles: true });
     const result = await Filesystem.writeFile({
       path: fileName,
       data: base64,
@@ -38,17 +38,17 @@ async function saveWorkbook(wb: XLSX.WorkBook, fileName: string): Promise<string
     }
   }
 
-  XLSX.writeFile(wb, fileName);
+  XLSX.writeFile(wb, fileName, { cellStyles: true });
   return `✅ ${fileName} downloaded successfully.`;
 }
 
 /**
  * Applies professional formatting, typography, and spacing to an Excel worksheet:
  * 1. Auto-calculates generous column widths with padding so no text is truncated
- * 2. Sets Times New Roman font style, sizes (12pt bold for headers, 11pt regular for data)
- * 3. Applies clean row heights and vertical/horizontal cell alignments
+ * 2. Sets genuine Times New Roman font style, sizes (12pt bold for headers, 11pt regular for data)
+ * 3. Applies clean header fills, borders, row heights, and vertical/horizontal cell alignments
  */
-function formatWorksheet(ws: XLSX.WorkSheet, data: Record<string, any>[]): void {
+function formatWorksheet(ws: any, data: Record<string, any>[]): void {
   if (!data || data.length === 0) return;
 
   const headers = Object.keys(data[0]);
@@ -71,15 +71,15 @@ function formatWorksheet(ws: XLSX.WorkSheet, data: Record<string, any>[]): void 
 
   ws['!cols'] = colWidths;
 
-  // Set default row heights (header row: 24pt, data rows: 20pt)
+  // Set default row heights (header row: 26pt, data rows: 21pt)
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
   const rowHeights: { hpt: number }[] = [];
   for (let R = range.s.r; R <= range.e.r; ++R) {
-    rowHeights.push({ hpt: R === 0 ? 24 : 20 });
+    rowHeights.push({ hpt: R === 0 ? 26 : 21 });
   }
   ws['!rows'] = rowHeights;
 
-  // Apply Times New Roman font and cell alignment across all cells
+  // Apply Times New Roman font, header background fill, and cell borders across all cells
   for (let R = range.s.r; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -92,7 +92,17 @@ function formatWorksheet(ws: XLSX.WorkSheet, data: Record<string, any>[]): void 
           name: 'Times New Roman',
           sz: isHeader ? 12 : 11,
           bold: isHeader,
-          color: isHeader ? { rgb: '000000' } : { rgb: '1A1A1A' }
+          color: { rgb: isHeader ? '000000' : '1A1A1A' }
+        },
+        fill: isHeader ? {
+          patternType: 'solid',
+          fgColor: { rgb: 'F5E6BD' } // Subtle gold/cream header tint
+        } : undefined,
+        border: {
+          top: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'E0E0E0' } },
+          bottom: { style: isHeader ? 'medium' : 'thin', color: { rgb: isHeader ? 'BA9225' : 'E0E0E0' } },
+          left: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'EAEAEA' } },
+          right: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'EAEAEA' } }
         },
         alignment: {
           vertical: 'center',
