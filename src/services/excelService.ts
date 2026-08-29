@@ -1,9 +1,15 @@
 import XLSX from 'xlsx-js-style';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { KalyaniUser, UserRole, HodType } from '../types/user';
 import { Subject } from '../types/subject';
 import { DayAvailabilityOverview } from '../types/schedule';
 import { formatTimeDisplay } from '../utils/dateUtils';
+
+interface AppFileOpenerPluginType {
+  open(options: { filePath: string; mimeType?: string; title?: string }): Promise<{ success: boolean }>;
+}
+
+const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 
 /**
  * Sanitizes a string for use as a safe, cross-platform filename
@@ -20,7 +26,7 @@ function sanitizeFileName(name: string): string {
  * Saves a workbook for the current platform:
  * - Web: triggers a direct browser blob download with fallback to XLSX.writeFile
  * - Android/iOS app: writes to Directory.Cache (always writable on Android 10-15 without scoped storage blocks),
- *   falls back to Directory.Documents / Directory.Data, then triggers the native Share sheet & notification.
+ *   falls back to Directory.Documents / Directory.Data, then triggers the native "Open with" app chooser.
  * Returns a human-friendly confirmation message.
  */
 async function saveWorkbook(wb: any, fileName: string, reportLabel = 'Excel file'): Promise<string> {
@@ -28,7 +34,6 @@ async function saveWorkbook(wb: any, fileName: string, reportLabel = 'Excel file
 
   if (Capacitor.isNativePlatform?.()) {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    const { Share } = await import('@capacitor/share');
 
     const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64', cellStyles: true });
     
@@ -73,17 +78,27 @@ async function saveWorkbook(wb: any, fileName: string, reportLabel = 'Excel file
       console.warn('Download notification error:', notifErr);
     }
 
-    // Step 3: Open native Share/Save sheet so user can view/save to any app/folder
+    // Step 3: Trigger native "OPEN WITH" App Chooser directly
     try {
-      await Share.share({
-        title: safeFileName,
-        url: fileUri,
-        dialogTitle: 'Save / Open Excel File'
+      await AppFileOpener.open({
+        filePath: fileUri,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        title: 'Open with'
       });
-      return `✅ ${reportLabel} is saved successfully.`;
-    } catch {
-      // User dismissed the share sheet; file is safely created on device
-      return `✅ ${reportLabel} is saved successfully.`;
+      return `✅ ${reportLabel} is downloaded successfully.`;
+    } catch (openErr) {
+      console.warn('AppFileOpener failed, falling back to Share sheet:', openErr);
+      try {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({
+          title: safeFileName,
+          url: fileUri,
+          dialogTitle: 'Open with'
+        });
+        return `✅ ${reportLabel} is downloaded successfully.`;
+      } catch {
+        return `✅ ${reportLabel} is downloaded successfully.`;
+      }
     }
   }
 

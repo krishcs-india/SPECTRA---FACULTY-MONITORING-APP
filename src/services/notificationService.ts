@@ -5,7 +5,13 @@ export interface NotificationPayload {
   data?: Record<string, any>;
 }
 
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+interface AppFileOpenerPluginType {
+  open(options: { filePath: string; mimeType?: string; title?: string }): Promise<{ success: boolean }>;
+}
+
+const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 
 const isNative = () =>
   typeof window !== 'undefined' && Capacitor.isNativePlatform?.();
@@ -133,13 +139,21 @@ class NativeNotificationBridge {
         const uri = localStorage.getItem(`kalyani_dl_uri_${id}`);
         if (!uri) return;
         try {
-          const { Share } = await import('@capacitor/share');
-          await Share.share({
-            title: 'Open downloaded file',
-            url: uri,
-            dialogTitle: 'Open / Save File'
+          await AppFileOpener.open({
+            filePath: uri,
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            title: 'Open with'
           });
-        } catch {}
+        } catch (openErr) {
+          try {
+            const { Share } = await import('@capacitor/share');
+            await Share.share({
+              title: 'Open with',
+              url: uri,
+              dialogTitle: 'Open with'
+            });
+          } catch {}
+        }
       });
     } catch (err) {
       console.warn('Notification tap listener failed:', err);
