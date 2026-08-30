@@ -214,6 +214,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                   return (
                     <button
                       key={sub.id}
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleSelectOfficial(sub)}
                       className={`w-full text-left p-3 rounded-xl border transition-all duration-150 flex items-center justify-between gap-3 ${
                         isSelected
