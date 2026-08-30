@@ -138,66 +138,42 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
 
         {activeTab === 'OFFICIAL' ? (
           <div className="space-y-3">
-            {/* Sticky Top Search Box */}
-            <div className={`transition-all duration-200 ${isSearchActive ? 'sticky -top-1 z-30 pt-1 pb-1 bg-kalyani-crimson-950/95 backdrop-blur-md' : ''}`}>
-              <div className="relative">
-                <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10 pointer-events-none transition-colors ${
-                  isSearchFocused ? 'text-kalyani-gold-400' : 'text-kalyani-gold-400/70'
-                }`} />
-                <input
-                  type="text"
-                  value={search}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => {
-                    // Small timeout to allow clicking on subject result
-                    setTimeout(() => setIsSearchFocused(false), 200);
-                  }}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && cleanSearch && !hasExactMatch) {
-                      e.preventDefault();
-                      handleAddUnlistedSubject(cleanSearch);
-                    }
-                  }}
-                  placeholder="Search subject code or name…"
-                  className={`w-full bg-kalyani-crimson-950/90 border text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-10 py-3 outline-none transition-all ${
-                    isSearchActive
-                      ? 'border-kalyani-gold-400 ring-2 ring-kalyani-gold-500/25 shadow-gold-sm'
-                      : 'border-kalyani-gold-500/20 focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20'
-                  }`}
-                />
-                {cleanSearch.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 flex items-center justify-center text-xs font-bold transition-all"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              {isSearchActive && (
-                <div className="flex items-center justify-between mt-1 px-1 text-[11px] text-kalyani-gold-300/80">
-                  <span>Showing {filteredSubjects.length} of {subjects.length} subjects</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch('');
-                      setIsSearchFocused(false);
-                    }}
-                    className="text-slate-400 hover:text-slate-200 underline"
-                  >
-                    View All Options
-                  </button>
-                </div>
+            {/* Search Box Header */}
+            <div className="relative">
+              <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10 pointer-events-none transition-colors ${
+                isSearchFocused ? 'text-kalyani-gold-400' : 'text-kalyani-gold-400/70'
+              }`} />
+              <input
+                type="text"
+                value={search}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => {
+                  setTimeout(() => setIsSearchFocused(false), 200);
+                }}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && cleanSearch && !hasExactMatch) {
+                    e.preventDefault();
+                    handleAddUnlistedSubject(cleanSearch);
+                  }
+                }}
+                placeholder="Search subject code or name…"
+                className="w-full bg-kalyani-crimson-950/90 border border-kalyani-gold-500/20 focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-10 py-3 outline-none transition-all"
+              />
+              {cleanSearch.length > 0 && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 flex items-center justify-center text-xs font-bold transition-all"
+                >
+                  ✕
+                </button>
               )}
             </div>
 
-            {/* 1. List of Available / Matching Official Subjects */}
-            <div className={`overflow-y-auto space-y-1.5 pr-1 transition-all duration-200 ${
-              isSearchActive ? 'max-h-[55vh]' : 'max-h-60'
-            }`}>
+            {/* 1. List of Available / Matching Official Subjects - Confined strictly to its own scroll container */}
+            <div className="max-h-60 sm:max-h-72 overflow-y-auto overflow-x-hidden space-y-1.5 pr-1.5 rounded-xl">
               {filteredSubjects.length === 0 ? (
                 <div className="text-center py-8 text-xs text-slate-400">
                   {cleanSearch
