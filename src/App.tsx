@@ -44,23 +44,24 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('dragstart', preventDrag);
   }, [initStore, initAuth]);
 
-  // Daily native notification: nudge faculty/AHOD when today's schedule
-  // is still pending, plus register the recurring morning reminder.
-  // Main HOD does not submit daily schedules — no notification for him.
+  // Role-customized notifications: schedules morning reminder and delivers
+  // launch update tailored specifically for the user's role (Faculty, HOD, Admin).
   useEffect(() => {
     if (!currentUser || !isCloudHydrated) return;
-    if (currentUser.role === 'ADMIN') return;
-    const isMainHod = currentUser.role === 'HOD' && currentUser.hodType !== 'AHOD';
-    if (isMainHod) return;
 
-    notificationService.native.ensureDailyReminder();
+    const userRole = currentUser.role as 'ADMIN' | 'HOD' | 'FACULTY';
+    notificationService.native.ensureDailyReminder(userRole, currentUser.name);
+
     const todaySchedule = useAppStore.getState().getSchedule(currentUser.uid, getTodayDateString());
-    notificationService.native.notifyIfPendingToday(
+    const isSubmitted = todaySchedule?.status === 'SUBMITTED' || todaySchedule?.status === 'FULL_DAY_FREE';
+
+    notificationService.native.notifyAppLaunchByRole(
       currentUser.uid,
       currentUser.name,
-      todaySchedule?.status === 'SUBMITTED' || todaySchedule?.status === 'FULL_DAY_FREE'
+      userRole,
+      isSubmitted
     );
-  }, [currentUser?.uid, isCloudHydrated]);
+  }, [currentUser?.uid, currentUser?.role, isCloudHydrated]);
 
   const handleSplashComplete = async () => {
     setShowSplash(false);

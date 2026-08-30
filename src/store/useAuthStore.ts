@@ -22,6 +22,21 @@ interface AuthStoreState {
 }
 
 const AUTH_USER_KEY = 'kalyani_active_user_uid';
+const AUTH_USER_DATA_KEY = 'kalyani_active_user_data';
+
+const persistActiveUser = (user: KalyaniUser | null) => {
+  if (user) {
+    try {
+      localStorage.setItem(AUTH_USER_KEY, user.uid);
+      localStorage.setItem(AUTH_USER_DATA_KEY, JSON.stringify(user));
+    } catch {}
+  } else {
+    try {
+      localStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_USER_DATA_KEY);
+    } catch {}
+  }
+};
 
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   currentUser: null,
@@ -35,9 +50,25 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       appStore.initStore();
     }
 
+    const savedUserData = localStorage.getItem(AUTH_USER_DATA_KEY);
     const savedUid = localStorage.getItem(AUTH_USER_KEY);
-    const users = useAppStore.getState().users;
 
+    // 1. Instant session restoration from cached user profile (zero delay, zero redirect to login)
+    if (savedUserData) {
+      try {
+        const cachedUser = JSON.parse(savedUserData) as KalyaniUser;
+        if (cachedUser && cachedUser.uid) {
+          set({ currentUser: cachedUser, isAuthenticated: true, isLoading: false, error: null });
+          // Background sync to ensure data freshness
+          setTimeout(() => get().refreshActiveUser(), 100);
+          return;
+        }
+      } catch (e) {
+        console.warn('Session cache parse notice:', e);
+      }
+    }
+
+    // 2. Fallback check by UID in memory or Administrator
     if (savedUid) {
       if (savedUid === 'usr_admin') {
         const adminUser: KalyaniUser = {
@@ -53,6 +84,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: new Date().toISOString()
         };
+        persistActiveUser(adminUser);
         useAppStore.setState((prev) => ({
           users: prev.users.some((u) => u.uid === 'usr_admin') ? prev.users : [...prev.users, adminUser]
         }));
@@ -60,8 +92,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         return;
       }
 
+      const users = useAppStore.getState().users;
       const matched = users.find((u) => u.uid === savedUid && u.active);
       if (matched) {
+        persistActiveUser(matched);
         set({ currentUser: matched, isAuthenticated: true, isLoading: false, error: null });
         return;
       }
@@ -88,7 +122,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: new Date().toISOString()
       };
-      localStorage.setItem(AUTH_USER_KEY, adminUser.uid);
+      persistActiveUser(adminUser);
       set({ currentUser: adminUser, isAuthenticated: true, isLoading: false, error: null });
       return { success: true };
     }
@@ -140,7 +174,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       matched = { ...matched, role: 'FACULTY', hodType: 'AHOD' };
     }
 
-    localStorage.setItem(AUTH_USER_KEY, matched.uid);
+    persistActiveUser(matched);
     set({ currentUser: matched, isAuthenticated: true, isLoading: false, error: null });
     return { success: true };
   },
@@ -161,7 +195,6 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         isAuthorized = true;
       } catch (authErr: any) {
         console.warn('Firebase admin auth check notice:', authErr?.message);
-        // If password matches ADMIN_SECRET, allow login
         if ((password || '').trim() === ADMIN_SECRET) {
           isAuthorized = true;
         }
@@ -202,7 +235,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       } catch {}
     }
 
-    localStorage.setItem(AUTH_USER_KEY, adminUser.uid);
+    persistActiveUser(adminUser);
     set({ currentUser: adminUser, isAuthenticated: true, isLoading: false, error: null });
     return { success: true };
   },
@@ -211,7 +244,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const users = useAppStore.getState().users;
     const user = users.find((u) => u.uid === userId && u.active);
     if (user) {
-      localStorage.setItem(AUTH_USER_KEY, user.uid);
+      persistActiveUser(user);
       set({ currentUser: user, isAuthenticated: true, isLoading: false, error: null });
     }
   },
@@ -220,7 +253,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const users = useAppStore.getState().users;
     const user = users.find((u) => u.role === role && u.active);
     if (user) {
-      localStorage.setItem(AUTH_USER_KEY, user.uid);
+      persistActiveUser(user);
       set({ currentUser: user, isAuthenticated: true, isLoading: false, error: null });
     }
   },
@@ -238,6 +271,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       updatedAt: new Date().toISOString()
     };
 
+    persistActiveUser(updatedUser);
     set({ currentUser: updatedUser });
 
     if (user.role === 'ADMIN' || user.uid === 'usr_admin') {
@@ -272,6 +306,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: new Date().toISOString()
       };
+      persistActiveUser(admin);
       set({ currentUser: admin, isAuthenticated: true });
       return;
     }
@@ -300,12 +335,13 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       } else if (isAhodInDept) {
         matched = { ...matched, role: 'FACULTY', hodType: 'AHOD' };
       }
+      persistActiveUser(matched);
       set({ currentUser: matched, isAuthenticated: true });
     }
   },
 
   logout: () => {
-    localStorage.removeItem(AUTH_USER_KEY);
+    persistActiveUser(null);
     sessionStorage.clear();
     set({ currentUser: null, isAuthenticated: false, error: null, isLoading: false });
   },

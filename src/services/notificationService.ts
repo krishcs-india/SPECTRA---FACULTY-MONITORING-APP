@@ -55,23 +55,34 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Registers a repeating daily reminder (idempotent — once per device per day)
+   * Registers a repeating daily morning reminder customized for the user's role
    */
-  async ensureDailyReminder(hour = 8, minute = 30): Promise<void> {
+  async ensureDailyReminder(role: 'ADMIN' | 'HOD' | 'FACULTY' = 'FACULTY', userName = 'Faculty', hour = 8, minute = 30): Promise<void> {
     if (!isNative()) return;
     try {
-      const key = `kalyani_daily_reminder_${new Date().toISOString().slice(0, 10)}`;
+      const key = `kalyani_daily_reminder_${role}_${new Date().toISOString().slice(0, 10)}`;
       if (localStorage.getItem(key)) return;
       if (!(await this.requestPermission())) return;
+
+      let title = 'Kalyani — Ready for a Great Day! ☀️';
+      let body = 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.';
+
+      if (role === 'HOD') {
+        title = 'Kalyani — Good Morning, HOD! ☀️';
+        body = 'A wonderful day of leadership awaits. Keep track of today’s faculty period availability and department allocations seamlessly in Kalyani.';
+      } else if (role === 'ADMIN') {
+        title = 'Kalyani — Institutional Overview 🏛️';
+        body = 'Good morning, Administrator! Institutional operations, department allocations, and user directories are active and monitored.';
+      }
 
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       await LocalNotifications.schedule({
         notifications: [{
           id: NativeNotificationBridge.DAILY_REMINDER_ID,
-          title: 'Kalyani — Ready for a Great Day! ☀️',
-          body: 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.',
-          largeBody: 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.',
-          summaryText: 'Kalyani Reminder',
+          title,
+          body,
+          largeBody: body,
+          summaryText: 'Kalyani Morning Update',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
           smallIcon: 'ic_launcher',
           iconColor: '#D4AF37'
@@ -84,17 +95,47 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Instant nudge if today's schedule is still pending (max once per day)
+   * Role-customized nudge upon app launch (max once per day per user)
+   */
+  async notifyAppLaunchByRole(
+    userId: string,
+    userName: string,
+    role: 'ADMIN' | 'HOD' | 'FACULTY',
+    isSubmittedToday = false
+  ): Promise<void> {
+    if (!isNative()) return;
+    const key = `kalyani_launch_notified_${userId}_${new Date().toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(key)) return;
+
+    if (role === 'HOD') {
+      await this.notifyNow(
+        'Kalyani — Department Overview ✨',
+        `Welcome back, ${userName}! Live faculty availability and today's period assignments are ready for your review.`
+      );
+      localStorage.setItem(key, '1');
+    } else if (role === 'ADMIN') {
+      await this.notifyNow(
+        'Kalyani — Administrator Portal ✨',
+        `Welcome back, ${userName}! Institutional directories and system configurations are running smoothly.`
+      );
+      localStorage.setItem(key, '1');
+    } else {
+      // FACULTY / AHOD - only notify if today's schedule is pending
+      if (!isSubmittedToday) {
+        await this.notifyNow(
+          'Kalyani — Quick Schedule Check ✨',
+          `Welcome back, ${userName}! Let’s get today’s schedule lined up. Please confirm your periods or mark yourself free in just a tap.`
+        );
+        localStorage.setItem(key, '1');
+      }
+    }
+  }
+
+  /**
+   * Instant nudge if today's schedule is still pending (kept for backward compatibility)
    */
   async notifyIfPendingToday(userId: string, userName: string, isSubmitted: boolean): Promise<void> {
-    if (!isNative() || isSubmitted) return;
-    const key = `kalyani_pending_notified_${userId}_${new Date().toISOString().slice(0, 10)}`;
-    if (localStorage.getItem(key)) return;
-    await this.notifyNow(
-      'Kalyani — Quick Schedule Check ✨',
-      `Welcome back, ${userName}! Let’s get today’s schedule lined up. Please confirm your periods or mark yourself free in just a tap.`
-    );
-    localStorage.setItem(key, '1');
+    return this.notifyAppLaunchByRole(userId, userName, 'FACULTY', isSubmitted);
   }
 
   /**
