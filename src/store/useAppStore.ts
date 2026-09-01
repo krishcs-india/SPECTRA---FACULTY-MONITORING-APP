@@ -196,16 +196,45 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       }
     } else {
       // LIVE FIREBASE MODE:
-      set({
-        users: INITIAL_USERS,
-        departments: INITIAL_DEPARTMENTS,
-        periods: INITIAL_PERIODS,
-        subjects: [],
-        schedules: {},
-        systemSettings: INITIAL_SETTINGS,
-        isCloudHydrated: false,
-        isInitialized: true
-      });
+      // Preload local cache first so offline / fast startup has data immediately
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) : null;
+        if (parsed) {
+          set({
+            users: sanitizeUsers(parsed.users || INITIAL_USERS),
+            departments: parsed.departments || INITIAL_DEPARTMENTS,
+            periods: parsed.periods || INITIAL_PERIODS,
+            subjects: parsed.subjects || [],
+            schedules: parsed.schedules || {},
+            systemSettings: sanitizeSettings(parsed.systemSettings),
+            isCloudHydrated: false,
+            isInitialized: true
+          });
+        } else {
+          set({
+            users: INITIAL_USERS,
+            departments: INITIAL_DEPARTMENTS,
+            periods: INITIAL_PERIODS,
+            subjects: [],
+            schedules: {},
+            systemSettings: INITIAL_SETTINGS,
+            isCloudHydrated: false,
+            isInitialized: true
+          });
+        }
+      } catch {
+        set({
+          users: INITIAL_USERS,
+          departments: INITIAL_DEPARTMENTS,
+          periods: INITIAL_PERIODS,
+          subjects: [],
+          schedules: {},
+          systemSettings: INITIAL_SETTINGS,
+          isCloudHydrated: false,
+          isInitialized: true
+        });
+      }
     }
 
     try {
