@@ -217,30 +217,19 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       return { success: false, error: err };
     }
 
-    const appUsers = useAppStore.getState().users;
-    const matchedAdmin = appUsers.find(
-      (u) => (u.email || '').toLowerCase() === cleanEmail || (cleanEmail.includes('admin') && u.role === 'ADMIN')
-    );
-
-    const adminUser: KalyaniUser = matchedAdmin
-      ? {
-          ...matchedAdmin,
-          role: 'ADMIN',
-          updatedAt: new Date().toISOString()
-        }
-      : {
-          uid: 'usr_admin',
-          name: 'Institutional Administrator',
-          email: cleanEmail || 'admin@krce.ac.in',
-          departmentId: '',
-          departmentName: 'Institutional Administration',
-          designation: 'System Administrator',
-          role: 'ADMIN' as UserRole,
-          hodType: null,
-          active: true,
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: new Date().toISOString()
-        };
+    const adminUser: KalyaniUser = {
+      uid: 'usr_admin',
+      name: 'ADMINISTRATOR',
+      email: cleanEmail || 'admin@krce.ac.in',
+      departmentId: '',
+      departmentName: 'Institutional Administration',
+      designation: 'System Administrator',
+      role: 'ADMIN' as UserRole,
+      hodType: null,
+      active: true,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: new Date().toISOString()
+    };
 
     useAppStore.setState((prev) => ({
       users: prev.users.some((u) => u.uid === adminUser.uid)
@@ -313,14 +302,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const savedUid = localStorage.getItem(AUTH_USER_KEY);
     if (!savedUid) return;
 
-    const appState = useAppStore.getState();
-    const users = appState.users;
-
     if (savedUid === 'usr_admin') {
-      const matchedAdmin = (users || []).find((u) => u.uid === 'usr_admin' || u.role === 'ADMIN');
-      const admin = matchedAdmin || get().currentUser || {
+      const admin = get().currentUser || {
         uid: 'usr_admin',
-        name: 'Institutional Administrator',
+        name: 'ADMINISTRATOR',
         email: 'admin@krce.ac.in',
         departmentId: '',
         departmentName: 'Institutional Administration',
@@ -336,6 +321,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       return;
     }
 
+    const appState = useAppStore.getState();
+    const users = appState.users;
     if (users.length === 0) return;
 
     let matched = users.find((u) => u.uid === savedUid && u.active);
