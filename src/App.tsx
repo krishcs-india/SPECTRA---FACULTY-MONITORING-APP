@@ -47,10 +47,21 @@ export const App: React.FC = () => {
   // Role-customized notifications: schedules morning reminder and delivers
   // launch update tailored specifically for the user's role (Faculty, HOD, Admin).
   useEffect(() => {
-    if (!currentUser || !isCloudHydrated) return;
+    if (!currentUser) return;
 
-    const userRole = currentUser.role as 'ADMIN' | 'HOD' | 'FACULTY';
-    notificationService.native.ensureDailyReminder(userRole, currentUser.name);
+    // Distinguish between main HOD and AHOD/Faculty
+    const effectiveRole: 'ADMIN' | 'HOD' | 'FACULTY' =
+      currentUser.role === 'ADMIN'
+        ? 'ADMIN'
+        : currentUser.role === 'HOD' && currentUser.hodType !== 'AHOD'
+        ? 'HOD'
+        : 'FACULTY';
+
+    notificationService.native.ensureDailyReminder(
+      effectiveRole,
+      currentUser.name,
+      currentUser.uid
+    );
 
     const todaySchedule = useAppStore.getState().getSchedule(currentUser.uid, getTodayDateString());
     const isSubmitted = todaySchedule?.status === 'SUBMITTED' || todaySchedule?.status === 'FULL_DAY_FREE';
@@ -58,10 +69,10 @@ export const App: React.FC = () => {
     notificationService.native.notifyAppLaunchByRole(
       currentUser.uid,
       currentUser.name,
-      userRole,
+      effectiveRole,
       isSubmitted
     );
-  }, [currentUser?.uid, currentUser?.role, isCloudHydrated]);
+  }, [currentUser?.uid, currentUser?.role, currentUser?.hodType]);
 
   const handleSplashComplete = async () => {
     setShowSplash(false);

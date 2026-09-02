@@ -366,6 +366,9 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   logout: () => {
     persistActiveUser(null);
     sessionStorage.clear();
+    try {
+      import('../services/notificationService').then((m) => m.notificationService.native.cancelDailyReminder());
+    } catch {}
     set({ currentUser: null, isAuthenticated: false, error: null, isLoading: false });
   },
 

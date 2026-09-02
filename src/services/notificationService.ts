@@ -55,14 +55,42 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Registers a repeating daily morning reminder customized for the user's role
+   * Registers a repeating daily morning reminder customized for the user's role.
+   * Cancels any previously scheduled reminder from a different role/user so notifications never conflict.
    */
-  async ensureDailyReminder(role: 'ADMIN' | 'HOD' | 'FACULTY' = 'FACULTY', userName = 'Faculty', hour = 8, minute = 30): Promise<void> {
+  async ensureDailyReminder(
+    role: 'ADMIN' | 'HOD' | 'FACULTY' = 'FACULTY',
+    userName = 'Faculty',
+    userId = 'unknown',
+    hour = 8,
+    minute = 30
+  ): Promise<void> {
     if (!isNative()) return;
     try {
-      const key = `kalyani_daily_reminder_${role}_${new Date().toISOString().slice(0, 10)}`;
-      if (localStorage.getItem(key)) return;
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const lastScheduledUser = localStorage.getItem('kalyani_scheduled_reminder_user');
+      const lastScheduledRole = localStorage.getItem('kalyani_scheduled_reminder_role');
+      const lastScheduledDate = localStorage.getItem('kalyani_scheduled_reminder_date');
+
+      // If already scheduled for this exact user and role today, do not reschedule redundantly
+      if (
+        lastScheduledUser === userId &&
+        lastScheduledRole === role &&
+        lastScheduledDate === todayDate
+      ) {
+        return;
+      }
+
       if (!(await this.requestPermission())) return;
+
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+
+      // Always cancel previous reminder to prevent old role reminders from leaking
+      try {
+        await LocalNotifications.cancel({
+          notifications: [{ id: NativeNotificationBridge.DAILY_REMINDER_ID }]
+        });
+      } catch {}
 
       let title = 'Kalyani — Ready for a Great Day! ☀️';
       let body = 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.';
@@ -75,7 +103,6 @@ class NativeNotificationBridge {
         body = 'Good morning, Administrator! Institutional operations, department allocations, and user directories are active and monitored.';
       }
 
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
       await LocalNotifications.schedule({
         notifications: [{
           id: NativeNotificationBridge.DAILY_REMINDER_ID,
@@ -88,10 +115,29 @@ class NativeNotificationBridge {
           iconColor: '#D4AF37'
         }]
       });
-      localStorage.setItem(key, '1');
+
+      localStorage.setItem('kalyani_scheduled_reminder_user', userId);
+      localStorage.setItem('kalyani_scheduled_reminder_role', role);
+      localStorage.setItem('kalyani_scheduled_reminder_date', todayDate);
     } catch (err) {
       console.warn('Daily reminder scheduling failed:', err);
     }
+  }
+
+  /**
+   * Cancels the active daily reminder when logging out
+   */
+  async cancelDailyReminder(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.cancel({
+        notifications: [{ id: NativeNotificationBridge.DAILY_REMINDER_ID }]
+      });
+      localStorage.removeItem('kalyani_scheduled_reminder_user');
+      localStorage.removeItem('kalyani_scheduled_reminder_role');
+      localStorage.removeItem('kalyani_scheduled_reminder_date');
+    } catch {}
   }
 
   /**
