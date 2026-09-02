@@ -25,12 +25,6 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     const cleanPrefix = inputEmail.trim().toLowerCase().replace(/@.*$/, '');
     if (!cleanPrefix) return;
-    if (cleanPrefix === 'admin') {
-      setAdminEmail('admin');
-      setAdminError(null);
-      setIsAdminModalOpen(true);
-      return;
-    }
     const finalEmail = `${cleanPrefix}@krce.ac.in`;
     await loginWithEmail(finalEmail);
   };
