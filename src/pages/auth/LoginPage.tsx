@@ -8,6 +8,7 @@ import { KalyaniMandalaBackground } from '../../components/common/KalyaniMandala
 import { useAuth } from '../../hooks/useAuth';
 import { authService } from '../../services/authService';
 import { AlertCircle, Lock, ShieldCheck, KeyRound, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 
 export const LoginPage: React.FC = () => {
   const { loginWithEmail, loginWithAdminCredentials, error, clearError, isLoading } = useAuth();
@@ -70,34 +71,32 @@ export const LoginPage: React.FC = () => {
       {/* Top Bar Header */}
       <header className="relative z-10 px-6 py-6 flex items-center justify-between max-w-6xl mx-auto w-full">
         <KalyaniLogo size="md" showSubtitle={true} />
-        <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 text-xs font-semibold text-kalyani-gold-300">
-          <span className="w-1.5 h-1.5 rounded-full bg-kalyani-gold-400 animate-pulse" />
-          Institutional Edition
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            Institutional Edition
+          </div>
         </div>
       </header>
 
       {/* Center Hero Authentication Card */}
       <div className="relative z-10 max-w-md w-full mx-auto px-4 py-6 sm:py-8">
-        <KalyaniCard variant="elevated" className="border-kalyani-gold-500/35 shadow-2xl p-6 sm:p-8">
+        <KalyaniCard variant="elevated" className="border-slate-700/40 shadow-2xl p-6 sm:p-8">
           {/* Card Branding */}
           <div className="text-center mb-6">
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-3xl p-1 bg-gradient-to-br from-kalyani-crimson-800 via-kalyani-crimson-900 to-kalyani-gold-600 border border-kalyani-gold-400/50 flex items-center justify-center mx-auto mb-3 shadow-[0_0_25px_rgba(212,175,55,0.4)] overflow-hidden">
-              <img
-                src="/assets/app-icon-logo.png"
-                alt="Kalyani App Logo"
-                draggable={false}
-                className="w-full h-full object-contain drop-shadow-[0_2px_12px_rgba(212,175,55,0.6)] pointer-events-none select-none"
-              />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400/30 flex items-center justify-center mx-auto mb-3 shadow-lg text-white font-mono text-3xl sm:text-4xl font-bold">
+              <span>S</span>
             </div>
 
             <h2
-              className="text-3xl sm:text-4xl font-normal text-gold-gradient font-marcellus tracking-wide leading-normal pb-1.5"
+              className="text-3xl sm:text-4xl font-normal text-gold-gradient font-marcellus tracking-wide leading-normal pb-1"
               style={{ fontFamily: "'Marcellus', serif" }}
             >
-              Sign In to Kalyani
+              Sign In to SPECTRA
             </h2>
-            <p className="text-sm sm:text-base text-kalyani-gold-300 font-cursive mt-0.5 tracking-wider leading-relaxed pb-1.5">
-              Faculty Availability &amp; Period Management
+            <p className="text-xs sm:text-sm text-slate-400 font-marcellus mt-0.5 tracking-wide leading-relaxed">
+              Faculty Period &amp; Schedule Management
             </p>
           </div>
 

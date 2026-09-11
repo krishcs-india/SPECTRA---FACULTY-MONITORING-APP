@@ -91,17 +91,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-16 bottom-0 left-0 z-40 w-64 border-r border-kalyani-gold-500/15 bg-kalyani-crimson-950/95 backdrop-blur-2xl p-4 flex flex-col justify-between transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed top-14 sm:top-16 bottom-0 left-0 z-40 w-64 border-r border-slate-800/80 bg-slate-950/95 backdrop-blur-2xl p-4 flex flex-col justify-between transition-all duration-300 lg:translate-x-0 ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="space-y-6">
           {/* Section Banner */}
-          <div className="px-3 py-2 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/20 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-kalyani-gold-300">
+          <div className="px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/70 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
               {sectionTitle}
             </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-kalyani-crimson-900 border border-kalyani-gold-400/30 text-kalyani-gold-200">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200">
               {currentUser?.hodType === 'AHOD' ? 'AHOD' : role !== 'ADMIN' && departmentCode ? departmentCode : role}
             </span>
           </div>
@@ -118,13 +118,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   onClick={() => handleNavClick(item.path)}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 apple-hover select-none ${
                     isActive
-                      ? 'bg-gradient-to-r from-kalyani-gold-600/30 to-kalyani-crimson-800/60 text-kalyani-gold-200 font-bold border border-kalyani-gold-500/40 shadow-gold-sm'
+                      ? 'bg-blue-600/15 text-blue-400 font-semibold border border-blue-500/30 shadow-sm'
                       : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
                   }`}
                 >
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-kalyani-gold-400' : 'text-slate-500'
+                      isActive ? 'text-blue-400' : 'text-slate-500'
                     }`}
                   />
                   <span className="truncate">{item.label}</span>
@@ -135,9 +135,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         </div>
 
         {/* Bottom Department Tag / Footer Badge */}
-        <div className="pt-4 border-t border-kalyani-gold-500/15">
+        <div className="pt-4 border-t border-slate-800/80">
           <div className="p-3 rounded-2xl kalyani-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 flex items-center justify-center shrink-0 text-kalyani-gold-400 text-xs font-bold select-none">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400 text-xs font-bold select-none">
               {currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || (role === 'ADMIN' ? 'A' : 'F')}
             </div>
             <div className="overflow-hidden">
@@ -146,7 +146,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   ? 'Institutional Administration'
                   : currentUser?.departmentName || 'Academic Department'}
               </p>
-              <p className="text-[10px] text-kalyani-gold-400/80 truncate font-medium">
+              <p className="text-[10px] text-slate-400 truncate font-medium">
                 {role === 'ADMIN'
                   ? 'System Root • Live Sync'
                   : role === 'HOD' && currentUser?.hodType !== 'AHOD'

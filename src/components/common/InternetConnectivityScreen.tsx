@@ -75,27 +75,22 @@ export const InternetConnectivityScreen: React.FC<InternetConnectivityScreenProp
   }, [connectionStatus, onConnected]);
 
   return (
-    <div className="fixed inset-0 z-[9998] bg-gradient-to-br from-kalyani-crimson-950 via-[#160206] to-[#080002] flex flex-col items-center justify-between p-4 sm:p-6 overflow-hidden select-none">
+    <div className="fixed inset-0 z-[9998] bg-slate-950 text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 overflow-hidden select-none">
       <KalyaniMandalaBackground />
 
       {/* Top Bar Branding */}
       <header className="relative z-10 w-full max-w-lg flex items-center justify-between pt-2 sm:pt-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-kalyani-crimson-800 to-kalyani-gold-600 border border-kalyani-gold-400/40 flex items-center justify-center p-0.5">
-            <img
-              src="/assets/app-icon-logo.png"
-              alt="Kalyani Logo"
-              draggable={false}
-              className="w-full h-full object-contain rounded-full pointer-events-none"
-            />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400/40 flex items-center justify-center text-white font-mono font-bold text-sm shadow-sm">
+            S
           </div>
-          <span className="font-marcellus text-lg text-gold-gradient font-normal tracking-wide">
-            Kalyani
+          <span className="font-marcellus text-lg text-white font-normal tracking-wider">
+            SPECTRA
           </span>
         </div>
 
-        <div className="px-3 py-1 rounded-full bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 text-xs font-semibold text-kalyani-gold-300 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-kalyani-gold-400 animate-pulse" />
+        <div className="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
           <span>Institutional Cloud</span>
         </div>
       </header>
@@ -104,7 +99,7 @@ export const InternetConnectivityScreen: React.FC<InternetConnectivityScreenProp
       <div className="relative z-10 w-full max-w-md my-auto animate-in zoom-in-95 fade-in duration-300">
         <KalyaniCard
           variant="elevated"
-          className="border-kalyani-gold-500/40 shadow-2xl p-6 sm:p-8 backdrop-blur-3xl text-center relative overflow-hidden"
+          className="border-slate-800 shadow-2xl p-6 sm:p-8 backdrop-blur-3xl text-center relative overflow-hidden"
         >
           {connectionStatus === 'DISCONNECTED' ? (
             <div className="space-y-5">

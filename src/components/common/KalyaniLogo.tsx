@@ -12,73 +12,51 @@ export const KalyaniLogo: React.FC<KalyaniLogoProps> = ({
   className = '',
 }) => {
   const iconSizes = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-14 h-14',
-    xl: 'w-20 h-20',
+    sm: 'w-7 h-7 text-xs',
+    md: 'w-9 h-9 text-sm',
+    lg: 'w-12 h-12 text-base',
+    xl: 'w-16 h-16 text-xl',
   };
 
   const titleSizes = {
-    sm: 'text-xl',
-    md: 'text-2xl',
-    lg: 'text-4xl',
-    xl: 'text-5xl md:text-6xl',
+    sm: 'text-lg',
+    md: 'text-xl',
+    lg: 'text-3xl',
+    xl: 'text-4xl md:text-5xl',
   };
 
   const subtitleSizes = {
     sm: 'text-[9px]',
     md: 'text-[11px]',
-    lg: 'text-xs tracking-widest',
-    xl: 'text-sm tracking-[0.25em]',
+    lg: 'text-xs tracking-wider',
+    xl: 'text-sm tracking-[0.2em]',
   };
 
   return (
-    <div className={`flex items-center gap-3 select-none ${className}`}>
-      {/* Official Kalyani App Icon from Assets (Clean, No Glow) */}
-      <div className={`relative flex items-center justify-center shrink-0 ${iconSizes[size]}`}>
-        <img
-          src="/assets/app-icon-logo.png"
-          alt="Kalyani Logo"
-          draggable={false}
-          className="w-full h-full object-contain rounded-full pointer-events-none select-none"
-          onError={(e) => {
-            // Fallback to stylized golden K if image path is unavailable
-            e.currentTarget.style.display = 'none';
-          }}
-        />
+    <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
+      {/* Modern Minimalist SPECTRA Emblem (No image logos or complex graphics) */}
+      <div
+        className={`relative flex items-center justify-center shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold font-mono tracking-wider shadow-sm border border-blue-400/30 ${iconSizes[size]}`}
+      >
+        <span>S</span>
       </div>
 
       {/* Typography */}
       <div className="flex flex-col justify-center">
         <div className="flex items-center gap-1.5">
           <span
-            className={`font-marcellus font-normal tracking-wide text-gold-gradient ${titleSizes[size]}`}
-            style={{
-              fontFamily: "'Marcellus', serif",
-              letterSpacing: '0.06em'
-            }}
+            className={`font-marcellus font-semibold tracking-wider text-gold-gradient ${titleSizes[size]}`}
+            style={{ letterSpacing: '0.08em' }}
           >
-            Kalyani
+            SPECTRA
           </span>
-
-          {/* Swirling Top Text Logo Emblem (/assets/top-text-logo.png) */}
-          <div className="relative inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 shrink-0 animate-logo-swirl ml-1">
-            {/* Subtle gold glow behind the swirling emblem */}
-            <span className="absolute inset-[-1px] rounded-full bg-kalyani-gold-400/15 blur-[2px] shadow-[0_0_5px_rgba(212,175,55,0.35)]" />
-            <img
-              src="/assets/top-text-logo.png"
-              alt="Kalyani Top Logo"
-              draggable={false}
-              className="relative w-full h-full object-contain rounded-full drop-shadow-[0_0_3px_rgba(212,175,55,0.45)] pointer-events-none select-none"
-            />
-          </div>
         </div>
 
         {showSubtitle && (
           <span
-            className={`font-normal tracking-wider text-kalyani-gold-300/90 font-marcellus ${subtitleSizes[size]}`}
+            className={`font-medium tracking-wide text-slate-400 dark:text-slate-400 ${subtitleSizes[size]}`}
           >
-            Faculty Availability &amp; Period Management
+            Faculty Period &amp; Schedule Management
           </span>
         )}
       </div>

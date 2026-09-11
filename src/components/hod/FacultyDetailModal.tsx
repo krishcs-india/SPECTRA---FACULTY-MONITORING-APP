@@ -64,7 +64,7 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="lg"
-      title={<span className="font-cursive text-3xl text-gold-gradient font-normal">{facultyName}</span>}
+      title={<span className="font-marcellus text-2xl text-gold-gradient font-semibold">{facultyName}</span>}
       subtitle={<span className="font-marcellus text-xs text-slate-300">{facultyDesignation}</span>}
     >
       <div className="space-y-5">

@@ -92,7 +92,7 @@ export const HodAssignmentManager: React.FC = () => {
                       </p>
                       <p className="text-sm font-bold text-slate-100 mt-0.5 font-marcellus">
                         {hodUser ? (
-                          <span className="font-cursive text-lg text-gold-gradient font-normal">{hodUser.name}</span>
+                          <span className="font-marcellus text-base text-gold-gradient font-bold">{hodUser.name}</span>
                         ) : (
                           <span className="text-slate-400 italic">Not Assigned</span>
                         )}
@@ -153,7 +153,7 @@ export const HodAssignmentManager: React.FC = () => {
                             className="p-3 rounded-xl bg-kalyani-crimson-900/60 border border-teal-500/25 flex items-center justify-between gap-3 animate-in fade-in"
                           >
                             <div>
-                              <p className="text-sm font-normal font-cursive text-slate-100">
+                              <p className="text-sm font-semibold font-marcellus text-slate-100">
                                 {ahod.name}
                               </p>
                               <p className="text-[10px] text-slate-400">

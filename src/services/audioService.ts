@@ -5,21 +5,10 @@ class AudioService {
   private listeners: Set<(playing: boolean, muted: boolean) => void> = new Set();
 
   constructor() {
-    // Lazy-init on client safely
-    if (typeof window !== 'undefined') {
-      try {
-        this.audio = new Audio('/assets/kalyani-bg-music.mp3');
-        this.audio.loop = false; // Plays once without looping back as requested
-        this.audio.volume = 0.5;
-
-        this.audio.addEventListener('ended', () => {
-          this.isPlaying = false;
-          this.notify();
-        });
-      } catch (err) {
-        console.warn('Audio service initialization note:', err);
-      }
-    }
+    // Audio disabled per institutional minimalist requirement
+    this.audio = null;
+    this.isPlaying = false;
+    this.isMuted = true;
   }
 
   public async play(): Promise<boolean> {

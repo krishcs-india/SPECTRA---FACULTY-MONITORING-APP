@@ -117,7 +117,7 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                       className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 flex items-center justify-between"
                     >
                       <div>
-                        <p className="font-cursive text-lg text-slate-100 font-normal leading-tight">{f.facultyName}</p>
+                        <p className="font-marcellus text-base text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
                         <p className="text-[10px] text-teal-300 mt-0.5 font-marcellus">{f.facultyDesignation}</p>
                       </div>
                       <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/30">
@@ -151,7 +151,7 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                       className="p-3.5 rounded-2xl bg-kalyani-crimson-900/50 border border-kalyani-gold-500/25 flex items-center justify-between gap-3"
                     >
                       <div>
-                        <p className="font-cursive text-lg text-slate-100 font-normal leading-tight">{f.facultyName}</p>
+                        <p className="font-marcellus text-base text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
                         <p className="text-xs text-slate-400 font-marcellus">{f.facultyDesignation}</p>
                       </div>
 

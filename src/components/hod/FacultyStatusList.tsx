@@ -171,7 +171,7 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
         return (
           <div>
             <div className="flex items-center gap-2">
-              <p className="font-cursive text-lg text-slate-100 tracking-wide font-normal leading-tight">
+              <p className="font-marcellus text-base text-slate-100 tracking-wide font-semibold leading-tight">
                 {row.facultyName}
               </p>
               {!isActive && (

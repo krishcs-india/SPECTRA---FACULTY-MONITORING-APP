@@ -8,6 +8,7 @@ import { getTodayDateString } from './utils/dateUtils';
 import { KalyaniSplashScreen } from './components/common/KalyaniSplashScreen';
 import { InternetConnectivityScreen } from './components/common/InternetConnectivityScreen';
 import { isDeviceOnline } from './utils/networkUtils';
+import { getInitialTheme, applyTheme } from './utils/themeUtils';
 
 export const App: React.FC = () => {
   const initStore = useAppStore((state) => state.initStore);
@@ -28,6 +29,7 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    applyTheme(getInitialTheme());
     initStore();
     initAuth();
     notificationService.init();

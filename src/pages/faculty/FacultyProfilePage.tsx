@@ -89,8 +89,8 @@ export const FacultyProfilePage: React.FC = () => {
             </div>
           </div>
 
-          <h2 className={`font-normal font-cursive text-slate-100 tracking-wide break-words max-w-full px-2 ${
-            currentUser.name.length > 10 ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
+          <h2 className={`font-semibold font-marcellus text-slate-100 tracking-wide break-words max-w-full px-2 ${
+            currentUser.name.length > 10 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'
           }`}>
             {currentUser.name}
           </h2>
@@ -169,7 +169,7 @@ export const FacultyProfilePage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-base font-semibold text-slate-100 font-cursive mt-0.5">
+                  <p className="text-base font-semibold text-slate-100 font-marcellus mt-0.5">
                     {currentUser.name}
                   </p>
                 )}

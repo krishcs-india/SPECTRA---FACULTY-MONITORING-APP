@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { audioService } from '../../services/audioService';
-import { MilkyWayCanvas } from './MilkyWayCanvas';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Calendar, Layers } from 'lucide-react';
 
 interface KalyaniSplashScreenProps {
   onComplete: () => void;
@@ -11,86 +9,73 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    try { audioService.play(); } catch {}
-    const startAudioOnGesture = () => { try { audioService.play(); } catch {} };
-    window.addEventListener('click', startAudioOnGesture, { once: true });
-    window.addEventListener('pointerdown', startAudioOnGesture, { once: true });
-    window.addEventListener('keydown', startAudioOnGesture, { once: true });
-    return () => {
-      window.removeEventListener('click', startAudioOnGesture);
-      window.removeEventListener('pointerdown', startAudioOnGesture);
-      window.removeEventListener('keydown', startAudioOnGesture);
-    };
-  }, []);
-
-  useEffect(() => {
+    // 3.5s smooth duration for refined institutional loading
     const timer = setTimeout(() => {
       setIsExiting(true);
-      setTimeout(() => { onComplete(); }, 700);
-    }, 5000);
+      setTimeout(() => { onComplete(); }, 600);
+    }, 3500);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-kalyani-crimson-950 via-[#130105] to-[#050001] flex flex-col items-center justify-between p-6 sm:p-10 overflow-hidden select-none transition-all duration-700 ${
-        isExiting ? 'opacity-0 pointer-events-none scale-105 filter blur-md' : 'opacity-100 scale-100'
+      className={`fixed inset-0 z-[9999] bg-[#0B0F17] text-slate-100 flex flex-col items-center justify-between p-6 sm:p-10 overflow-hidden select-none transition-all duration-700 ${
+        isExiting ? 'opacity-0 pointer-events-none scale-105 filter blur-sm' : 'opacity-100 scale-100'
       }`}
     >
-      <MilkyWayCanvas />
+      {/* Subtle ambient light gradient */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
 
-      <div className="absolute -top-36 -right-36 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] pointer-events-none opacity-20 z-0 select-none">
-        <img src="/assets/main-design.png" alt="Mandala Background" draggable={false} className="w-full h-full object-contain animate-spin-slow pointer-events-none select-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      </div>
-      <div className="absolute -bottom-36 -left-36 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] pointer-events-none opacity-20 z-0 select-none">
-        <img src="/assets/main-design.png" alt="Mandala Background" draggable={false} className="w-full h-full object-contain animate-spin-slow [animation-direction:reverse] pointer-events-none select-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      </div>
-
-      <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-kalyani-gold-500/10 border border-kalyani-gold-400/30 text-kalyani-gold-300 text-xs tracking-widest uppercase font-semibold animate-in fade-in slide-in-from-top duration-700 shadow-[0_0_25px_rgba(212,175,55,0.2)]">
-        <Sparkles className="w-3.5 h-3.5 text-kalyani-gold-400 animate-pulse" />
+      {/* Top Edition Badge */}
+      <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/60 text-slate-300 text-xs tracking-widest uppercase font-semibold animate-in fade-in slide-in-from-top duration-700 shadow-sm">
+        <Sparkles className="w-3.5 h-3.5 text-blue-400" />
         <span>Higher Education Institutional Edition</span>
       </div>
 
+      {/* Center Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto my-auto space-y-6">
-        <div className="relative group my-2">
-          <div className="absolute -inset-8 bg-gradient-to-r from-kalyani-gold-400/50 via-kalyani-crimson-600/60 to-kalyani-gold-500/50 rounded-[40px] blur-3xl opacity-90 animate-pulse-ring" />
-          <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-64 md:h-64 rounded-[32px] p-1.5 bg-gradient-to-br from-kalyani-gold-300 via-kalyani-gold-500 to-kalyani-crimson-800 shadow-[0_0_75px_rgba(212,175,55,0.6)] flex items-center justify-center overflow-hidden">
-            <img src="/assets/krish-cs-logo.png" alt="Krish CS Logo" draggable={false} className="w-full h-full object-cover rounded-[28px] pointer-events-none select-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        {/* Minimalist Tech Emblem */}
+        <div className="relative my-2">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-800 border border-blue-400/40 shadow-2xl flex items-center justify-center text-white">
+            <span className="font-mono text-4xl sm:text-5xl font-bold tracking-tight">S</span>
           </div>
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-5xl sm:text-7xl font-normal tracking-[0.25em] text-gold-gradient font-marcellus drop-shadow-[0_4px_35px_rgba(212,175,55,0.5)]" style={{ fontFamily: "'Marcellus', serif" }}>
-            KALYANI
+          <h1 className="text-4xl sm:text-6xl font-normal tracking-[0.2em] text-white font-marcellus">
+            SPECTRA
           </h1>
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <span className="text-xs uppercase tracking-[0.25em] text-kalyani-gold-300/80 font-medium">by</span>
-            <span className="text-sm sm:text-base font-bold tracking-[0.2em] text-gold-gradient font-marcellus px-3.5 py-0.5 rounded-full bg-kalyani-gold-500/15 border border-kalyani-gold-400/45 shadow-[0_0_22px_rgba(212,175,55,0.3)]">KRISH CS</span>
+          <div className="flex items-center justify-center gap-2 pt-0.5">
+            <span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-medium">by</span>
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.18em] text-slate-200 px-3 py-0.5 rounded-full bg-slate-800/80 border border-slate-700">
+              KRISH CS
+            </span>
           </div>
-          <p className="text-xl sm:text-2xl font-normal font-cursive text-kalyani-gold-200 tracking-wider pt-1">
-            Faculty Availability &amp; Period Management
+          <p className="text-sm sm:text-base font-normal text-slate-300 tracking-wider max-w-md mx-auto pt-1 font-marcellus">
+            Scheduling &amp; Period Engagement with Classroom Tracking &amp; Roster Allocation
           </p>
         </div>
 
-        <div className="w-full max-w-sm pt-4 space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-kalyani-gold-400 animate-spin-slow" />
-            <p className="text-base sm:text-lg font-medium font-marcellus kalyani-shimmer-text tracking-wide">Kalyani is shimmering to glow…</p>
-            <Sparkles className="w-4 h-4 text-kalyani-gold-400 animate-spin-slow [animation-direction:reverse]" />
-          </div>
-          <div className="flex items-center justify-center gap-3.5 py-3">
-            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="relative flex items-center justify-center">
-                <span className="absolute w-5 h-5 rounded-full bg-kalyani-gold-400/35 blur-xs animate-ping" style={{ animationDuration: '1.8s', animationDelay: `${i * 150}ms` }} />
-                <span className="w-3 h-3 rounded-full bg-gradient-to-tr from-kalyani-gold-500 via-amber-100 to-white shadow-[0_0_16px_#FFEBA0] animate-snake-dot" style={{ animationDelay: `${i * 140}ms` }} />
-              </div>
+        {/* Minimalist Progress Loader */}
+        <div className="w-full max-w-xs pt-4 space-y-3">
+          <p className="text-xs font-medium text-slate-400 tracking-wide">
+            Initializing Schedule &amp; Period Engine…
+          </p>
+          <div className="flex items-center justify-center gap-2.5 py-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"
+                style={{ animationDelay: `${i * 180}ms`, animationDuration: '1.2s' }}
+              />
             ))}
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 text-center text-[11px] text-kalyani-gold-300/60 tracking-wider">
-        <span>Academic Operations Matrix</span>
+      {/* Bottom Subtitle */}
+      <div className="relative z-10 text-center text-[11px] text-slate-500 tracking-wider">
+        <span>Faculty Period &amp; Schedule Monitoring System</span>
       </div>
     </div>
   );
