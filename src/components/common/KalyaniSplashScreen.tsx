@@ -34,13 +34,13 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
 
       {/* Center Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto my-auto space-y-6">
-        {/* Official SPECTRA Luxury Emblem */}
+        {/* Official Krish CS Luxury Emblem */}
         <div className="relative my-2 group">
           <div className="absolute -inset-4 bg-gradient-to-r from-pink-500/30 to-rose-600/30 rounded-3xl blur-2xl opacity-70 animate-pulse-slow" />
-          <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-3xl bg-[#1A1020] border-2 border-rose-300/40 shadow-[0_0_40px_rgba(244,63,94,0.35)] p-1.5 flex items-center justify-center overflow-hidden">
+          <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-[#1A1020] border-2 border-rose-300/40 shadow-[0_0_40px_rgba(244,63,94,0.35)] p-1.5 flex items-center justify-center overflow-hidden">
             <img
-              src="/assets/app-icon-spectra-logo.png"
-              alt="SPECTRA Logo"
+              src="/assets/krish-cs-logo.png"
+              alt="Krish CS Logo"
               draggable={false}
               className="w-full h-full object-cover rounded-2xl select-none"
             />
