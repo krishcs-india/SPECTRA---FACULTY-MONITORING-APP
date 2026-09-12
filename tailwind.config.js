@@ -73,12 +73,12 @@ export default {
         calligraphy: ['Marcellus', 'Georgia', 'serif'],
       },
       boxShadow: {
-        'gold-sm': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-        'gold-md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-        'gold-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-        'ruby-sm': '0 1px 3px 0 rgba(225, 29, 72, 0.15)',
+        'gold-sm': '0 1px 3px 0 rgba(244, 63, 94, 0.1), 0 1px 2px -1px rgba(244, 63, 94, 0.1)',
+        'gold-md': '0 4px 6px -1px rgba(244, 63, 94, 0.12), 0 2px 4px -2px rgba(244, 63, 94, 0.1)',
+        'gold-lg': '0 10px 15px -3px rgba(244, 63, 94, 0.15), 0 4px 6px -4px rgba(244, 63, 94, 0.1)',
+        'ruby-sm': '0 1px 3px 0 rgba(225, 29, 72, 0.2)',
         'crimson-inner': 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.05)',
-        'apple-card': '0 4px 20px -2px rgba(0, 0, 0, 0.15)',
+        'apple-card': '0 4px 20px -2px rgba(0, 0, 0, 0.08)',
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',

@@ -17,7 +17,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
 
   return (
-    <div className="min-h-screen bg-kalyani-crimson-950 text-slate-100 relative flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FFF9FB] dark:bg-[#0F0912] text-slate-800 dark:text-slate-100 relative flex flex-col font-sans selection:bg-rose-500/20 selection:text-rose-900 dark:selection:text-rose-200 transition-colors duration-300">
       {/* Visual Identity Watermark & Glow Background */}
       <KalyaniMandalaBackground />
 

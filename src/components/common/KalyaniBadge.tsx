@@ -49,21 +49,21 @@ export const KalyaniBadge: React.FC<KalyaniBadgeProps> = ({
   }
 
   const variantStyles = {
-    emerald: 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300',
-    teal: 'bg-teal-950/70 border-teal-500/40 text-teal-300',
-    ruby: 'bg-rose-950/70 border-rose-500/40 text-rose-300',
-    amber: 'bg-amber-950/70 border-amber-500/40 text-amber-300',
-    gold: 'bg-kalyani-crimson-900 border-kalyani-gold-500/50 text-kalyani-gold-300',
-    slate: 'bg-slate-900/70 border-slate-700 text-slate-300',
+    emerald: 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300',
+    teal: 'bg-teal-50 dark:bg-teal-950/70 border-teal-300 dark:border-teal-500/40 text-teal-800 dark:text-teal-300',
+    ruby: 'bg-rose-50 dark:bg-rose-950/70 border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300',
+    amber: 'bg-amber-50 dark:bg-amber-950/70 border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300',
+    gold: 'bg-pink-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200',
+    slate: 'bg-slate-100 dark:bg-slate-800/70 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300',
   };
 
   const dotStyles = {
-    emerald: 'bg-emerald-400',
-    teal: 'bg-teal-400',
-    ruby: 'bg-rose-400 animate-pulse',
-    amber: 'bg-amber-400',
-    gold: 'bg-kalyani-gold-400 shadow-[0_0_6px_#D4AF37]',
-    slate: 'bg-slate-400',
+    emerald: 'bg-emerald-500 dark:bg-emerald-400',
+    teal: 'bg-teal-500 dark:bg-teal-400',
+    ruby: 'bg-rose-500 dark:bg-rose-400 animate-pulse',
+    amber: 'bg-amber-500 dark:bg-amber-400',
+    gold: 'bg-rose-500 dark:bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.4)]',
+    slate: 'bg-slate-500 dark:bg-slate-400',
   };
 
   const sizeStyles = {

@@ -81,23 +81,23 @@ export const HodAssignmentManager: React.FC = () => {
             >
               <div className="space-y-4">
                 {/* Head of Department (HOD) Section */}
-                <div className="p-4 rounded-2xl bg-kalyani-crimson-950/70 border border-kalyani-gold-500/25 flex items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/20 text-kalyani-gold-400 shrink-0">
+                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/30 text-rose-600 dark:text-rose-400 shrink-0">
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-kalyani-gold-300 tracking-wider">
+                      <p className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-300 tracking-wider">
                         Head of Department (HOD)
                       </p>
-                      <p className="text-sm font-bold text-slate-100 mt-0.5 font-marcellus">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5 font-marcellus">
                         {hodUser ? (
                           <span className="font-marcellus text-base text-gold-gradient font-bold">{hodUser.name}</span>
                         ) : (
                           <span className="text-slate-400 italic">Not Assigned</span>
                         )}
                       </p>
-                      <p className="text-[11px] text-slate-400">{hodUser?.email || '—'}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{hodUser?.email || '—'}</p>
                     </div>
                   </div>
 
@@ -111,20 +111,20 @@ export const HodAssignmentManager: React.FC = () => {
                 </div>
 
                 {/* Assistant HODs (AHODs) Section - MULTIPLE AHODs SUPPORT */}
-                <div className="p-4 rounded-2xl bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20 space-y-3">
+                <div className="p-4 rounded-2xl bg-white/70 dark:bg-[#180E1C]/70 border border-rose-200 dark:border-rose-900/30 space-y-3 shadow-xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-xl bg-teal-500/10 text-teal-300">
+                      <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
                         <Users className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-teal-300 tracking-wider flex items-center gap-1.5">
+                        <p className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-300 tracking-wider flex items-center gap-1.5">
                           <span>Assistant HODs (AHOD)</span>
-                          <span className="px-1.5 py-0.2 rounded-full bg-teal-500/20 text-teal-200 text-[9px]">
+                          <span className="px-1.5 py-0.2 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[9px] font-bold">
                             {ahodUsers.length} Appointed
                           </span>
                         </p>
-                        <p className="text-[10px] text-slate-400">Multiple AHODs can be appointed per department</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Multiple AHODs can be appointed per department</p>
                       </div>
                     </div>
 
@@ -140,7 +140,7 @@ export const HodAssignmentManager: React.FC = () => {
 
                   {/* List of currently appointed AHODs */}
                   {ahodUsers.length === 0 ? (
-                    <div className="p-3 rounded-xl bg-black/20 border border-white/5 text-center text-xs text-slate-400 italic">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-rose-200/60 dark:border-white/5 text-center text-xs text-slate-500 dark:text-slate-400 italic">
                       No Assistant HODs currently appointed for {dept.code}. Click "Add AHOD" to appoint.
                     </div>
                   ) : (
@@ -150,13 +150,13 @@ export const HodAssignmentManager: React.FC = () => {
                         return (
                           <div
                             key={ahod.uid}
-                            className="p-3 rounded-xl bg-kalyani-crimson-900/60 border border-teal-500/25 flex items-center justify-between gap-3 animate-in fade-in"
+                            className="p-3 rounded-xl bg-rose-50/80 dark:bg-[#201026]/70 border border-rose-200 dark:border-rose-900/30 flex items-center justify-between gap-3 animate-in fade-in"
                           >
                             <div>
-                              <p className="text-sm font-semibold font-marcellus text-slate-100">
+                              <p className="text-sm font-semibold font-marcellus text-slate-800 dark:text-slate-100">
                                 {ahod.name}
                               </p>
-                              <p className="text-[10px] text-slate-400">
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">
                                 {ahod.designation} • {ahod.email}
                               </p>
                             </div>

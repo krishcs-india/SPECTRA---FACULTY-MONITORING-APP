@@ -27,10 +27,10 @@ export const KalyaniConfirmDialog: React.FC<KalyaniConfirmDialogProps> = ({
   isLoading = false,
 }) => {
   const icons = {
-    danger: <AlertTriangle className="w-6 h-6 text-rose-400" />,
-    warning: <AlertTriangle className="w-6 h-6 text-amber-400" />,
-    teal: <CheckCircle2 className="w-6 h-6 text-teal-400" />,
-    gold: <Info className="w-6 h-6 text-kalyani-gold-300" />,
+    danger: <AlertTriangle className="w-6 h-6 text-rose-500" />,
+    warning: <AlertTriangle className="w-6 h-6 text-amber-500" />,
+    teal: <CheckCircle2 className="w-6 h-6 text-teal-500" />,
+    gold: <Info className="w-6 h-6 text-rose-500" />,
   };
 
   const buttonVariants = {
@@ -62,12 +62,12 @@ export const KalyaniConfirmDialog: React.FC<KalyaniConfirmDialogProps> = ({
       }
     >
       <div className="flex items-start gap-4">
-        <div className="p-3 rounded-2xl bg-white/5 border border-white/10 shrink-0">
+        <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 shrink-0">
           {icons[variant]}
         </div>
         <div>
-          <h3 className="text-base font-bold text-slate-100">{title}</h3>
-          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{message}</p>
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">{message}</p>
         </div>
       </div>
     </KalyaniModal>

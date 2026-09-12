@@ -27,7 +27,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
         subtitle="Global administrative control, institutional directories, department configurations, and access security."
         breadcrumbs={[{ label: 'Admin' }, { label: 'Overview' }]}
         badge={
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-950/80 border border-rose-500/40 text-rose-300">
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300">
             System Administrator
           </span>
         }
@@ -40,7 +40,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
           value={activeUsers}
           subtitle="Faculty &amp; Staff"
           variant="gold"
-          icon={<Users className="w-6 h-6 text-kalyani-gold-300" />}
+          icon={<Users className="w-6 h-6 text-rose-500" />}
           onClick={() => onNavigate('/admin/users')}
         />
 

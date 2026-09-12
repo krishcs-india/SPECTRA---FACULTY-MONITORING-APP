@@ -43,7 +43,7 @@ export const HodDashboardPage: React.FC = () => {
         subtitle="Real-time faculty period allocation, substitution tracking, and submission monitoring."
         breadcrumbs={[{ label: 'HOD' }, { label: 'Live Dashboard' }]}
         badge={
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-kalyani-gold-500/15 border border-kalyani-gold-400/40 text-kalyani-gold-300">
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/15 border border-rose-400/40 text-rose-700 dark:text-rose-300">
             {currentUser?.departmentName || 'Computer Science & Engineering'}
           </span>
         }
@@ -63,7 +63,7 @@ export const HodDashboardPage: React.FC = () => {
 
       {/* Faculty Response List & Filters */}
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+        <h3 className="text-base font-bold font-marcellus text-slate-900 dark:text-slate-100 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]" />
           Faculty Submissions &amp; Period Roster
         </h3>

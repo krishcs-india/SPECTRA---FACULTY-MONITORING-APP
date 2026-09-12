@@ -81,28 +81,28 @@ export const FacultyProfilePage: React.FC = () => {
           className="h-full flex flex-col justify-center"
           bodyClassName="p-8 sm:p-10 flex flex-col items-center justify-center text-center my-auto min-h-[380px]"
         >
-          <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-kalyani-crimson-800 via-kalyani-gold-600 to-kalyani-gold-400 border-2 border-kalyani-gold-300/80 p-1 shadow-[0_0_35px_rgba(212,175,55,0.35)] mb-5 flex items-center justify-center mx-auto">
-            <div className="w-full h-full rounded-[22px] bg-kalyani-crimson-950 flex items-center justify-center text-center p-0 m-0">
+          <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-500 to-rose-600 border-2 border-rose-300/80 p-1 shadow-[0_0_35px_rgba(244,63,94,0.35)] mb-5 flex items-center justify-center mx-auto">
+            <div className="w-full h-full rounded-[22px] bg-white dark:bg-[#0F0912] flex items-center justify-center text-center p-0 m-0">
               <span className="text-4xl font-bold font-marcellus text-gold-radiant leading-none flex items-center justify-center select-none">
                 {currentUser.name.charAt(0)}
               </span>
             </div>
           </div>
 
-          <h2 className={`font-semibold font-marcellus text-slate-100 tracking-wide break-words max-w-full px-2 ${
+          <h2 className={`font-semibold font-marcellus text-slate-900 dark:text-slate-100 tracking-wide break-words max-w-full px-2 ${
             currentUser.name.length > 10 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'
           }`}>
             {currentUser.name}
           </h2>
-          <p className="text-xs text-kalyani-gold-300 font-semibold mt-1.5">
+          <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-1.5">
             {currentUser.hodType === 'AHOD' ? 'Assistant HOD' : currentUser.designation}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-2 justify-center">
-            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-kalyani-gold-500/20 border border-kalyani-gold-500/40 text-kalyani-gold-300">
+            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300">
               Role: {isAdmin ? 'SYSTEM ADMINISTRATOR' : currentUser.hodType === 'AHOD' ? 'Assistant HOD' : currentUser.role}
             </span>
-            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-300 flex items-center gap-1">
+            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" /> Active
             </span>
           </div>
@@ -121,16 +121,16 @@ export const FacultyProfilePage: React.FC = () => {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Editable Name Field */}
-              <div className="p-3.5 rounded-2xl bg-kalyani-crimson-950/70 border border-kalyani-gold-500/30 sm:col-span-2">
+              <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 shadow-sm sm:col-span-2">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <p className="text-[10px] uppercase font-bold text-kalyani-gold-300 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-kalyani-gold-400" /> Full Name (Editable)
+                  <p className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-200 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-rose-500" /> Full Name (Editable)
                   </p>
                   {!isEditingName && (
                     <button
                       type="button"
                       onClick={() => setIsEditingName(true)}
-                      className="text-xs text-kalyani-gold-400 hover:text-kalyani-gold-300 flex items-center gap-1 font-semibold px-2 py-0.5 rounded-lg hover:bg-kalyani-gold-500/10 transition-colors"
+                      className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-1 font-semibold px-2 py-0.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-colors"
                     >
                       <Edit2 className="w-3 h-3" />
                       <span>Change Name</span>
@@ -145,7 +145,7 @@ export const FacultyProfilePage: React.FC = () => {
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
                       placeholder="Enter your updated full name"
-                      className="w-full px-3.5 py-2 rounded-xl bg-kalyani-crimson-900 border border-kalyani-gold-400/50 text-slate-100 text-sm focus:outline-none focus:border-kalyani-gold-300"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#201026] border border-rose-300 dark:border-rose-800 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-rose-500 shadow-sm"
                       autoFocus
                     />
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -169,18 +169,18 @@ export const FacultyProfilePage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-base font-semibold text-slate-100 font-marcellus mt-0.5">
+                  <p className="text-base font-semibold text-slate-800 dark:text-slate-100 font-marcellus mt-0.5">
                     {currentUser.name}
                   </p>
                 )}
               </div>
 
               {/* Locked Email Field */}
-              <div className="p-3.5 rounded-2xl bg-kalyani-crimson-950/50 border border-white/5">
-                <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" /> College Email ID
+              <div className="p-3.5 rounded-2xl bg-rose-50/50 dark:bg-[#180E1C]/50 border border-rose-200/80 dark:border-rose-900/40 shadow-sm">
+                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-rose-400" /> College Email ID
                 </p>
-                <p className="text-sm font-semibold text-slate-200 mt-1 font-mono">{currentUser.email}</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1 font-mono">{currentUser.email}</p>
                 <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5" />
                   {isAdmin ? 'Master administrator identifier' : 'Institutional login identifier'}
@@ -188,11 +188,11 @@ export const FacultyProfilePage: React.FC = () => {
               </div>
 
               {/* Department Field */}
-              <div className="p-3.5 rounded-2xl bg-kalyani-crimson-950/50 border border-white/5">
-                <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
-                  <Building className="w-3.5 h-3.5 text-slate-400" /> Assigned Department
+              <div className="p-3.5 rounded-2xl bg-rose-50/50 dark:bg-[#180E1C]/50 border border-rose-200/80 dark:border-rose-900/40 shadow-sm">
+                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-rose-400" /> Assigned Department
                 </p>
-                <p className="text-sm font-semibold text-slate-200 mt-1">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1">
                   {currentUser.departmentName || (isAdmin ? 'Institutional Administration' : 'Computer Science & Engineering')}
                 </p>
                 <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1">
@@ -202,11 +202,11 @@ export const FacultyProfilePage: React.FC = () => {
               </div>
 
               {/* Designation Field */}
-              <div className="p-3.5 rounded-2xl bg-kalyani-crimson-950/50 border border-white/5">
-                <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5 text-slate-400" /> Academic Designation
+              <div className="p-3.5 rounded-2xl bg-rose-50/50 dark:bg-[#180E1C]/50 border border-rose-200/80 dark:border-rose-900/40 shadow-sm">
+                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-rose-400" /> Academic Designation
                 </p>
-                <p className="text-sm font-semibold text-slate-200 mt-1">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1">
                   {currentUser.hodType === 'AHOD' ? 'Assistant HOD' : currentUser.designation}
                 </p>
                 <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1">
@@ -216,11 +216,11 @@ export const FacultyProfilePage: React.FC = () => {
               </div>
 
               {/* System Role Field */}
-              <div className="p-3.5 rounded-2xl bg-kalyani-crimson-950/50 border border-white/5">
-                <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-slate-400" /> System Authorization
+              <div className="p-3.5 rounded-2xl bg-rose-50/50 dark:bg-[#180E1C]/50 border border-rose-200/80 dark:border-rose-900/40 shadow-sm">
+                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-rose-400" /> System Authorization
                 </p>
-                <p className="text-sm font-semibold text-slate-200 mt-1">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1">
                   {isAdmin ? 'FULL SYSTEM ADMINISTRATOR' : currentUser.hodType === 'AHOD' ? 'Assistant HOD' : currentUser.role}
                 </p>
                 <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1">
@@ -231,13 +231,13 @@ export const FacultyProfilePage: React.FC = () => {
             </div>
 
             {isAdmin ? (
-              <div className="mt-5 p-3.5 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/25 text-xs text-kalyani-gold-200 flex items-center gap-2.5 shadow-sm">
-                <Shield className="w-4 h-4 text-kalyani-gold-400 shrink-0" />
+              <div className="mt-5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-800 dark:text-rose-200 flex items-center gap-2.5 shadow-sm">
+                <Shield className="w-4 h-4 text-rose-500 shrink-0" />
                 <span>The System Administrator maintains sovereign root authority across all institutional departments, faculty rosters, period structures, and system configurations.</span>
               </div>
             ) : (
-              <div className="mt-5 p-3 rounded-xl bg-white/[0.03] border border-white/5 text-xs text-slate-400 flex items-center gap-2">
-                <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+              <div className="mt-5 p-3 rounded-xl bg-rose-50/50 dark:bg-white/[0.03] border border-rose-200/60 dark:border-white/5 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>To update your college email, department mapping, or official designation, please contact the System Administrator.</span>
               </div>
             )}

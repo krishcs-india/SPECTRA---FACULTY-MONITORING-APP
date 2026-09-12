@@ -171,23 +171,23 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
         return (
           <div>
             <div className="flex items-center gap-2">
-              <p className="font-marcellus text-base text-slate-100 tracking-wide font-semibold leading-tight">
+              <p className="font-marcellus text-base text-slate-800 dark:text-slate-100 tracking-wide font-semibold leading-tight">
                 {row.facultyName}
               </p>
               {!isActive && (
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-950 text-rose-400 border border-rose-500/30">
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30">
                   Disabled
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 font-marcellus">{row.facultyDesignation}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-marcellus">{row.facultyDesignation}</p>
           </div>
         );
       },
     },
     {
       header: 'College Email',
-      accessor: (row: any) => <span className="text-xs text-slate-300">{row.email}</span>,
+      accessor: (row: any) => <span className="text-xs text-slate-600 dark:text-slate-300">{row.email}</span>,
     },
     {
       header: 'Status',
@@ -198,11 +198,11 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
       accessor: (row: any) => (
         <span className="text-xs font-semibold">
           {row.status === 'SUBMITTED' ? (
-            <span className="text-kalyani-gold-300">{row.assignedPeriodsCount} Periods</span>
+            <span className="text-rose-600 dark:text-rose-400 font-semibold">{row.assignedPeriodsCount} Periods</span>
           ) : row.status === 'FULL_DAY_FREE' ? (
-            <span className="text-teal-300">0 (Full Free)</span>
+            <span className="text-teal-600 dark:text-teal-400 font-semibold">0 (Full Free)</span>
           ) : (
-            <span className="text-rose-400">Pending</span>
+            <span className="text-rose-500 font-semibold">Pending</span>
           )}
         </span>
       ),
@@ -210,7 +210,7 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
     {
       header: 'Sync Time',
       accessor: (row: any) => (
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-slate-500 dark:text-slate-400">
           {formatTimeDisplay(row.submittedAt)}
         </span>
       ),
@@ -241,8 +241,8 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
                   onClick={() => setFacultyToToggle(userObj)}
                   className={`p-1.5 rounded-lg transition-colors border ${
                     isActive
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20'
                   }`}
                   title={isActive ? 'Deactivate Faculty Account' : 'Activate Faculty Account'}
                 >
@@ -252,7 +252,7 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
                 <button
                   type="button"
                   onClick={() => setFacultyToDelete(userObj)}
-                  className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 transition-colors"
+                  className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:text-rose-400 hover:bg-rose-500/20 transition-colors"
                   title="Delete Faculty Account Permanently"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -268,8 +268,8 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
   return (
     <div className="space-y-4">
       {actionSuccessMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-lg">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{actionSuccessMsg}</span>
         </div>
       )}
@@ -287,8 +287,8 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
         extraActions={
           <KalyaniButton
             variant="glass"
-            className="h-11 px-4 text-xs font-semibold rounded-2xl flex items-center shrink-0 border-kalyani-gold-500/30 hover:border-kalyani-gold-400"
-            leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-400" />}
+            className="h-11 px-4 text-xs font-semibold rounded-2xl flex items-center shrink-0 border-rose-200 dark:border-rose-900/50 hover:border-rose-400"
+            leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-500" />}
             onClick={handleExportExcel}
             title="Download Excel Availability Report"
           >

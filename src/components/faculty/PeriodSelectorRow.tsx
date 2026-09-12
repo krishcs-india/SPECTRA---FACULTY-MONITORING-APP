@@ -27,16 +27,16 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
     <div
       className={`p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
         isFree
-          ? 'kalyani-glass hover:border-kalyani-gold-500/30'
+          ? 'bg-white/90 dark:bg-[#180E1C]/90 border-rose-200/80 dark:border-rose-900/30 hover:border-rose-400/50 shadow-sm'
           : isSubject
-          ? 'bg-kalyani-crimson-900/60 border-kalyani-gold-500/40 shadow-gold-sm'
-          : 'bg-amber-950/30 border-amber-500/30'
+          ? 'bg-rose-50/90 dark:bg-[#231229]/90 border-rose-300/80 dark:border-rose-500/40 shadow-sm'
+          : 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-300/60 dark:border-amber-500/30 shadow-sm'
       }`}
     >
       {/* Top / Left: Period Info & Badge */}
       <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto">
-        <div className="px-3 py-1.5 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-400/30 flex items-center justify-center shrink-0">
-          <span className="text-xs font-bold text-kalyani-gold-300">
+        <div className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-400/30 flex items-center justify-center shrink-0">
+          <span className="text-xs font-bold text-rose-700 dark:text-rose-300">
             {period.name || period.shortName}
           </span>
         </div>
@@ -54,16 +54,16 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
           onClick={onOpenPicker}
           className={`flex-1 flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all apple-hover border min-h-[44px] min-w-0 text-left ${
             isFree
-              ? 'bg-teal-950/60 border-teal-500/30 text-teal-300 hover:bg-teal-900/50'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300/70 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/50'
               : isSubject
-              ? 'bg-kalyani-gold-500/15 border-kalyani-gold-400/50 text-kalyani-gold-200 hover:bg-kalyani-gold-500/25'
-              : 'bg-amber-950/60 border-amber-500/40 text-amber-300 hover:bg-amber-900/50'
+              ? 'bg-gradient-to-r from-rose-500/10 via-pink-500/15 to-rose-500/10 border-rose-300 dark:border-rose-500/40 text-rose-900 dark:text-rose-200 hover:bg-rose-500/20'
+              : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-500/40 text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50'
           } ${isReadOnly ? 'cursor-default opacity-85' : 'cursor-pointer'}`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            {isFree && <Coffee className="w-4 h-4 text-teal-400 shrink-0" />}
-            {isSubject && <BookOpen className="w-4 h-4 text-kalyani-gold-400 shrink-0" />}
-            {isCustom && <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />}
+            {isFree && <Coffee className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+            {isSubject && <BookOpen className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />}
+            {isCustom && <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />}
 
             <span className="whitespace-normal break-words leading-relaxed text-xs">
               {isFree && 'FREE (Available)'}
@@ -80,7 +80,7 @@ export const PeriodSelectorRow: React.FC<PeriodSelectorRowProps> = ({
             type="button"
             onClick={onQuickToggleFree}
             title="Quick toggle to Free"
-            className="p-2.5 rounded-xl hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors shrink-0 flex items-center justify-center min-h-[44px] min-w-[44px]"
+            className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 transition-colors shrink-0 flex items-center justify-center min-h-[44px] min-w-[44px]"
           >
             <Coffee className="w-4 h-4" />
           </button>

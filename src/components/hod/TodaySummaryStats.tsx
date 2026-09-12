@@ -20,7 +20,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         value={overview.totalFaculty}
         subtitle={`${overview.submissionPercentage}% responded`}
         variant="gold"
-        icon={<Users className="w-6 h-6 text-kalyani-gold-300" />}
+        icon={<Users className="w-6 h-6 text-rose-500" />}
         onClick={() => onFilterStatus && onFilterStatus('ALL')}
       />
 

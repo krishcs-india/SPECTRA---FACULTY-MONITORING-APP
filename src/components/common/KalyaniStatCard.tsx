@@ -19,19 +19,19 @@ export const KalyaniStatCard: React.FC<KalyaniStatCardProps> = ({
   onClick,
 }) => {
   const iconGlowStyles = {
-    default: 'bg-kalyani-crimson-800 border-kalyani-gold-500/20 text-kalyani-gold-300',
-    gold: 'bg-kalyani-gold-500/10 border-kalyani-gold-500/40 text-kalyani-gold-300 shadow-[0_0_15px_rgba(212,175,55,0.2)]',
-    emerald: 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]',
-    teal: 'bg-teal-950/60 border-teal-500/40 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.2)]',
-    ruby: 'bg-rose-950/60 border-rose-500/40 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.2)]',
+    default: 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-300',
+    gold: 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-300 shadow-sm',
+    emerald: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400',
+    teal: 'bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-500/40 text-teal-700 dark:text-teal-400',
+    ruby: 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-400',
   };
 
   const valueGlowStyles = {
-    default: 'text-slate-100',
+    default: 'text-slate-900 dark:text-slate-100',
     gold: 'text-gold-gradient',
-    emerald: 'text-emerald-300',
-    teal: 'text-teal-300',
-    ruby: 'text-rose-300',
+    emerald: 'text-emerald-600 dark:text-emerald-300',
+    teal: 'text-teal-600 dark:text-teal-300',
+    ruby: 'text-rose-600 dark:text-rose-300',
   };
 
   return (
@@ -42,7 +42,7 @@ export const KalyaniStatCard: React.FC<KalyaniStatCardProps> = ({
       bodyClassName="p-5 flex items-center justify-between"
     >
       <div>
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 font-sans">
           {title}
         </p>
         <div className="flex items-baseline gap-2 mt-1">
@@ -51,7 +51,7 @@ export const KalyaniStatCard: React.FC<KalyaniStatCardProps> = ({
           </span>
         </div>
         {subtitle && (
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
             {subtitle}
           </p>
         )}

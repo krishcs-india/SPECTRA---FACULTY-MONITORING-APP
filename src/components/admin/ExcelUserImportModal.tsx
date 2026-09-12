@@ -131,12 +131,12 @@ export const ExcelUserImportModal: React.FC<ExcelUserImportModalProps> = ({
           </div>
         )}
         {/* Step 1: Download Template */}
-        <div className="p-4 rounded-2xl bg-kalyani-crimson-950/60 border border-kalyani-gold-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-rose-50/80 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div>
-            <p className="text-xs font-bold text-kalyani-gold-200">
+            <p className="text-xs font-bold text-rose-800 dark:text-rose-200">
               Step 1: Download Users Excel Template
             </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
               Includes pre-configured columns for Full Name, College Email, Department, Designation, and Role.
             </p>
           </div>
@@ -154,7 +154,7 @@ export const ExcelUserImportModal: React.FC<ExcelUserImportModalProps> = ({
         {!parseResult && (
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-kalyani-gold-500/30 hover:border-kalyani-gold-400 rounded-3xl p-8 text-center cursor-pointer transition-all duration-200 bg-kalyani-crimson-900/20 hover:bg-kalyani-crimson-900/40"
+            className="border-2 border-dashed border-rose-300 hover:border-rose-400 dark:border-rose-500/30 rounded-3xl p-8 text-center cursor-pointer transition-all duration-200 bg-rose-50/40 hover:bg-rose-50/80 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 shadow-xs"
           >
             <input
               ref={fileInputRef}
@@ -163,19 +163,19 @@ export const ExcelUserImportModal: React.FC<ExcelUserImportModalProps> = ({
               onChange={handleFileChange}
               className="hidden"
             />
-            <div className="w-14 h-14 rounded-2xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 flex items-center justify-center text-kalyani-gold-400 mx-auto mb-3">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-400/30 flex items-center justify-center text-rose-600 dark:text-rose-400 mx-auto mb-3">
               <UploadCloud className="w-7 h-7" />
             </div>
-            <h4 className="text-sm font-bold text-slate-100">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
               {isParsing ? 'Parsing Excel File…' : 'Click to Upload Excel / CSV File'}
             </h4>
-            <p className="text-xs text-slate-400 mt-1">Supports .xlsx, .xls, and .csv formats</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Supports .xlsx, .xls, and .csv formats</p>
           </div>
         )}
 
         {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -184,33 +184,33 @@ export const ExcelUserImportModal: React.FC<ExcelUserImportModalProps> = ({
         {parseResult && (
           <div className="space-y-4 animate-in fade-in">
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 rounded-xl bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20">
-                <p className="text-[10px] uppercase font-bold text-slate-400">Total Rows</p>
-                <p className="text-xl font-bold text-slate-100">{parseResult.totalProcessed}</p>
+              <div className="p-3 rounded-xl bg-white/80 dark:bg-[#180E1C]/80 border border-rose-200 dark:border-rose-900/40 shadow-xs">
+                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Total Rows</p>
+                <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{parseResult.totalProcessed}</p>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/30">
-                <p className="text-[10px] uppercase font-bold text-emerald-400">Valid Users</p>
-                <p className="text-xl font-bold text-emerald-300">{parseResult.validCount}</p>
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-500/30 shadow-xs">
+                <p className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-400">Valid Users</p>
+                <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{parseResult.validCount}</p>
               </div>
-              <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/30">
-                <p className="text-[10px] uppercase font-bold text-amber-400">Duplicates / Invalid</p>
-                <p className="text-xl font-bold text-amber-300">{parseResult.duplicateCount + parseResult.errorCount}</p>
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-500/30 shadow-xs">
+                <p className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400">Duplicates / Invalid</p>
+                <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{parseResult.duplicateCount + parseResult.errorCount}</p>
               </div>
             </div>
 
             {/* Preview List */}
-            <div className="max-h-48 overflow-y-auto border border-kalyani-gold-500/15 rounded-xl bg-kalyani-crimson-950/40 p-2 divide-y divide-white/5">
+            <div className="max-h-48 overflow-y-auto border border-rose-200 dark:border-rose-900/30 rounded-xl bg-white/70 dark:bg-[#180E1C]/60 p-2 divide-y divide-rose-100 dark:divide-white/5">
               {parseResult.validRecords.map((item, idx) => (
                 <div key={idx} className="py-2 px-3 flex items-center justify-between text-xs">
                   <div>
-                    <p className="font-bold text-slate-100">{item.name}</p>
-                    <p className="text-[10px] text-slate-400">{item.email}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-100">{item.name}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.email}</p>
                   </div>
                   <div className="text-right">
-                    <span className="px-2 py-0.5 rounded font-semibold bg-kalyani-gold-500/20 text-kalyani-gold-300 border border-kalyani-gold-400/30">
+                    <span className="px-2 py-0.5 rounded font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/30">
                       {item.role} {item.hodType ? `(${item.hodType})` : ''}
                     </span>
-                    <p className={`text-[10px] mt-0.5 ${resolveDepartment(item.departmentCode) ? 'text-slate-400' : 'text-rose-400 font-semibold'}`}>
+                    <p className={`text-[10px] mt-0.5 ${resolveDepartment(item.departmentCode) ? 'text-slate-500 dark:text-slate-400' : 'text-rose-600 dark:text-rose-400 font-semibold'}`}>
                       {resolveDepartment(item.departmentCode)?.name || `Unknown dept: ${item.departmentCode}`}
                     </p>
                   </div>

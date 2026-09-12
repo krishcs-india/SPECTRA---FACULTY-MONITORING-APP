@@ -47,18 +47,18 @@ export const KalyaniFilterBar: React.FC<KalyaniFilterBarProps> = ({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400/80 z-10 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-500/80 z-10 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full h-11 bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20 text-slate-100 text-sm rounded-2xl pl-10 pr-9 py-2.5 outline-none focus:border-kalyani-gold-400 focus:ring-2 focus:ring-kalyani-gold-500/20 transition-all placeholder:text-slate-500 backdrop-blur-md"
+            className="w-full h-11 bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 text-slate-800 dark:text-slate-100 text-sm rounded-2xl pl-10 pr-9 py-2.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm backdrop-blur-md"
           />
           {searchTerm && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -87,10 +87,10 @@ export const KalyaniFilterBar: React.FC<KalyaniFilterBarProps> = ({
             <button
               key={tab.id}
               onClick={() => onStatusFilterChange(tab.id)}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all duration-200 apple-hover ${
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all duration-200 ${
                 isActive
-                  ? 'bg-gradient-to-r from-kalyani-gold-600 to-kalyani-gold-500 text-kalyani-crimson-950 shadow-gold-sm font-bold'
-                  : 'kalyani-glass text-slate-400 hover:text-slate-200 hover:border-kalyani-gold-500/30'
+                  ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm font-bold'
+                  : 'bg-white/80 dark:bg-[#180E1C]/80 border border-rose-200/80 dark:border-rose-900/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-300'
               }`}
             >
               {tab.label}

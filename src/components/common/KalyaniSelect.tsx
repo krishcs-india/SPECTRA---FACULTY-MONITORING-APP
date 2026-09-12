@@ -51,38 +51,38 @@ export const KalyaniSelect: React.FC<KalyaniSelectProps> = ({
   return (
     <div className="w-full relative" ref={containerRef}>
       {label && (
-        <label className="block text-xs font-semibold text-kalyani-gold-200 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-rose-800 dark:text-rose-200 mb-1.5 uppercase tracking-wider">
           {label}
         </label>
       )}
 
-      {/* Curved Glassmorphic Trigger Button */}
+      {/* Curved Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full h-11 flex items-center justify-between text-left kalyani-glass rounded-2xl px-4 text-sm text-slate-100 transition-all duration-200 apple-hover ${
+        className={`w-full h-11 flex items-center justify-between text-left bg-white dark:bg-[#180E1C] border rounded-xl px-4 text-sm text-slate-800 dark:text-slate-100 shadow-sm transition-all duration-200 ${
           isOpen
-            ? 'border-kalyani-gold-400 bg-kalyani-crimson-900/80 shadow-gold-sm ring-1 ring-kalyani-gold-400/40'
+            ? 'border-rose-500 ring-2 ring-rose-500/20'
             : error
             ? 'border-rose-500'
-            : 'border-kalyani-gold-500/20 hover:border-kalyani-gold-400'
+            : 'border-rose-200 dark:border-rose-900/50 hover:border-rose-400'
         } ${className}`}
       >
         <span className="truncate">
-          {selectedOption ? selectedOption.label : <span className="text-slate-400">{placeholder}</span>}
+          {selectedOption ? selectedOption.label : <span className="text-slate-400 dark:text-slate-500">{placeholder}</span>}
         </span>
 
         <ChevronDown
-          className={`w-4 h-4 text-kalyani-gold-400 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-kalyani-gold-300' : ''
+          className={`w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
 
-      {/* Curved Glowing Options Dropdown Menu */}
+      {/* Options Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute top-full mt-1.5 inset-x-0 z-50 max-h-60 overflow-y-auto rounded-2xl kalyani-glass-elevated border border-kalyani-gold-500/40 p-1.5 shadow-2xl backdrop-blur-3xl animate-in zoom-in-95 fade-in duration-150 ${dropdownClassName}`}
+          className={`absolute top-full mt-1.5 inset-x-0 z-50 max-h-60 overflow-y-auto rounded-2xl bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/60 p-1.5 shadow-2xl backdrop-blur-3xl animate-in zoom-in-95 fade-in duration-150 ${dropdownClassName}`}
         >
           {options.map((opt) => {
             const isSelected = opt.value === value;
@@ -97,20 +97,20 @@ export const KalyaniSelect: React.FC<KalyaniSelectProps> = ({
                 }}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm text-left transition-all duration-150 mb-0.5 ${
                   isSelected
-                    ? 'bg-gradient-to-r from-kalyani-gold-600 to-kalyani-gold-500 text-kalyani-crimson-950 font-bold shadow-gold-sm'
-                    : 'text-slate-200 hover:bg-kalyani-gold-500/20 hover:text-kalyani-gold-100 hover:shadow-[0_0_12px_rgba(212,175,55,0.25)]'
+                    ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-sm'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-900 dark:hover:text-rose-100'
                 } ${opt.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <div>
                   <p className="font-semibold">{opt.label}</p>
                   {opt.sublabel && (
-                    <p className={`text-[10px] ${isSelected ? 'text-kalyani-crimson-900' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
                       {opt.sublabel}
                     </p>
                   )}
                 </div>
 
-                {isSelected && <Check className="w-4 h-4 shrink-0 text-kalyani-crimson-950 ml-2" />}
+                {isSelected && <Check className="w-4 h-4 shrink-0 text-white ml-2" />}
               </button>
             );
           })}

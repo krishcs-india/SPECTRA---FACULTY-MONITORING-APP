@@ -27,12 +27,12 @@ export const KalyaniButton: React.FC<KalyaniButtonProps> = ({
   };
 
   const variantStyles = {
-    gold: 'bg-gradient-to-r from-kalyani-gold-600 via-kalyani-gold-500 to-kalyani-gold-600 text-kalyani-crimson-950 font-bold hover:brightness-110 shadow-gold-sm hover:shadow-gold-md border border-kalyani-gold-300/40',
-    glass: 'kalyani-glass text-slate-100 hover:text-kalyani-gold-200 hover:border-kalyani-gold-500/40 hover:bg-kalyani-crimson-850/80',
-    'outline-gold': 'border border-kalyani-gold-500/40 text-kalyani-gold-300 hover:bg-kalyani-gold-500/10 hover:border-kalyani-gold-400',
-    ruby: 'bg-gradient-to-r from-kalyani-ruby-700 to-kalyani-ruby-600 text-white font-medium hover:brightness-110 shadow-ruby-sm border border-rose-400/30',
-    teal: 'bg-gradient-to-r from-teal-700 to-teal-600 text-white font-medium hover:brightness-110 border border-teal-400/30',
-    ghost: 'text-slate-300 hover:text-white hover:bg-white/5 rounded-xl',
+    gold: 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold hover:brightness-105 shadow-sm hover:shadow-rose-500/25 border border-rose-300/40',
+    glass: 'kalyani-glass text-slate-800 dark:text-slate-100 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-400/50',
+    'outline-gold': 'border border-rose-300 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-400 font-semibold',
+    ruby: 'bg-gradient-to-r from-rose-600 to-pink-600 text-white font-medium hover:brightness-105 shadow-sm border border-rose-400/30',
+    teal: 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-medium hover:brightness-105 border border-teal-400/30',
+    ghost: 'text-slate-700 dark:text-slate-300 hover:text-rose-700 dark:hover:text-white hover:bg-rose-50/70 dark:hover:bg-white/5 rounded-xl',
   };
 
   return (

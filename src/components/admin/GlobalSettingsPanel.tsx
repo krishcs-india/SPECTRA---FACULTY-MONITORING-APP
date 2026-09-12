@@ -93,18 +93,18 @@ export const GlobalSettingsPanel: React.FC = () => {
         }
         subtitle="Reset application database to pristine baseline ready for official onboarding."
       >
-        <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h4 className="text-sm font-bold text-slate-100">Purge Stale Data &amp; Reset to Pristine Baseline</h4>
-            <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
-              This operation clears all faculty schedules, curriculum subjects, and user accounts from Cloud Firestore, leaving only the Administrator (<span className="text-kalyani-gold-300 font-semibold">admin@krce.ac.in</span>) and departments.
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Purge Stale Data &amp; Reset to Pristine Baseline</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xl leading-relaxed">
+              This operation clears all faculty schedules, curriculum subjects, and user accounts from Cloud Firestore, leaving only the Administrator (<span className="text-rose-700 dark:text-rose-300 font-semibold">admin@krce.ac.in</span>) and departments.
             </p>
           </div>
 
           <KalyaniButton
             variant="glass"
-            className="shrink-0 w-full sm:w-auto justify-center bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/25 text-rose-300 text-xs font-semibold"
-            leftIcon={<Trash2 className="w-4 h-4 text-rose-400" />}
+            className="shrink-0 w-full sm:w-auto justify-center bg-rose-500/10 border-rose-300 dark:border-rose-500/30 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 text-xs font-semibold"
+            leftIcon={<Trash2 className="w-4 h-4 text-rose-500" />}
             onClick={() => setIsPurgeModalOpen(true)}
           >
             Purge All Data

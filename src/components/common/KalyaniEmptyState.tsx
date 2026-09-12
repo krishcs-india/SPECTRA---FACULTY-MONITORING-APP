@@ -21,9 +21,9 @@ export const KalyaniEmptyState: React.FC<KalyaniEmptyStateProps> = ({
       variant="glass"
       className={`text-center py-12 px-6 flex flex-col items-center justify-center ${className}`}
     >
-      {/* Decorative Lotus Watermark */}
+      {/* Decorative Icon Watermark */}
       <div className="relative mb-4">
-        <div className="w-16 h-16 rounded-3xl bg-kalyani-crimson-900/80 border border-kalyani-gold-500/30 flex items-center justify-center text-kalyani-gold-400 shadow-gold-sm">
+        <div className="w-16 h-16 rounded-3xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/40 flex items-center justify-center text-rose-500 shadow-sm">
           {icon || (
             <svg
               viewBox="0 0 100 100"
@@ -41,8 +41,8 @@ export const KalyaniEmptyState: React.FC<KalyaniEmptyStateProps> = ({
         </div>
       </div>
 
-      <h3 className="text-lg font-bold text-kalyani-gold-100">{title}</h3>
-      <p className="text-xs sm:text-sm text-slate-400 max-w-sm mt-1.5 leading-relaxed">
+      <h3 className="text-lg font-bold font-marcellus text-rose-950 dark:text-rose-100">{title}</h3>
+      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-sm mt-1.5 leading-relaxed">
         {description}
       </p>
 

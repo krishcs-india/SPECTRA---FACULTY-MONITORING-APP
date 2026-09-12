@@ -69,14 +69,14 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
     >
       <div className="space-y-5">
         {/* Info Header Box */}
-        <div className="p-4 rounded-2xl kalyani-glass flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-kalyani-gold-400" />
-              <span className="text-xs font-bold text-slate-100">{formatDateDisplay(date)}</span>
+              <Calendar className="w-4 h-4 text-rose-500" />
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{formatDateDisplay(date)}</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Mail className="w-3.5 h-3.5 text-slate-500" />
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+              <Mail className="w-3.5 h-3.5 text-rose-400" />
               <span>{facultyEmail}</span>
             </div>
           </div>
@@ -88,22 +88,22 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
 
         {/* Not Submitted Notice */}
         {status === 'NOT_SUBMITTED' && (
-          <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs text-center">
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-200 text-xs text-center">
             This faculty member has not submitted their period availability for today yet.
           </div>
         )}
 
         {/* Full Day Free Notice */}
         {status === 'FULL_DAY_FREE' && (
-          <div className="p-4 rounded-2xl bg-teal-950/40 border border-teal-500/30 text-teal-200 text-xs text-center flex items-center justify-center gap-2">
-            <Coffee className="w-4 h-4 text-teal-400" />
+          <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-500/30 text-teal-800 dark:text-teal-200 text-xs text-center flex items-center justify-center gap-2">
+            <Coffee className="w-4 h-4 text-teal-500" />
             <span>Faculty has explicitly declared FULL DAY FREE across all periods today.</span>
           </div>
         )}
 
         {/* Detailed Period Grid */}
         <div className="space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-kalyani-gold-300">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 font-marcellus">
             Period-by-Period Timeline
           </h4>
 
@@ -113,14 +113,14 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                 return (
                   <div
                     key={period.id}
-                    className="p-3.5 rounded-2xl border border-slate-800 bg-slate-900/40 flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-2xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/40 dark:bg-[#180E1C]/60 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-300 whitespace-nowrap">
+                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-100 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 whitespace-nowrap">
                         {period.name || period.shortName}
                       </span>
                     </div>
-                    <span className="text-xs text-rose-400 font-semibold">Not Submitted</span>
+                    <span className="text-xs text-rose-500 font-semibold">Not Submitted</span>
                   </div>
                 );
               }
@@ -129,14 +129,14 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                 return (
                   <div
                     key={period.id}
-                    className="p-3.5 rounded-2xl border border-teal-500/20 bg-teal-950/30 flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-2xl border border-teal-200 dark:border-teal-500/20 bg-teal-50/60 dark:bg-teal-950/30 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-teal-900/50 border border-teal-500/30 text-teal-300 whitespace-nowrap">
+                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-teal-100 dark:bg-teal-900/50 border border-teal-200 dark:border-teal-500/30 text-teal-800 dark:text-teal-300 whitespace-nowrap">
                         {period.name || period.shortName}
                       </span>
                     </div>
-                    <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                    <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30">
                       FREE (Full Day)
                     </span>
                   </div>
@@ -158,31 +158,31 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                   key={period.id}
                   className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
                     isFree
-                      ? 'border-teal-500/25 bg-teal-950/20'
+                      ? 'border-teal-200 dark:border-teal-500/25 bg-teal-50/40 dark:bg-teal-950/20'
                       : isSubject
-                      ? 'border-kalyani-gold-500/40 bg-kalyani-crimson-900/60'
-                      : 'border-amber-500/30 bg-amber-950/30'
+                      ? 'border-rose-200 dark:border-rose-900/40 bg-white dark:bg-[#201026] shadow-sm'
+                      : 'border-amber-200 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/30'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-kalyani-crimson-950 border border-kalyani-gold-500/30 text-kalyani-gold-300 whitespace-nowrap">
+                    <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 whitespace-nowrap">
                       {period.name || period.shortName}
                     </span>
                   </div>
 
                   <div className="text-right flex-1 flex justify-end">
                     {isFree && (
-                      <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                      <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30">
                         FREE
                       </span>
                     )}
                     {isSubject && entry && (
-                      <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-kalyani-gold-500/15 border border-kalyani-gold-400/40 text-kalyani-gold-200 shadow-sm whitespace-normal break-words leading-relaxed text-right max-w-full">
+                      <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-200 shadow-sm whitespace-normal break-words leading-relaxed text-right max-w-full">
                         {entry.subjectCode ? `${entry.subjectCode} — ${entry.subjectName || ''}` : entry.subjectName || 'Subject'}
                       </span>
                     )}
                     {entry?.type === 'CUSTOM' && (
-                      <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-200 whitespace-normal break-words leading-relaxed text-right max-w-full">
+                      <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-400/40 text-amber-800 dark:text-amber-200 whitespace-normal break-words leading-relaxed text-right max-w-full">
                         Other: {entry.customText || 'Custom Activity'}
                       </span>
                     )}

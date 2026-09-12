@@ -52,17 +52,17 @@ export const FacultyHistoryPage: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-2xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/20 text-kalyani-gold-400">
+                    <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500">
                       <Calendar className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2.5">
-                        <h3 className="text-base font-bold text-slate-100">
+                        <h3 className="text-base font-bold font-marcellus text-slate-900 dark:text-slate-100">
                           {formatDateDisplay(record.date)}
                         </h3>
                         <KalyaniBadge status={record.status} size="sm" />
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {record.status === 'FULL_DAY_FREE'
                           ? 'Declared full day free'
                           : `${assignedCount} teaching period(s) assigned • Submitted at ${formatTimeDisplay(record.submittedAt)}`}
@@ -72,7 +72,7 @@ export const FacultyHistoryPage: React.FC = () => {
 
                   <button
                     onClick={() => setExpandedDate(isExpanded ? null : record.date)}
-                    className="self-end sm:self-center text-xs font-semibold px-3.5 py-1.5 rounded-xl kalyani-glass hover:border-kalyani-gold-400 text-kalyani-gold-300 transition-colors"
+                    className="self-end sm:self-center text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 hover:border-rose-400 text-rose-600 dark:text-rose-300 shadow-sm transition-colors"
                   >
                     {isExpanded ? 'Hide Details' : 'View Period Breakdown'}
                   </button>
@@ -80,8 +80,8 @@ export const FacultyHistoryPage: React.FC = () => {
 
                 {/* Expanded Period Breakdown */}
                 {isExpanded && (
-                  <div className="mt-5 pt-4 border-t border-kalyani-gold-500/15 space-y-2 animate-in fade-in duration-150">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-kalyani-gold-300 mb-2">
+                  <div className="mt-5 pt-4 border-t border-rose-200 dark:border-rose-900/40 space-y-2 animate-in fade-in duration-150">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 font-marcellus mb-2">
                       Recorded Period Allocation
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -126,10 +126,10 @@ export const FacultyHistoryPage: React.FC = () => {
                               key={period.id}
                               className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
                                 isFree
-                                  ? 'bg-teal-950/40 border-teal-500/20 text-teal-200'
+                                  ? 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-500/20 text-teal-800 dark:text-teal-200'
                                   : isSubject
-                                  ? 'bg-kalyani-crimson-900/60 border-kalyani-gold-500/30 text-kalyani-gold-200'
-                                  : 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+                                  ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800/40 text-rose-800 dark:text-rose-200'
+                                  : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-200'
                               }`}
                             >
                               <div className="flex items-center justify-between font-bold">
@@ -138,7 +138,7 @@ export const FacultyHistoryPage: React.FC = () => {
                                   {isFree ? 'FREE' : isSubject ? 'Assigned' : 'Other'}
                                 </span>
                               </div>
-                              <p className="mt-1 font-medium text-slate-100 break-words whitespace-normal leading-snug text-[11px]">
+                              <p className="mt-1 font-medium text-slate-800 dark:text-slate-100 break-words whitespace-normal leading-snug text-[11px]">
                                 {isFree && 'Available'}
                                 {isSubject && `${entry?.subjectCode ? `${entry.subjectCode} — ` : ''}${entry?.subjectName || ''}`}
                                 {entry?.type === 'CUSTOM' && `Other: ${entry?.customText}`}

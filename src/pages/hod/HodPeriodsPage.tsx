@@ -87,12 +87,12 @@ export const HodPeriodsPage: React.FC = () => {
     {
       header: 'Period Number',
       accessor: (row: Period, _idx: number) => (
-        <span className="font-bold text-xs text-kalyani-gold-300">Period {row.sequence}</span>
+        <span className="font-bold text-xs text-rose-700 dark:text-rose-300">Period {row.sequence}</span>
       ),
     },
     {
       header: 'Period Name',
-      accessor: (row: Period) => <span className="font-semibold text-slate-100">{row.name}</span>,
+      accessor: (row: Period) => <span className="font-semibold text-slate-800 dark:text-slate-100">{row.name}</span>,
     },
     {
       header: 'Actions',
@@ -100,14 +100,14 @@ export const HodPeriodsPage: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => openEditModal(row)}
-            className="p-1.5 rounded-lg hover:bg-kalyani-gold-500/20 text-kalyani-gold-300"
+            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 transition-colors"
             title="Edit Period"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setPeriodToDelete(row)}
-            className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400"
+            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-500 transition-colors"
             title="Delete Period"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -136,14 +136,14 @@ export const HodPeriodsPage: React.FC = () => {
       />
 
       {notificationMsg && (
-        <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-lg">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{notificationMsg}</span>
         </div>
       )}
 
-      <div className="p-3.5 rounded-xl bg-kalyani-crimson-950/60 border border-kalyani-gold-500/20 text-xs text-slate-300 flex items-start gap-2">
-        <Info className="w-4 h-4 text-kalyani-gold-400 shrink-0 mt-0.5" />
+      <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
+        <Info className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
         <span>
           Periods are managed purely by number. If you delete a period, the periods after it shift up
           (e.g. deleting Period 3 makes Period 4 become Period 3). Changes apply to future submissions only —

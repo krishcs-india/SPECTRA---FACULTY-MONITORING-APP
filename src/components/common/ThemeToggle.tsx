@@ -29,8 +29,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       onClick={handleToggle}
       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all duration-200 apple-hover select-none ${
         theme === 'light'
-          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm'
-          : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
+          ? 'bg-rose-50/80 border-rose-200 text-rose-700 hover:bg-rose-100 shadow-sm'
+          : 'bg-[#180E1C] border-rose-900/60 text-pink-300 hover:bg-[#25172C] hover:text-pink-200'
       } ${className}`}
       title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to White Mode'}
       aria-label="Toggle theme mode"
@@ -42,7 +42,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         </>
       ) : (
         <>
-          <Moon className="w-4 h-4 text-blue-400" />
+          <Moon className="w-4 h-4 text-pink-400" />
           {showLabel && <span className="text-xs font-medium">Dark</span>}
         </>
       )}

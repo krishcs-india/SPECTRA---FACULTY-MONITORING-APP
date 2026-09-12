@@ -159,7 +159,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
           type="checkbox"
           checked={filteredSubjects.length > 0 && selectedIds.length === filteredSubjects.length}
           onChange={handleToggleSelectAll}
-          className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-kalyani-gold-500 focus:ring-kalyani-gold-400 cursor-pointer"
+          className="w-4 h-4 rounded border-rose-300 dark:border-rose-800 bg-white dark:bg-slate-900 text-rose-500 focus:ring-rose-400 cursor-pointer"
           title="Select / Deselect All Visible Subjects"
         />
       ),
@@ -173,14 +173,14 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
             e.stopPropagation();
             handleToggleSelect(row.id);
           }}
-          className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-kalyani-gold-500 focus:ring-kalyani-gold-400 cursor-pointer"
+          className="w-4 h-4 rounded border-rose-300 dark:border-rose-800 bg-white dark:bg-slate-900 text-rose-500 focus:ring-rose-400 cursor-pointer"
         />
       ),
     },
     {
       header: 'Code',
       accessor: (row: Subject) => (
-        <span className="px-2.5 py-1 rounded font-bold text-xs bg-kalyani-crimson-900 border border-kalyani-gold-400/30 text-kalyani-gold-300">
+        <span className="px-2.5 py-1 rounded font-bold text-xs bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-400/30 text-rose-700 dark:text-rose-300">
           {row.subjectCode}
         </span>
       ),
@@ -189,7 +189,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       header: 'Subject Name',
       accessor: (row: Subject) => (
         <div>
-          <p className="font-semibold text-slate-100">{row.subjectName}</p>
+          <p className="font-semibold text-slate-800 dark:text-slate-100">{row.subjectName}</p>
         </div>
       ),
     },
@@ -199,8 +199,8 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
         <span
           className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${
             row.active
-              ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'
-              : 'bg-rose-950/80 text-rose-400 border-rose-500/30'
+              ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30'
+              : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-500/30'
           }`}
         >
           {row.active ? 'Active' : 'Disabled'}
@@ -213,7 +213,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => openEditModal(row)}
-            className="p-1.5 rounded-lg hover:bg-kalyani-gold-500/20 text-kalyani-gold-300 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-300 transition-colors"
             title="Edit Subject"
           >
             <Edit2 className="w-4 h-4" />
@@ -222,17 +222,17 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
             onClick={() => setSubjectToToggle(row)}
             className={`p-1.5 rounded-lg transition-colors ${
               row.active
-                ? 'hover:bg-amber-500/20 text-amber-400'
-                : 'hover:bg-emerald-500/20 text-emerald-400'
+                ? 'hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-500'
+                : 'hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-500'
             }`}
-            title={row.active ? 'Deactivate Subject' : 'Activate Subject'}
+            title={row.active ? 'Disable Subject' : 'Enable Subject'}
           >
             <Power className="w-4 h-4" />
           </button>
           <button
             onClick={() => setSubjectToDelete(row)}
-            className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors"
-            title="Permanently Delete Subject"
+            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 transition-colors"
+            title="Delete Subject"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -246,13 +246,13 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       {/* Top Header & Action Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400/80 z-10 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-500/80 z-10 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search subjects by code or title…"
-            className="w-full h-11 bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20 text-slate-100 text-sm rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-kalyani-gold-400"
+            className="w-full h-11 bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 text-slate-800 dark:text-slate-100 text-sm rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-rose-500 shadow-sm"
           />
         </div>
 
@@ -294,12 +294,12 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
 
       {/* Batch Selection Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-kalyani-crimson-900/90 border border-kalyani-gold-500/40 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-2.5">
-            <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-kalyani-gold-500 text-kalyani-crimson-950 shadow-gold-sm">
+            <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm">
               {selectedIds.length} Selected
             </span>
-            <span className="text-xs text-slate-200">
+            <span className="text-xs text-slate-700 dark:text-slate-200 font-medium">
               Apply bulk operations to selected department subjects
             </span>
           </div>

@@ -23,11 +23,11 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-kalyani-gold-400 shadow-[0_0_8px_#D4AF37]" />
+          <h3 className="text-base font-bold font-marcellus text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm" />
             Live Period-Wise Availability Matrix
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
             Click any period to inspect free faculty available for duty or substitution
           </p>
         </div>
@@ -46,39 +46,39 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
               {/* Top: Period Header */}
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-kalyani-gold-500/15 border border-kalyani-gold-400/30 text-kalyani-gold-300 shadow-sm">
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 shadow-sm font-sans">
                     {period.periodName || period.shortName}
                   </span>
                 </div>
 
-                <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400 group-hover:scale-110 transition-transform">
+                <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-500/30 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">
                   <Coffee className="w-4 h-4" />
                 </div>
               </div>
 
               {/* Middle: Count Badges */}
-              <div className="mt-4 pt-3 border-t border-kalyani-gold-500/15 flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-rose-200/80 dark:border-rose-950/60 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] uppercase font-semibold text-slate-400">Available</p>
-                  <p className="text-lg font-bold text-teal-300">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 font-sans">Available</p>
+                  <p className="text-lg font-bold text-teal-600 dark:text-teal-300 font-sans">
                     {period.freeFacultyCount}{' '}
-                    <span className="text-xs font-normal text-slate-400">Free</span>
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Free</span>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] uppercase font-semibold text-slate-400">Assigned</p>
-                  <p className="text-sm font-semibold text-kalyani-gold-300">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 font-sans">Assigned</p>
+                  <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 font-sans">
                     {period.busyFacultyCount}{' '}
-                    <span className="text-xs font-normal text-slate-400">Busy</span>
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Busy</span>
                   </p>
                 </div>
               </div>
 
               {/* Bottom Action Hint */}
-              <div className="mt-3 flex items-center justify-end text-[11px] font-medium text-kalyani-gold-300 group-hover:text-kalyani-gold-200">
+              <div className="mt-3 flex items-center justify-end text-[11px] font-medium text-rose-600 dark:text-rose-400 group-hover:text-rose-700 dark:group-hover:text-rose-300">
                 <span>View faculty</span>
-                <ChevronRight className="w-3 h-3 ml-0.5 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="w-3.5 h-3.5 ml-0.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </KalyaniCard>
           );
@@ -132,15 +132,15 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
             {/* Busy / Assigned Faculty Section */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-kalyani-gold-300 flex items-center gap-1.5 font-marcellus">
-                  <BookOpen className="w-4 h-4 text-kalyani-gold-400" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 flex items-center gap-1.5 font-marcellus">
+                  <BookOpen className="w-4 h-4 text-rose-500" />
                   Teaching / Assigned Faculty ({activePeriodModal.busyFaculty.length})
                 </h4>
-                <span className="text-[10px] text-slate-400 font-marcellus">Occupied with classes/duties</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-marcellus">Occupied with classes/duties</span>
               </div>
 
               {activePeriodModal.busyFaculty.length === 0 ? (
-                <div className="p-4 rounded-xl bg-kalyani-crimson-950/40 border border-kalyani-gold-500/20 text-xs text-slate-400 text-center font-marcellus">
+                <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-[#180E1C]/60 border border-rose-200 dark:border-rose-900/40 text-xs text-slate-500 dark:text-slate-400 text-center font-marcellus">
                   No faculty teaching in this period.
                 </div>
               ) : (
@@ -148,15 +148,15 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   {activePeriodModal.busyFaculty.map((f) => (
                     <div
                       key={f.facultyId}
-                      className="p-3.5 rounded-2xl bg-kalyani-crimson-900/50 border border-kalyani-gold-500/25 flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-2xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/40 shadow-sm flex items-center justify-between gap-3"
                     >
                       <div>
-                        <p className="font-marcellus text-base text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
-                        <p className="text-xs text-slate-400 font-marcellus">{f.facultyDesignation}</p>
+                        <p className="font-marcellus text-base text-slate-800 dark:text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-marcellus">{f.facultyDesignation}</p>
                       </div>
 
                       <div className="text-right max-w-[60%] sm:max-w-[70%]">
-                        <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-kalyani-gold-500/15 border border-kalyani-gold-400/30 text-kalyani-gold-200 shadow-sm font-sans whitespace-normal break-words leading-relaxed inline-block text-right">
+                        <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-200 shadow-sm font-sans whitespace-normal break-words leading-relaxed inline-block text-right">
                           {f.activity}
                         </span>
                       </div>

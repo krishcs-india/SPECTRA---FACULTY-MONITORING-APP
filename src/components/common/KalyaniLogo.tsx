@@ -12,17 +12,17 @@ export const KalyaniLogo: React.FC<KalyaniLogoProps> = ({
   className = '',
 }) => {
   const iconSizes = {
-    sm: 'w-7 h-7 text-xs',
-    md: 'w-9 h-9 text-sm',
-    lg: 'w-12 h-12 text-base',
-    xl: 'w-16 h-16 text-xl',
+    sm: 'w-8 h-8 rounded-xl',
+    md: 'w-10 h-10 rounded-2xl',
+    lg: 'w-14 h-14 rounded-2xl',
+    xl: 'w-20 h-20 rounded-3xl',
   };
 
   const titleSizes = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-3xl',
-    xl: 'text-4xl md:text-5xl',
+    sm: 'text-xl',
+    md: 'text-2xl',
+    lg: 'text-4xl',
+    xl: 'text-5xl md:text-6xl',
   };
 
   const subtitleSizes = {
@@ -34,11 +34,16 @@ export const KalyaniLogo: React.FC<KalyaniLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
-      {/* Modern Minimalist SPECTRA Emblem (No image logos or complex graphics) */}
+      {/* Official SPECTRA Luxury Emblem */}
       <div
-        className={`relative flex items-center justify-center shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold font-mono tracking-wider shadow-sm border border-blue-400/30 ${iconSizes[size]}`}
+        className={`relative flex items-center justify-center shrink-0 overflow-hidden shadow-sm border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-950/40 p-0.5 ${iconSizes[size]}`}
       >
-        <span>S</span>
+        <img
+          src="/assets/app-icon-spectra-logo.png"
+          alt="SPECTRA Logo"
+          draggable={false}
+          className="w-full h-full object-contain rounded-xl select-none"
+        />
       </div>
 
       {/* Typography */}
@@ -54,7 +59,7 @@ export const KalyaniLogo: React.FC<KalyaniLogoProps> = ({
 
         {showSubtitle && (
           <span
-            className={`font-medium tracking-wide text-slate-400 dark:text-slate-400 ${subtitleSizes[size]}`}
+            className={`font-medium tracking-wide text-rose-700/80 dark:text-rose-300/80 font-marcellus ${subtitleSizes[size]}`}
           >
             Faculty Period &amp; Schedule Management
           </span>

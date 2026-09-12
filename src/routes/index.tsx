@@ -99,8 +99,8 @@ export const AppRouter: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-kalyani-crimson-950 flex items-center justify-center text-kalyani-gold-300 font-semibold text-xs tracking-widest uppercase">
-        Initializing Kalyani System…
+      <div className="min-h-screen bg-white dark:bg-[#0F0912] flex items-center justify-center text-rose-600 dark:text-rose-300 font-semibold text-xs tracking-widest uppercase font-marcellus">
+        Initializing SPECTRA System…
       </div>
     );
   }
@@ -113,9 +113,9 @@ export const AppRouter: React.FC = () => {
   // Live mode: briefly show spinner for non-admin on first boot with no data
   if (isLiveFirebaseConfigured && !isCloudHydrated && (users || []).length === 0 && currentUser?.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen bg-kalyani-crimson-950 flex flex-col items-center justify-center gap-4">
-        <div className="w-10 h-10 border-3 border-kalyani-gold-500/30 border-t-kalyani-gold-400 rounded-full animate-spin" />
-        <p className="text-kalyani-gold-300 font-semibold text-xs tracking-widest uppercase">
+      <div className="min-h-screen bg-white dark:bg-[#0F0912] flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-3 border-rose-300/40 dark:border-rose-900/40 border-t-rose-500 rounded-full animate-spin" />
+        <p className="text-rose-600 dark:text-rose-300 font-semibold text-xs tracking-widest uppercase font-marcellus">
           Synchronizing with Cloud Database…
         </p>
       </div>
@@ -125,10 +125,10 @@ export const AppRouter: React.FC = () => {
   // Maintenance mode: only Administrators may pass through
   if (maintenanceMode && currentUser.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen bg-kalyani-crimson-950 flex flex-col items-center justify-center text-center px-6 gap-3">
-        <h1 className="text-kalyani-gold-300 font-bold text-xl tracking-wide">System Maintenance in Progress</h1>
-        <p className="text-slate-300 text-sm max-w-md">
-          Kalyani is temporarily unavailable while the administrator performs maintenance.
+      <div className="min-h-screen bg-white dark:bg-[#0F0912] flex flex-col items-center justify-center text-center px-6 gap-3">
+        <h1 className="text-rose-900 dark:text-rose-200 font-bold text-xl font-marcellus tracking-wide">System Maintenance in Progress</h1>
+        <p className="text-slate-600 dark:text-slate-300 text-sm max-w-md">
+          SPECTRA is temporarily unavailable while the administrator performs maintenance.
           Please check back again shortly.
         </p>
       </div>

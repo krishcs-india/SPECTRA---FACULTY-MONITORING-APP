@@ -114,14 +114,14 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
     >
       <div className="space-y-5">
         {/* Template Download Banner */}
-        <div className="p-4 rounded-2xl bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20 flex items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 shadow-sm flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 flex items-center justify-center text-kalyani-gold-400 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500 shrink-0">
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-100">Step 1: Download Excel Template</p>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Step 1: Download Excel Template</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Pre-formatted with Name, College Email, Position, and Role Assignment columns.
               </p>
             </div>
@@ -137,26 +137,26 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
         </div>
 
         {downloadMsg && (
-          <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>{downloadMsg}</span>
           </div>
         )}
 
         {/* Upload Zone */}
         <div>
-          <label className="block text-xs font-bold text-slate-200 mb-2">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
             Step 2: Upload Completed Staff Spreadsheet (.xlsx, .xls, .csv)
           </label>
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-kalyani-gold-500/30 hover:border-kalyani-gold-400/60 rounded-2xl p-6 text-center cursor-pointer transition-all bg-kalyani-crimson-950/40 hover:bg-kalyani-crimson-950/70 group"
+            className="border-2 border-dashed border-rose-300 dark:border-rose-800/40 hover:border-rose-400 rounded-2xl p-6 text-center cursor-pointer transition-all bg-rose-50/40 hover:bg-rose-50/70 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 group"
           >
-            <UploadCloud className="w-10 h-10 text-kalyani-gold-400/70 group-hover:text-kalyani-gold-300 mx-auto mb-2 transition-colors" />
-            <p className="text-xs font-semibold text-slate-200 group-hover:text-kalyani-gold-200">
+            <UploadCloud className="w-10 h-10 text-rose-500 group-hover:text-rose-600 mx-auto mb-2 transition-colors" />
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-rose-600 dark:group-hover:text-rose-300">
               {isParsing ? 'Analyzing spreadsheet…' : 'Click to browse and upload Excel spreadsheet'}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Accepts standard Excel files (.xlsx, .xls) and CSV</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Accepts standard Excel files (.xlsx, .xls) and CSV</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -168,8 +168,8 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
         </div>
 
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -178,21 +178,21 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
         {parseResult && (
           <div className="space-y-3 animate-in fade-in">
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
-                <p className="text-lg font-bold text-emerald-400">{parseResult.validCount}</p>
-                <p className="text-[10px] text-emerald-300 font-semibold uppercase tracking-wider">
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-center">
+                <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{parseResult.validCount}</p>
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold uppercase tracking-wider">
                   Ready to Import
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-center">
-                <p className="text-lg font-bold text-amber-400">{parseResult.duplicateCount}</p>
-                <p className="text-[10px] text-amber-300 font-semibold uppercase tracking-wider">
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/30 text-center">
+                <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{parseResult.duplicateCount}</p>
+                <p className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wider">
                   Duplicate Emails
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-center">
-                <p className="text-lg font-bold text-rose-400">{parseResult.errorCount}</p>
-                <p className="text-[10px] text-rose-300 font-semibold uppercase tracking-wider">
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/30 text-center">
+                <p className="text-lg font-bold text-rose-700 dark:text-rose-400">{parseResult.errorCount}</p>
+                <p className="text-[10px] text-rose-700 dark:text-rose-300 font-semibold uppercase tracking-wider">
                   Invalid Rows
                 </p>
               </div>
@@ -200,32 +200,32 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
 
             {/* Valid Rows Preview */}
             {parseResult.validRecords.length > 0 && (
-              <div className="max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-black/20 divide-y divide-white/5 text-xs">
-                <div className="px-3 py-2 text-[10px] font-bold text-kalyani-gold-300 uppercase tracking-wider bg-black/40 sticky top-0">
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-rose-200 dark:border-rose-900/40 bg-white dark:bg-black/20 divide-y divide-rose-100 dark:divide-white/5 text-xs">
+                <div className="px-3 py-2 text-[10px] font-bold text-rose-800 dark:text-rose-200 uppercase tracking-wider bg-rose-50/80 dark:bg-black/40 sticky top-0">
                   Preview of Valid Staff Records ({parseResult.validRecords.length})
                 </div>
                 {parseResult.validRecords.map((r, i) => (
                   <div key={i} className="px-3 py-2 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 flex items-center justify-center text-kalyani-gold-300 text-[10px] font-bold">
+                      <div className="w-6 h-6 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-300 text-[10px] font-bold">
                         {r.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-100 text-xs">{r.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100 text-xs">{r.name}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{r.email}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                           r.hodType === 'AHOD'
-                            ? 'bg-teal-500/15 border-teal-500/30 text-teal-300'
-                            : 'bg-kalyani-gold-500/15 border-kalyani-gold-400/30 text-kalyani-gold-300'
+                            ? 'bg-teal-50 dark:bg-teal-950/70 border-teal-300 dark:border-teal-500/30 text-teal-800 dark:text-teal-300'
+                            : 'bg-rose-50 dark:bg-rose-950/70 border-rose-200 dark:border-rose-400/30 text-rose-700 dark:text-rose-300'
                         }`}
                       >
                         {r.hodType === 'AHOD' ? 'Assistant HOD' : 'Faculty'}
                       </span>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{r.designation}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{r.designation}</p>
                     </div>
                   </div>
                 ))}

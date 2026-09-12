@@ -227,12 +227,12 @@ export const HodFacultyPage: React.FC = () => {
       header: 'Staff Member',
       accessor: (row: KalyaniUser) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-kalyani-gold-500/10 border border-kalyani-gold-500/25 flex items-center justify-center text-kalyani-gold-300 font-bold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-600 dark:text-rose-300 font-bold text-xs shrink-0">
             {row.name.charAt(0)}
           </div>
           <div>
-            <p className="font-semibold text-xs text-slate-100">{row.name}</p>
-            <p className="text-[11px] text-slate-400 font-mono">{row.email}</p>
+            <p className="font-semibold text-xs text-slate-800 dark:text-slate-100">{row.name}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{row.email}</p>
           </div>
         </div>
       ),
@@ -240,7 +240,7 @@ export const HodFacultyPage: React.FC = () => {
     {
       header: 'Position / Designation',
       accessor: (row: KalyaniUser) => (
-        <span className="text-xs text-slate-300 font-medium">{row.designation}</span>
+        <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{row.designation}</span>
       ),
     },
     {
@@ -249,8 +249,8 @@ export const HodFacultyPage: React.FC = () => {
         <span
           className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
             row.hodType === 'AHOD'
-              ? 'bg-teal-500/15 border-teal-500/30 text-teal-300'
-              : 'bg-kalyani-gold-500/15 border-kalyani-gold-400/30 text-kalyani-gold-300'
+              ? 'bg-teal-50 dark:bg-teal-950/70 border-teal-300 dark:border-teal-500/30 text-teal-800 dark:text-teal-300'
+              : 'bg-rose-50 dark:bg-rose-950/70 border-rose-200 dark:border-rose-400/30 text-rose-700 dark:text-rose-300'
           }`}
         >
           {row.hodType === 'AHOD' ? 'Assistant HOD' : 'Teaching Faculty'}
@@ -263,11 +263,11 @@ export const HodFacultyPage: React.FC = () => {
         <span
           className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit ${
             row.active
-              ? 'bg-emerald-950/70 border border-emerald-500/30 text-emerald-300'
-              : 'bg-slate-800 border border-slate-700 text-slate-400'
+              ? 'bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+              : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${row.active ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${row.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
           {row.active ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -279,7 +279,7 @@ export const HodFacultyPage: React.FC = () => {
           {/* Edit Button Box */}
           <button
             onClick={() => openEditModal(row)}
-            className="p-1.5 rounded-lg bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 hover:border-kalyani-gold-400 text-kalyani-gold-300 hover:bg-kalyani-gold-500/20 transition-colors shadow-sm"
+            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 hover:border-rose-400 text-rose-600 dark:text-rose-300 hover:bg-rose-500/20 transition-colors shadow-sm"
             title="Edit Staff Details"
           >
             <Edit2 className="w-3.5 h-3.5" />
@@ -291,8 +291,8 @@ export const HodFacultyPage: React.FC = () => {
             onClick={() => setStaffToToggle(row)}
             className={`p-1.5 rounded-lg border transition-colors shadow-sm ${
               row.active
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-400'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-400'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20 hover:border-amber-400'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 hover:border-emerald-400'
             }`}
             title={row.active ? 'Disable Staff Account' : 'Enable Staff Account'}
           >
@@ -303,7 +303,7 @@ export const HodFacultyPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setStaffToDelete(row)}
-            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-colors shadow-sm"
+            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:text-rose-400 hover:bg-rose-500/20 hover:border-rose-400 transition-colors shadow-sm"
             title="Delete Staff Account"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -320,27 +320,27 @@ export const HodFacultyPage: React.FC = () => {
         subtitle={`Appoint, edit, and oversee faculties and Assistant HODs in ${departmentName}. HOD holds complete departmental staff control and monitoring.`}
         breadcrumbs={[{ label: 'HOD' }, { label: 'Faculty Directory' }]}
         badge={
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-kalyani-gold-500/15 border border-kalyani-gold-400/40 text-kalyani-gold-300">
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/15 border border-rose-400/40 text-rose-700 dark:text-rose-300">
             {departmentName}
           </span>
         }
       />
 
       {notificationMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-lg">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{notificationMsg}</span>
         </div>
       )}
 
       {/* Navigation Tabs - Daily Submission Tracker is First */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-kalyani-crimson-950/80 border border-kalyani-gold-500/20 w-fit">
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-rose-50/70 dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 w-fit">
         <button
           onClick={() => setActiveTab('SUBMISSIONS')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
             activeTab === 'SUBMISSIONS'
-              ? 'bg-kalyani-gold-500 text-kalyani-crimson-950 shadow-gold-sm'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm font-bold'
+              : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300'
           }`}
         >
           <CalendarDays className="w-4 h-4" />
@@ -351,8 +351,8 @@ export const HodFacultyPage: React.FC = () => {
           onClick={() => setActiveTab('DIRECTORY')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
             activeTab === 'DIRECTORY'
-              ? 'bg-kalyani-gold-500 text-kalyani-crimson-950 shadow-gold-sm'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm font-bold'
+              : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300'
           }`}
         >
           <Users className="w-4 h-4" />
@@ -376,28 +376,28 @@ export const HodFacultyPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {/* Action Ribbon */}
-          <div className="p-4 rounded-3xl kalyani-glass flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="p-4 rounded-3xl bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <div className="relative flex-1 sm:w-64">
-                <Search className="w-4 h-4 text-kalyani-gold-400/80 absolute left-3.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <Search className="w-4 h-4 text-rose-500/80 absolute left-3.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search staff by name or email…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-kalyani-crimson-950/80 border border-kalyani-gold-500/20 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-kalyani-gold-400"
+                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-rose-500 shadow-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-1 bg-kalyani-crimson-950/80 p-1 rounded-xl border border-kalyani-gold-500/20 text-xs">
+              <div className="flex items-center gap-1 bg-rose-50/60 dark:bg-[#201026] p-1 rounded-xl border border-rose-200 dark:border-rose-900/50 text-xs">
                 {(['ALL', 'FACULTY', 'AHOD'] as const).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRoleFilter(r)}
                     className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                       roleFilter === r
-                        ? 'bg-kalyani-gold-500/20 text-kalyani-gold-300 border border-kalyani-gold-400/40'
-                        : 'text-slate-400 hover:text-slate-200'
+                        ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300'
                     }`}
                   >
                     {r === 'ALL' ? 'All Staff' : r === 'AHOD' ? 'Assistant HODs' : 'Faculties'}
@@ -454,9 +454,9 @@ export const HodFacultyPage: React.FC = () => {
             setIsAddModalOpen(false);
             setEditingStaff(null);
           }}
-          maxWidth="md"
-          title={editingStaff ? `Edit Staff — ${editingStaff.name}` : `Add New Staff Member — ${departmentName}`}
-          subtitle="Manage faculty profile, academic position, and Assistant HOD designation"
+          maxWidth="lg"
+          title={editingStaff ? 'Edit Staff Credentials' : 'Add New Department Staff'}
+          subtitle={`Department of ${departmentName}`}
           footer={
             <>
               <KalyaniButton
@@ -482,8 +482,8 @@ export const HodFacultyPage: React.FC = () => {
               </p>
             )}
 
-            <div className="p-3 rounded-xl bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20">
-              <label className="block text-xs font-bold text-kalyani-gold-300 uppercase tracking-wider mb-2">
+            <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50">
+              <label className="block text-xs font-bold text-rose-800 dark:text-rose-200 uppercase tracking-wider mb-2">
                 Staff Role Designation
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -492,8 +492,8 @@ export const HodFacultyPage: React.FC = () => {
                   onClick={() => handleRoleTypeChange('FACULTY')}
                   className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
                     staffRoleType === 'FACULTY'
-                      ? 'bg-kalyani-gold-500/20 border-kalyani-gold-400 text-kalyani-gold-200'
-                      : 'bg-black/20 border-white/10 text-slate-400 hover:text-slate-200'
+                      ? 'bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-200 shadow-sm'
+                      : 'bg-white dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   Regular Teaching Faculty
@@ -503,8 +503,8 @@ export const HodFacultyPage: React.FC = () => {
                   onClick={() => handleRoleTypeChange('AHOD')}
                   className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
                     staffRoleType === 'AHOD'
-                      ? 'bg-teal-500/20 border-teal-400 text-teal-200'
-                      : 'bg-black/20 border-white/10 text-slate-400 hover:text-slate-200'
+                      ? 'bg-teal-500/20 border-teal-400 text-teal-700 dark:text-teal-200 shadow-sm'
+                      : 'bg-white dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   Assistant HOD (AHOD)

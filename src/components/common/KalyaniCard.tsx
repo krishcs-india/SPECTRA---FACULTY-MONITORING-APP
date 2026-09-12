@@ -34,22 +34,22 @@ export const KalyaniCard: React.FC<KalyaniCardProps> = ({
     <div
       onClick={onClick}
       className={`relative overflow-hidden transition-all duration-300 ${variantStyles[variant]} ${
-        onClick ? 'cursor-pointer hover:border-kalyani-gold-400/60 hover:shadow-gold-md hover:brightness-105' : ''
+        onClick ? 'cursor-pointer hover:border-rose-400/60 hover:shadow-sm hover:brightness-105' : ''
       } ${className}`}
     >
       {/* Top subtle highlight line */}
-      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-kalyani-gold-400/30 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-rose-400/30 to-transparent" />
 
       {(title || subtitle || action) && (
-        <div className={`flex items-center justify-between px-6 py-4 border-b border-kalyani-gold-500/10 ${headerClassName}`}>
+        <div className={`flex items-center justify-between px-6 py-4 border-b border-rose-200/70 dark:border-rose-950/60 ${headerClassName}`}>
           <div>
             {title && (
-              <h3 className="text-base font-semibold text-kalyani-gold-100 flex items-center gap-2">
+              <h3 className="text-base font-semibold font-marcellus text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
                 {subtitle}
               </p>
             )}

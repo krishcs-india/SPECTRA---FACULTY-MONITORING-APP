@@ -45,13 +45,13 @@ export const MilkyWayCanvas: React.FC = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Golden & Diamond White Palette
-    const diamondColors = ['#FFFFFF', '#FFFDE6', '#FFE680', '#FFD700', '#FDE047'];
+    // Rose-Gold, Blush Pink & Radiant Diamond Palette
+    const diamondColors = ['#FFFFFF', '#FFE4E6', '#FDA4AF', '#F43F5E', '#FFF1F2'];
     const glowColors = [
-      'rgba(255, 248, 200, 0.95)',
-      'rgba(212, 175, 55, 0.95)',
-      'rgba(255, 255, 255, 1)',
-      'rgba(255, 220, 50, 0.9)',
+      'rgba(255, 228, 230, 0.95)',
+      'rgba(244, 63, 94, 0.85)',
+      'rgba(255, 255, 255, 0.95)',
+      'rgba(251, 113, 133, 0.8)',
     ];
 
     // Elegant, uncluttered count: 32 Curved Diamond Stars + 10 Stardust Specks

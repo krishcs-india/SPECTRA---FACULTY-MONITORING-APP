@@ -220,7 +220,7 @@ export const UserManager: React.FC = () => {
         }
         const dept = departments.find((d) => d.id === row.departmentId);
         return (
-          <span className="text-xs text-kalyani-gold-300 font-semibold">
+          <span className="text-xs text-rose-700 dark:text-rose-300 font-semibold">
             {dept?.code || row.departmentId || '—'}
           </span>
         );
@@ -230,17 +230,17 @@ export const UserManager: React.FC = () => {
       header: 'Role & Authorization',
       accessor: (row: KalyaniUser) => {
         let label = 'Faculty';
-        let badgeStyle = 'bg-slate-900 border-slate-700 text-slate-300';
+        let badgeStyle = 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300';
 
         if (row.role === 'ADMIN') {
           label = 'Admin';
-          badgeStyle = 'bg-rose-950/70 border-rose-500/40 text-rose-300';
+          badgeStyle = 'bg-rose-50 dark:bg-rose-950/70 border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300';
         } else if (row.role === 'HOD' && row.hodType !== 'AHOD') {
           label = 'Head of Dept (HOD)';
-          badgeStyle = 'bg-kalyani-crimson-900 border-kalyani-gold-500/40 text-kalyani-gold-300';
+          badgeStyle = 'bg-pink-50 dark:bg-pink-950/60 border-pink-300 dark:border-pink-500/40 text-pink-800 dark:text-pink-300';
         } else if (row.hodType === 'AHOD') {
           label = 'Assistant HOD (AHOD)';
-          badgeStyle = 'bg-amber-950/80 border-amber-500/40 text-amber-300';
+          badgeStyle = 'bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300';
         }
 
         return (
@@ -256,8 +256,8 @@ export const UserManager: React.FC = () => {
         <span
           className={`px-2 py-0.5 text-[11px] font-semibold rounded-full ${
             row.active
-              ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
-              : 'bg-rose-950/80 text-rose-400 border border-rose-500/30'
+              ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30'
+              : 'bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30'
           }`}
         >
           {row.active ? 'Active' : 'Disabled'}
@@ -273,7 +273,7 @@ export const UserManager: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => openEditModal(row)}
-              className="p-1.5 rounded-lg hover:bg-kalyani-gold-500/20 text-kalyani-gold-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 transition-colors"
               title="Edit User"
             >
               <Edit2 className="w-4 h-4" />
@@ -285,8 +285,8 @@ export const UserManager: React.FC = () => {
                   onClick={() => setUserToToggle(row)}
                   className={`p-1.5 rounded-lg transition-colors ${
                     row.active
-                      ? 'hover:bg-amber-500/20 text-amber-400'
-                      : 'hover:bg-emerald-500/20 text-emerald-400'
+                      ? 'hover:bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                      : 'hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                   }`}
                   title={row.active ? 'Deactivate User' : 'Activate User'}
                 >
@@ -294,7 +294,7 @@ export const UserManager: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setUserToDelete(row)}
-                  className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
                   title="Delete User Permanently"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -302,10 +302,10 @@ export const UserManager: React.FC = () => {
               </>
             ) : (
               <span
-                className="px-2 py-0.5 text-[10px] font-semibold text-rose-300/80 bg-rose-950/40 rounded-md border border-rose-500/20 flex items-center gap-1"
+                className="px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 rounded-md border border-rose-200 dark:border-rose-500/20 flex items-center gap-1"
                 title="Institutional Administrator account is protected from deactivation and deletion."
               >
-                <Shield className="w-3 h-3 text-rose-400" />
+                <Shield className="w-3 h-3 text-rose-500" />
                 Protected
               </span>
             )}
@@ -321,13 +321,13 @@ export const UserManager: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-kalyani-gold-400/80 z-10 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-400 z-10 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, designation…"
-              className="w-full h-11 bg-kalyani-crimson-950/70 border border-kalyani-gold-500/20 text-slate-100 text-xs sm:text-sm rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-kalyani-gold-400"
+              className="w-full h-11 bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/40 text-slate-800 dark:text-slate-100 text-xs sm:text-sm rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-rose-400"
             />
           </div>
 

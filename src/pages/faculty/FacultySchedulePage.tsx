@@ -43,7 +43,7 @@ export const FacultySchedulePage: React.FC = () => {
         subtitle="Specify the subjects or academic duties you are handling today, or mark the entire day as Free with one tap."
         breadcrumbs={[{ label: 'Faculty' }, { label: "Daily Schedule" }]}
         badge={
-          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-kalyani-gold-500/10 border border-kalyani-gold-500/30 text-kalyani-gold-300">
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/15 border border-rose-400/40 text-rose-700 dark:text-rose-300">
             {currentUser?.departmentName || 'CSE Department'}
           </span>
         }
