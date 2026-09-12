@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'in.edu.college.kalyani',
-  appName: 'Kalyani',
+  appName: 'SPECTRA',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
@@ -22,7 +22,7 @@ const config: CapacitorConfig = {
   plugins: {
     LocalNotifications: {
       smallIcon: 'ic_launcher',
-      iconColor: '#D4AF37',
+      iconColor: '#F43F5E',
     },
   },
 };
