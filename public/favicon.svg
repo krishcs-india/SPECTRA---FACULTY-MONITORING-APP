@@ -1,50 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
   <defs>
     <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#55121E" />
-      <stop offset="70%" stop-color="#2A040C" />
-      <stop offset="100%" stop-color="#140105" />
+      <stop offset="0%" stop-color="#231229" />
+      <stop offset="70%" stop-color="#180E1C" />
+      <stop offset="100%" stop-color="#0F0912" />
     </radialGradient>
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFF5D1" />
-      <stop offset="40%" stop-color="#D4AF37" />
-      <stop offset="70%" stop-color="#AA820A" />
-      <stop offset="100%" stop-color="#E2BD39" />
+    <linearGradient id="roseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDA4AF" />
+      <stop offset="50%" stop-color="#F43F5E" />
+      <stop offset="100%" stop-color="#E11D48" />
     </linearGradient>
-    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FFD166" />
-      <stop offset="100%" stop-color="#D97706" />
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="3" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
   </defs>
 
-  <!-- Background Circle -->
-  <rect width="120" height="120" rx="28" fill="url(#bgGlow)" stroke="url(#goldGrad)" stroke-width="2.5" />
-
-  <!-- Lotus & Mandala Filigree -->
-  <g transform="translate(60,60)" filter="url(#glow)">
-    <!-- Outer delicate rays -->
-    <circle r="46" fill="none" stroke="url(#goldGrad)" stroke-width="0.75" stroke-dasharray="2,3" opacity="0.6"/>
-    <circle r="40" fill="none" stroke="url(#goldGrad)" stroke-width="1.2" opacity="0.8"/>
-    
-    <!-- Lotus Petals -->
-    <path d="M0 -36 C10 -22 15 -10 0 0 C-15 -10 -10 -22 0 -36 Z" fill="url(#goldGrad)" opacity="0.95" />
-    <path d="M0 36 C10 22 15 10 0 0 C-15 10 -10 22 0 36 Z" fill="url(#goldGrad)" opacity="0.95" />
-    <path d="M-36 0 C-22 10 -10 15 0 0 C-10 -15 -22 -10 -36 0 Z" fill="url(#goldGrad)" opacity="0.95" />
-    <path d="M36 0 C22 10 10 15 0 0 C10 -15 22 -10 36 0 Z" fill="url(#goldGrad)" opacity="0.95" />
-
-    <!-- Diagonal Petals -->
-    <path d="M-25 -25 C-12 -18 -8 -8 0 0 C-8 -8 -18 -12 -25 -25 Z" fill="url(#amberGrad)" opacity="0.85" />
-    <path d="M25 -25 C18 -12 8 -8 0 0 C8 -8 12 -18 25 -25 Z" fill="url(#amberGrad)" opacity="0.85" />
-    <path d="M-25 25 C-12 18 -8 8 0 0 C-8 8 -18 12 -25 25 Z" fill="url(#amberGrad)" opacity="0.85" />
-    <path d="M25 25 C18 12 8 8 0 0 C8 8 12 18 25 25 Z" fill="url(#amberGrad)" opacity="0.85" />
-
-    <!-- Central Ruby Gem -->
-    <circle r="9" fill="#9B1A39" stroke="url(#goldGrad)" stroke-width="1.5" />
-    <circle r="4" fill="#F43F5E" />
-    <circle r="1.5" fill="#FFF5D1" />
-  </g>
+  <rect width="120" height="120" rx="28" fill="url(#bgGlow)" stroke="url(#roseGrad)" stroke-width="2.5" />
+  
+  <!-- SPECTRA "S" monogram with luxury serif styling -->
+  <text x="60" y="80" font-family="'Marcellus', serif, Georgia" font-size="64" font-weight="bold" fill="url(#roseGrad)" text-anchor="middle">S</text>
+  
+  <!-- Subtle accent spark -->
+  <circle cx="85" cy="35" r="3" fill="#FDA4AF" />
+  <circle cx="85" cy="35" r="1.5" fill="#FFFFFF" />
 </svg>

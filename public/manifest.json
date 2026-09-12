@@ -1,0 +1,22 @@
+{
+  "short_name": "SPECTRA",
+  "name": "SPECTRA — Faculty Period & Schedule Monitoring System",
+  "icons": [
+    {
+      "src": "/assets/app-icon-spectra-logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/krish-cs-logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0F0912",
+  "theme_color": "#0F0912",
+  "display": "standalone",
+  "orientation": "portrait"
+}
