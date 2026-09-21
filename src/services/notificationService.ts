@@ -72,7 +72,6 @@ class NativeNotificationBridge {
           summaryText: 'SPECTRA',
           channelId: 'spectra_alerts_v2',
           smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_spectra_notification',
           iconColor: '#F43F5E'
         }]
       });
@@ -141,7 +140,6 @@ class NativeNotificationBridge {
           channelId: 'spectra_alerts_v2',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
           smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_spectra_notification',
           iconColor: '#F43F5E'
         }]
       });
@@ -236,7 +234,6 @@ class NativeNotificationBridge {
           summaryText: 'SPECTRA Export',
           channelId: 'spectra_alerts_v2',
           smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_spectra_notification',
           iconColor: '#F43F5E'
         }]
       });
