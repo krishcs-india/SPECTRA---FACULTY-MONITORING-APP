@@ -15,6 +15,16 @@ MIPMAP_CONFIGS = [
     ("mipmap-xxxhdpi", 192, 432),
 ]
 
+# Drawable density configurations for notification icons
+DRAWABLE_ICON_CONFIGS = [
+    ("drawable", 192),
+    ("drawable-mdpi", 48),
+    ("drawable-hdpi", 72),
+    ("drawable-xhdpi", 96),
+    ("drawable-xxhdpi", 144),
+    ("drawable-xxxhdpi", 192),
+]
+
 # Splash / Drawable configurations
 DRAWABLE_SPLASH_DIRS = [
     ("drawable", 480),
@@ -62,9 +72,21 @@ def generate_icons():
         fg_img.paste(resized_inner, (offset, offset), mask=resized_inner)
         fg_img.save(os.path.join(target_dir, "ic_launcher_foreground.png"), format="PNG")
 
-        print(f"[OK] Generated icons for {folder} ({size}x{size})")
+        print(f"[OK] Generated mipmap icons for {folder} ({size}x{size})")
 
-    # 2. Generate splash images in drawable directories
+    # 2. Generate explicit notification drawables in res/drawable-*
+    # Capacitor LocalNotifications resolves largeIcon and smallIcon strictly from res/drawable!
+    for folder, size in DRAWABLE_ICON_CONFIGS:
+        target_dir = os.path.join(RES_DIR, folder)
+        os.makedirs(target_dir, exist_ok=True)
+
+        resized = img.resize((size, size), Image.Resampling.LANCZOS)
+        # Save as both ic_spectra_notification and ic_launcher in drawable
+        resized.save(os.path.join(target_dir, "ic_spectra_notification.png"), format="PNG")
+        resized.save(os.path.join(target_dir, "ic_launcher.png"), format="PNG")
+        print(f"[OK] Generated notification drawables for {folder} ({size}x{size})")
+
+    # 3. Generate splash images in drawable directories
     for d_name, max_dim in DRAWABLE_SPLASH_DIRS:
         target_dir = os.path.join(RES_DIR, d_name)
         if os.path.exists(target_dir):
@@ -72,13 +94,13 @@ def generate_icons():
             splash_img.save(os.path.join(target_dir, "splash.png"), format="PNG")
             print(f"[OK] Generated splash for {d_name} ({max_dim}x{max_dim})")
 
-    # 3. Synchronize public/assets/app-icon-logo.png with SPECTRA logo
+    # 4. Synchronize public/assets/app-icon-logo.png with SPECTRA logo
     public_logo = os.path.join(BASE_DIR, "public", "assets", "app-icon-logo.png")
     if os.path.exists(os.path.dirname(public_logo)):
         shutil.copy2(ICON_SRC, public_logo)
         print("[OK] Synchronized public/assets/app-icon-logo.png with Spectra logo")
 
-    print("[SUCCESS] All Android app icons, splash drawables, and assets updated to SPECTRA logo.")
+    print("[SUCCESS] All Android app icons, notification drawables, and splash assets updated to SPECTRA.")
 
 if __name__ == "__main__":
     generate_icons()

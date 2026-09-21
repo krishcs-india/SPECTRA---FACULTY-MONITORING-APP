@@ -19,6 +19,30 @@ const isNative = () =>
 /** Fires like WhatsApp/Instagram notifications in the native notification bar */
 class NativeNotificationBridge {
   private static readonly DAILY_REMINDER_ID = 42001;
+  private channelCreated = false;
+
+  private async ensureChannel(): Promise<void> {
+    if (this.channelCreated || !isNative()) return;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      try {
+        await LocalNotifications.deleteChannel({ id: 'default' });
+      } catch {}
+      await LocalNotifications.createChannel({
+        id: 'spectra_alerts_v2',
+        name: 'SPECTRA Institutional Alerts',
+        description: 'Live faculty period schedules, reminders and institutional updates',
+        importance: 5,
+        visibility: 1,
+        lights: true,
+        lightColor: '#F43F5E',
+        vibration: true
+      });
+      this.channelCreated = true;
+    } catch (e) {
+      console.warn('Channel creation notice:', e);
+    }
+  }
 
   async requestPermission(): Promise<boolean> {
     if (!isNative()) return false;
@@ -36,6 +60,7 @@ class NativeNotificationBridge {
 
   async notifyNow(title: string, body: string): Promise<void> {
     if (!(await this.requestPermission())) return;
+    await this.ensureChannel();
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       await LocalNotifications.schedule({
@@ -45,9 +70,10 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA',
-          smallIcon: 'ic_launcher',
-          largeIcon: 'ic_launcher',
-          iconColor: '#D4AF37'
+          channelId: 'spectra_alerts_v2',
+          smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_spectra_notification',
+          iconColor: '#F43F5E'
         }]
       });
     } catch (err) {
@@ -104,6 +130,7 @@ class NativeNotificationBridge {
         body = 'Good morning, Administrator! Institutional operations, department allocations, and user directories are active and monitored.';
       }
 
+      await this.ensureChannel();
       await LocalNotifications.schedule({
         notifications: [{
           id: NativeNotificationBridge.DAILY_REMINDER_ID,
@@ -111,10 +138,11 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA Morning Update',
+          channelId: 'spectra_alerts_v2',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
-          smallIcon: 'ic_launcher',
-          largeIcon: 'ic_launcher',
-          iconColor: '#D4AF37'
+          smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_spectra_notification',
+          iconColor: '#F43F5E'
         }]
       });
 
@@ -198,6 +226,7 @@ class NativeNotificationBridge {
       const id = 700000000 + Math.floor(Date.now() % 200000000);
       // Remember where the file lives so the tap handler can open it
       localStorage.setItem(`kalyani_dl_uri_${id}`, fileUri);
+      await this.ensureChannel();
       await LocalNotifications.schedule({
         notifications: [{
           id,
@@ -205,9 +234,10 @@ class NativeNotificationBridge {
           body: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           largeBody: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           summaryText: 'SPECTRA Export',
-          smallIcon: 'ic_launcher',
-          largeIcon: 'ic_launcher',
-          iconColor: '#D4AF37'
+          channelId: 'spectra_alerts_v2',
+          smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_spectra_notification',
+          iconColor: '#F43F5E'
         }]
       });
     } catch (err) {

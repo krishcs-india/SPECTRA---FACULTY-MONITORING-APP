@@ -21,7 +21,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
-      smallIcon: 'ic_launcher',
+      smallIcon: 'ic_spectra_notification',
       iconColor: '#F43F5E',
     },
   },
