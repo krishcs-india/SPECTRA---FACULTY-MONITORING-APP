@@ -516,7 +516,7 @@ export const HodFacultyPage: React.FC = () => {
               label="Staff Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Dr. Kalyani"
+              placeholder="e.g. Dr. Spectra"
               required
             />
 
@@ -525,7 +525,7 @@ export const HodFacultyPage: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. kalyani.cse@krce.ac.in"
+              placeholder="e.g. spectra.cse@krce.ac.in"
               required
             />
 

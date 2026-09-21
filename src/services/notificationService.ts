@@ -44,8 +44,9 @@ class NativeNotificationBridge {
           title,
           body,
           largeBody: body,
-          summaryText: 'Kalyani',
+          summaryText: 'SPECTRA',
           smallIcon: 'ic_launcher',
+          largeIcon: 'ic_launcher',
           iconColor: '#D4AF37'
         }]
       });
@@ -92,14 +93,14 @@ class NativeNotificationBridge {
         });
       } catch {}
 
-      let title = 'Kalyani — Ready for a Great Day! ☀️';
+      let title = 'SPECTRA — Ready for a Great Day! ☀️';
       let body = 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.';
 
       if (role === 'HOD') {
-        title = 'Kalyani — Good Morning, HOD! ☀️';
-        body = 'A wonderful day of leadership awaits. Keep track of today’s faculty period availability and department allocations seamlessly in Kalyani.';
+        title = 'SPECTRA — Good Morning, HOD! ☀️';
+        body = 'A wonderful day of leadership awaits. Keep track of today’s faculty period availability and department allocations seamlessly in SPECTRA.';
       } else if (role === 'ADMIN') {
-        title = 'Kalyani — Institutional Overview 🏛️';
+        title = 'SPECTRA — Institutional Overview 🏛️';
         body = 'Good morning, Administrator! Institutional operations, department allocations, and user directories are active and monitored.';
       }
 
@@ -109,9 +110,10 @@ class NativeNotificationBridge {
           title,
           body,
           largeBody: body,
-          summaryText: 'Kalyani Morning Update',
+          summaryText: 'SPECTRA Morning Update',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
           smallIcon: 'ic_launcher',
+          largeIcon: 'ic_launcher',
           iconColor: '#D4AF37'
         }]
       });
@@ -155,13 +157,13 @@ class NativeNotificationBridge {
 
     if (role === 'HOD') {
       await this.notifyNow(
-        'Kalyani — Department Overview ✨',
+        'SPECTRA — Department Overview ✨',
         `Welcome back, ${userName}! Live faculty availability and today's period assignments are ready for your review.`
       );
       localStorage.setItem(key, '1');
     } else if (role === 'ADMIN') {
       await this.notifyNow(
-        'Kalyani — Administrator Portal ✨',
+        'SPECTRA — Administrator Portal ✨',
         `Welcome back, ${userName}! Institutional directories and system configurations are running smoothly.`
       );
       localStorage.setItem(key, '1');
@@ -169,7 +171,7 @@ class NativeNotificationBridge {
       // FACULTY / AHOD - only notify if today's schedule is pending
       if (!isSubmittedToday) {
         await this.notifyNow(
-          'Kalyani — Quick Schedule Check ✨',
+          'SPECTRA — Quick Schedule Check ✨',
           `Welcome back, ${userName}! Let’s get today’s schedule lined up. Please confirm your periods or mark yourself free in just a tap.`
         );
         localStorage.setItem(key, '1');
@@ -202,8 +204,9 @@ class NativeNotificationBridge {
           title: 'Report Ready for You! 📂',
           body: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           largeBody: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
-          summaryText: 'Kalyani Export',
+          summaryText: 'SPECTRA Export',
           smallIcon: 'ic_launcher',
+          largeIcon: 'ic_launcher',
           iconColor: '#D4AF37'
         }]
       });
@@ -281,8 +284,8 @@ class WebNotificationProvider implements INotificationProvider {
       try {
         new Notification(payload.title, {
           body: payload.body,
-          icon: payload.icon || '/favicon.svg',
-          badge: '/favicon.svg',
+          icon: payload.icon || '/assets/app-icon-spectra-logo.png',
+          badge: '/assets/app-icon-spectra-logo.png',
         });
       } catch (err) {
         console.warn('Web notification dispatch failed:', err);
@@ -356,7 +359,7 @@ class KalyaniNotificationManager {
 
   async notifySchedulePending(facultyName: string, remainingTime?: string): Promise<void> {
     await this.provider.sendNotification({
-      title: 'Kalyani — Almost Done! 🌟',
+      title: 'SPECTRA — Almost Done! 🌟',
       body: `Dear, ${facultyName}, you are just a step away. Please finalize your period slots or select Full Day Free to complete your day's schedule.`,
       icon: '/favicon.svg'
     });
@@ -364,7 +367,7 @@ class KalyaniNotificationManager {
 
   async notifySubmissionSuccess(date: string): Promise<void> {
     await this.provider.sendNotification({
-      title: 'Kalyani — Schedule Confirmed! 🎉',
+      title: 'SPECTRA — Schedule Confirmed! 🎉',
       body: `All set! Your availability for ${date} has been successfully updated. Wishing you a smooth, engaging, and productive day ahead!`,
       icon: '/favicon.svg'
     });

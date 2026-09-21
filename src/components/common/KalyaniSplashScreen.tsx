@@ -19,16 +19,16 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] bg-[#0F0912] text-slate-100 flex flex-col items-center justify-between p-6 sm:p-10 overflow-hidden select-none transition-all duration-700 ${
+      className={`fixed inset-0 z-[9999] bg-[#FFF9FB] text-slate-800 flex flex-col items-center justify-between p-6 sm:p-10 overflow-hidden select-none transition-all duration-700 ${
         isExiting ? 'opacity-0 pointer-events-none scale-105 filter blur-sm' : 'opacity-100 scale-100'
       }`}
     >
       {/* Soft Rose Ambient Light Aura */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[450px] bg-rose-500/15 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[450px] bg-rose-200/50 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Top Edition Badge */}
-      <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-950/60 border border-rose-800/50 text-rose-300 text-xs tracking-widest uppercase font-semibold animate-in fade-in slide-in-from-top duration-700 shadow-sm">
-        <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+      <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 border border-rose-200/80 text-rose-800 text-xs tracking-widest uppercase font-semibold animate-in fade-in slide-in-from-top duration-700 shadow-sm">
+        <Sparkles className="w-3.5 h-3.5 text-rose-500" />
         <span>Higher Education Institutional Edition</span>
       </div>
 
@@ -36,8 +36,8 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto my-auto space-y-6">
         {/* Official Krish CS Luxury Emblem */}
         <div className="relative my-2 group">
-          <div className="absolute -inset-4 bg-gradient-to-r from-pink-500/30 to-rose-600/30 rounded-3xl blur-2xl opacity-70 animate-pulse-slow" />
-          <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-[#1A1020] border-2 border-rose-300/40 shadow-[0_0_40px_rgba(244,63,94,0.35)] p-1.5 flex items-center justify-center overflow-hidden">
+          <div className="absolute -inset-4 bg-gradient-to-r from-pink-300/40 to-rose-400/40 rounded-3xl blur-2xl opacity-80 animate-pulse-slow" />
+          <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-white border-2 border-rose-200 shadow-[0_10px_35px_rgba(244,63,94,0.15)] p-1.5 flex items-center justify-center overflow-hidden">
             <img
               src="/assets/krish-cs-logo.png"
               alt="Krish CS Logo"
@@ -48,30 +48,30 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-4xl sm:text-6xl font-normal tracking-[0.2em] text-gold-gradient font-marcellus">
+          <h1 className="text-4xl sm:text-6xl font-normal tracking-[0.2em] text-[#8F1D38] font-marcellus drop-shadow-sm">
             SPECTRA
           </h1>
           <div className="flex items-center justify-center gap-2 pt-0.5">
-            <span className="text-xs uppercase tracking-[0.2em] text-rose-300/80 font-medium">by</span>
-            <span className="text-xs sm:text-sm font-semibold tracking-[0.18em] text-rose-200 px-3 py-0.5 rounded-full bg-rose-950/80 border border-rose-800/60">
+            <span className="text-xs uppercase tracking-[0.2em] text-rose-600/80 font-medium">by</span>
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.18em] text-rose-800 px-3 py-0.5 rounded-full bg-rose-50 border border-rose-200 shadow-sm">
               KRISH CS
             </span>
           </div>
-          <p className="text-xs sm:text-sm font-normal text-rose-200/90 tracking-wider max-w-md mx-auto pt-1 font-marcellus">
+          <p className="text-xs sm:text-sm font-normal text-slate-600 tracking-wider max-w-md mx-auto pt-1 font-marcellus">
             Scheduling &amp; Period Engagement with Classroom Tracking &amp; Roster Allocation
           </p>
         </div>
 
         {/* Minimalist Progress Loader */}
         <div className="w-full max-w-xs pt-4 space-y-3">
-          <p className="text-xs font-medium text-rose-300/80 tracking-wide font-marcellus">
+          <p className="text-xs font-semibold text-rose-700 tracking-wide font-marcellus">
             Initializing Schedule &amp; Period Engine…
           </p>
           <div className="flex items-center justify-center gap-2.5 py-2">
             {[0, 1, 2, 3, 4].map((i) => (
               <span
                 key={i}
-                className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.35)]"
                 style={{ animationDelay: `${i * 180}ms`, animationDuration: '1.2s' }}
               />
             ))}
@@ -80,7 +80,7 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
       </div>
 
       {/* Bottom Subtitle */}
-      <div className="relative z-10 text-center text-[11px] text-rose-400/60 tracking-wider font-marcellus">
+      <div className="relative z-10 text-center text-[11px] text-rose-700/70 tracking-wider font-marcellus">
         <span>Faculty Period &amp; Schedule Monitoring System</span>
       </div>
     </div>

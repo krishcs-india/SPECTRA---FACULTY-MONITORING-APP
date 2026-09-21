@@ -246,29 +246,29 @@ export const excelService = {
   async downloadUserTemplate(): Promise<string> {
     const templateData = [
       {
-        "Full Name": "Dr. Kalyani",
-        "College Email": "kalyani.cse@krce.ac.in",
+        "Full Name": "Dr. Spectra",
+        "College Email": "spectra.cse@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Professor & Head of Department",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "HOD",
       },
       {
-        "Full Name": "Prof. Kalyani R",
-        "College Email": "kalyani.r@krce.ac.in",
+        "Full Name": "Prof. Spectra Priya",
+        "College Email": "spectra.priya@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Assistant HOD",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "AHOD",
       },
       {
-        "Full Name": "Prof. Kalyani Sundaram",
-        "College Email": "kalyani.s@krce.ac.in",
+        "Full Name": "Prof. Spectra Arun",
+        "College Email": "spectra.arun@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Associate Professor",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "FACULTY",
       },
       {
-        "Full Name": "Prof. Kalyani Devi",
-        "College Email": "kalyani.devi@krce.ac.in",
+        "Full Name": "Prof. Spectra Deepa",
+        "College Email": "spectra.deepa@krce.ac.in",
         "Department Code": "CSE",
         "Designation": "Assistant Professor",
         "Role (ADMIN/HOD/AHOD/FACULTY)": "FACULTY",
@@ -279,7 +279,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users_Template");
-    return await saveWorkbook(wb, "KRCE_Users_Import_Template.xlsx", "User import template excel");
+    return await saveWorkbook(wb, "SPECTRA_Users_Import_Template.xlsx", "User import template excel");
   },
 
   /**
@@ -309,7 +309,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Subjects_Template");
-    return await saveWorkbook(wb, "KRCE_Subjects_Import_Template.xlsx", "Subject import template excel");
+    return await saveWorkbook(wb, "SPECTRA_Subjects_Import_Template.xlsx", "Subject import template excel");
   },
 
   /**
@@ -396,14 +396,14 @@ export const excelService = {
     const safeDeptCode = (departmentCode || 'CSE').trim().toUpperCase().replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
     const templateData = [
       {
-        "Faculty Name": "Dr. S. Karthikeyan",
-        "College Email": `karthik.${safeDeptCode.toLowerCase()}@krce.ac.in`,
+        "Faculty Name": "Dr. Spectra Karthik",
+        "College Email": `spectra.karthik@krce.ac.in`,
         "Position / Designation": "Associate Professor",
         "Role Assignment (Faculty / Assistant HOD)": "Faculty"
       },
       {
-        "Faculty Name": "Mrs. Priya R.",
-        "College Email": `priya.${safeDeptCode.toLowerCase()}@krce.ac.in`,
+        "Faculty Name": "Prof. Spectra Priya",
+        "College Email": `spectra.priya@krce.ac.in`,
         "Position / Designation": "Assistant HOD",
         "Role Assignment (Faculty / Assistant HOD)": "Assistant HOD"
       }
@@ -413,7 +413,7 @@ export const excelService = {
     formatWorksheet(ws, templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Department_Staff_Template");
-    return await saveWorkbook(wb, `KRCE_${safeDeptCode}_Staff_Template.xlsx`, "Department staff template excel");
+    return await saveWorkbook(wb, `SPECTRA_${safeDeptCode}_Staff_Template.xlsx`, "Department staff template excel");
   },
 
   /**
@@ -592,13 +592,13 @@ export const excelService = {
     formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Faculty_Availability");
-    return await saveWorkbook(wb, `Kalyani_Availability_${safeDept}_${reportDate}.xlsx`, "Faculty daily submission excel");
+    return await saveWorkbook(wb, `SPECTRA_Availability_${safeDept}_${reportDate}.xlsx`, "Faculty daily submission excel");
   },
 
   /**
    * Exports User / Staff Directory to Excel
    */
-  async exportUserDirectory(userList: KalyaniUser[], fileNamePrefix = 'Kalyani_Staff_Directory'): Promise<string> {
+  async exportUserDirectory(userList: KalyaniUser[], fileNamePrefix = 'SPECTRA_Staff_Directory'): Promise<string> {
     if (!userList || userList.length === 0) {
       return '⚠️ No staff records available to export.';
     }

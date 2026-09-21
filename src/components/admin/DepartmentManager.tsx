@@ -196,7 +196,7 @@ export const DepartmentManager: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-xs text-slate-400">
-          Institutional departments configured in the Kalyani system.
+          Institutional departments configured in the SPECTRA system.
         </p>
 
         <KalyaniButton

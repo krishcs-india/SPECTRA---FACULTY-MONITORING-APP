@@ -128,7 +128,7 @@ export const LoginPage: React.FC = () => {
                 <div className="relative flex items-center group">
                   <input
                     type="text"
-                    placeholder="e.g. kalyani or kalyani.cse"
+                    placeholder="e.g. spectra or spectra.cse"
                     value={inputEmail}
                     onChange={(e) => {
                       let val = e.target.value.trim().toLowerCase();
