@@ -74,13 +74,39 @@ def generate_icons():
         print(f"[OK] Generated mipmap icons for {folder} ({size}x{size})")
 
     # 2. Generate explicit notification drawables in res/drawable-*
+    # Android 14/15/16 notification requirements:
+    # - smallIcon MUST be a monochrome white silhouette with 100% transparent alpha channel.
+    # - largeIcon uses full-color ic_launcher.png
+    def make_notification_silhouette(target_size):
+        scale = 4
+        s = target_size * scale
+        canvas = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(canvas)
+        try:
+            from PIL import ImageFont
+            font = ImageFont.truetype("arialbd.ttf", int(s * 0.76))
+        except Exception:
+            from PIL import ImageFont
+            font = ImageFont.load_default()
+        bbox = draw.textbbox((0, 0), "S", font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        tx = (s - tw) // 2 - bbox[0]
+        ty = (s - th) // 2 - bbox[1]
+        draw.text((tx, ty), "S", fill=(255, 255, 255, 255), font=font)
+        return canvas.resize((target_size, target_size), Image.Resampling.LANCZOS)
+
     for folder, size in DRAWABLE_ICON_CONFIGS:
         target_dir = os.path.join(RES_DIR, folder)
         os.makedirs(target_dir, exist_ok=True)
 
-        resized = img.resize((size, size), Image.Resampling.LANCZOS)
-        resized.save(os.path.join(target_dir, "ic_spectra_notification.png"), format="PNG", optimize=True, compress_level=9)
-        resized.save(os.path.join(target_dir, "ic_launcher.png"), format="PNG", optimize=True, compress_level=9)
+        # 2a. Compliant monochrome notification icon
+        notif_img = make_notification_silhouette(size)
+        notif_img.save(os.path.join(target_dir, "ic_spectra_notification.png"), format="PNG", optimize=True, compress_level=9)
+
+        # 2b. Full-color launcher icon for largeIcon & legacy views
+        resized_launcher = img.resize((size, size), Image.Resampling.LANCZOS)
+        resized_launcher.save(os.path.join(target_dir, "ic_launcher.png"), format="PNG", optimize=True, compress_level=9)
         print(f"[OK] Generated notification drawables for {folder} ({size}x{size})")
 
     # 3. Generate splash images in drawable directories with high compression

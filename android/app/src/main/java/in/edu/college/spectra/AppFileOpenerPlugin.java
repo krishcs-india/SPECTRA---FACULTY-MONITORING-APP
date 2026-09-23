@@ -1,4 +1,4 @@
-package in.edu.college.kalyani;
+package in.edu.college.spectra;
 
 import android.content.Intent;
 import android.net.Uri;

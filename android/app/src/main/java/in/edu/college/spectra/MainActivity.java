@@ -1,4 +1,4 @@
-package in.edu.college.kalyani;
+package in.edu.college.spectra;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

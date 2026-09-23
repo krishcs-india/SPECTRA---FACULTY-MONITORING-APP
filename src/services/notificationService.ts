@@ -26,10 +26,10 @@ class NativeNotificationBridge {
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       try {
-        await LocalNotifications.deleteChannel({ id: 'default' });
+        await LocalNotifications.deleteChannel({ id: 'spectra_alerts_v2' });
       } catch {}
       await LocalNotifications.createChannel({
-        id: 'spectra_alerts_v2',
+        id: 'spectra_alerts_v3',
         name: 'SPECTRA Institutional Alerts',
         description: 'Live faculty period schedules, reminders and institutional updates',
         importance: 5,
@@ -70,8 +70,9 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA',
-          channelId: 'spectra_alerts_v2',
+          channelId: 'spectra_alerts_v3',
           smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
         }]
       });
@@ -137,9 +138,10 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA Morning Update',
-          channelId: 'spectra_alerts_v2',
+          channelId: 'spectra_alerts_v3',
           schedule: { on: { hour, minute }, allowWhileIdle: true },
           smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
         }]
       });
@@ -232,8 +234,9 @@ class NativeNotificationBridge {
           body: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           largeBody: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           summaryText: 'SPECTRA Export',
-          channelId: 'spectra_alerts_v2',
+          channelId: 'spectra_alerts_v3',
           smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
         }]
       });
