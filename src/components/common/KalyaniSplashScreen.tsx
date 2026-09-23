@@ -27,9 +27,9 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[450px] bg-rose-200/50 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Top Edition Badge */}
-      <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 border border-rose-200/80 text-rose-800 text-xs tracking-widest uppercase font-semibold animate-in fade-in slide-in-from-top duration-700 shadow-sm">
+      <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 border border-rose-200/80 text-rose-800 text-xs tracking-[0.16em] uppercase font-marcellus animate-in fade-in slide-in-from-top duration-700 shadow-sm">
         <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-        <span>Higher Education Institutional Edition</span>
+        <span className="font-marcellus font-medium">Higher Education Institutional Edition</span>
       </div>
 
       {/* Center Content */}
@@ -52,8 +52,8 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
             SPECTRA
           </h1>
           <div className="flex items-center justify-center gap-2 pt-0.5">
-            <span className="text-xs uppercase tracking-[0.2em] text-rose-600/80 font-medium">by</span>
-            <span className="text-xs sm:text-sm font-semibold tracking-[0.18em] text-rose-800 px-3 py-0.5 rounded-full bg-rose-50 border border-rose-200 shadow-sm">
+            <span className="text-xs uppercase tracking-[0.2em] text-rose-600/80 font-medium font-marcellus">by</span>
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.18em] text-rose-800 px-3 py-0.5 rounded-full bg-rose-50 border border-rose-200 shadow-sm font-marcellus">
               KRISH CS
             </span>
           </div>
