@@ -70,29 +70,48 @@ class NativeNotificationBridge {
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (!isNative()) return;
     try {
-      // v6: force one re-prompt after reliability fix; then throttle to 24h
-      const PROMPT_KEY = 'kalyani_bg_prompted_v6';
-      const LAST_KEY = 'kalyani_bg_prompted_v6_time';
+      // v8: Prioritize Battery Optimization Exemption first — it shows the native
+      // in-app dialog "[Deny] [Allow]" and prevents Doze/OEM background killing.
+      // Exact alarms are checked once battery is handled.
+      const PROMPT_KEY = 'kalyani_bg_prompted_v8';
+      const EXACT_KEY = 'kalyani_bg_exact_v8_time';
+      const BATTERY_KEY = 'kalyani_bg_battery_v8_time';
+      const DAY = 24 * 60 * 60 * 1000;
       const status = await PeriodBackgroundSync.getOptimizationStatus();
-      const allGranted = status.exactAlarmAllowed && status.batteryOptimizationIgnored;
-      if (allGranted) {
+
+      // If both are already active (ON), intelligently return without any popups
+      if (status.exactAlarmAllowed && status.batteryOptimizationIgnored) {
         localStorage.setItem(PROMPT_KEY, 'true');
         return;
       }
-      const last = Number(localStorage.getItem(LAST_KEY) || '0');
-      if (Date.now() - last < 24 * 60 * 60 * 1000 && localStorage.getItem(PROMPT_KEY) === 'true') {
-        return;
-      }
-      if (!status.exactAlarmAllowed) {
-        await PeriodBackgroundSync.requestExactAlarmPermission();
-      }
+
+      // Priority 1: Battery Optimization Exemption ("Allow app to run in background")
       if (!status.batteryOptimizationIgnored) {
-        await PeriodBackgroundSync.requestBatteryOptimizationExemption();
+        const last = Number(localStorage.getItem(BATTERY_KEY) || '0');
+        if (Date.now() - last >= DAY) {
+          localStorage.setItem(BATTERY_KEY, String(Date.now()));
+          await PeriodBackgroundSync.requestBatteryOptimizationExemption();
+          return;
+        }
       }
-      localStorage.setItem(PROMPT_KEY, 'true');
-      localStorage.setItem(LAST_KEY, String(Date.now()));
-      // Clear legacy gate so old installs re-prompt once
+
+      // Priority 2: Exact Alarms (Android 12+)
+      // Only prompt if battery optimization is already granted (or exempt)
+      if (!status.exactAlarmAllowed) {
+        const last = Number(localStorage.getItem(EXACT_KEY) || '0');
+        if (Date.now() - last >= DAY) {
+          localStorage.setItem(EXACT_KEY, String(Date.now()));
+          await PeriodBackgroundSync.requestExactAlarmPermission();
+        }
+      }
+
+      // Clear legacy gates so older keys are cleanly replaced
       localStorage.removeItem('kalyani_bg_prompted_v5');
+      localStorage.removeItem('kalyani_bg_prompted_v6');
+      localStorage.removeItem('kalyani_bg_prompted_v6_time');
+      localStorage.removeItem('kalyani_bg_prompted_v7');
+      localStorage.removeItem('kalyani_bg_exact_v7_time');
+      localStorage.removeItem('kalyani_bg_battery_v7_time');
     } catch (err) {
       console.warn('Background permissions prompt notice:', err);
     }
@@ -347,6 +366,12 @@ class NativeNotificationBridge {
       localStorage.removeItem('kalyani_bg_prompted_v5');
       localStorage.removeItem('kalyani_bg_prompted_v6');
       localStorage.removeItem('kalyani_bg_prompted_v6_time');
+      localStorage.removeItem('kalyani_bg_prompted_v7');
+      localStorage.removeItem('kalyani_bg_exact_v7_time');
+      localStorage.removeItem('kalyani_bg_battery_v7_time');
+      localStorage.removeItem('kalyani_bg_prompted_v8');
+      localStorage.removeItem('kalyani_bg_exact_v8_time');
+      localStorage.removeItem('kalyani_bg_battery_v8_time');
     } catch {}
   }
 

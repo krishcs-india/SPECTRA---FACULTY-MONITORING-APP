@@ -43,9 +43,11 @@ public class PeriodBackgroundSyncManager {
     public static final String KEY_KNOWN_PERIOD_COUNT = "known_period_count";
     public static final String KEY_KNOWN_PERIOD_SIGNATURE = "known_period_signature";
     public static final String KEY_LAST_CHECK_TIME = "last_check_time";
-    public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt_v5";
-    public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm_v5";
+    public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt_v8";
+    public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm_v8";
     public static final String KEY_LAST_PROMPT_TIME = "last_permission_prompt_time_v6";
+    public static final String KEY_LAST_EXACT_PROMPT_TIME = "last_exact_alarm_prompt_time_v8";
+    public static final String KEY_LAST_BATTERY_PROMPT_TIME = "last_battery_prompt_time_v8";
     public static final String KEY_LAST_NOTIFIED_SIG = "last_notified_signature_v6";
     public static final String KEY_NOTIF_COUNTER = "notif_id_counter_v6";
 
@@ -509,16 +511,18 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestExactAlarmPermission(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (canScheduleExactAlarms(context)) {
+                Log.d(TAG, "Exact alarm permission already granted.");
+                return;
+            }
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            // Allow re-prompt once per 24h if still denied (old once-forever gate
-            // left alarms on inexact fallback permanently after a single denial).
-            long last = prefs.getLong(KEY_LAST_PROMPT_TIME, 0);
+            long last = prefs.getLong(KEY_LAST_EXACT_PROMPT_TIME, 0);
             boolean prompted = prefs.getBoolean(KEY_PROMPTED_EXACT_ALARM, false);
             if (prompted && System.currentTimeMillis() - last < 24L * 60L * 60L * 1000L) {
                 return;
             }
             prefs.edit().putBoolean(KEY_PROMPTED_EXACT_ALARM, true)
-                .putLong(KEY_LAST_PROMPT_TIME, System.currentTimeMillis()).apply();
+                .putLong(KEY_LAST_EXACT_PROMPT_TIME, System.currentTimeMillis()).apply();
 
             try {
                 Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
@@ -533,18 +537,20 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestBatteryOptimizationExemption(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // If already exempt, nothing to do (but keep heartbeat armed by caller).
-            if (isBatteryOptimizationIgnored(context)) return;
+            // Intelligently check if already exempt (ON) — if so, do not prompt!
+            if (isBatteryOptimizationIgnored(context)) {
+                Log.d(TAG, "Battery optimization is already ignored (ON). No popup needed.");
+                return;
+            }
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            long last = prefs.getLong(KEY_LAST_PROMPT_TIME, 0);
+            long last = prefs.getLong(KEY_LAST_BATTERY_PROMPT_TIME, 0);
             boolean prompted = prefs.getBoolean(KEY_PROMPTED_BATTERY_OPT, false);
-            // Re-prompt at most once per 24h until granted — Vivo/Samsung kill
-            // background sync otherwise and only the first change ever arrives.
-            if (prompted && System.currentTimeMillis() - last < 24L * 60L * 60L * 1000L) {
+            // Re-prompt at most once per 12h until granted
+            if (prompted && System.currentTimeMillis() - last < 12L * 60L * 60L * 1000L) {
                 return;
             }
             prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true)
-                .putLong(KEY_LAST_PROMPT_TIME, System.currentTimeMillis()).apply();
+                .putLong(KEY_LAST_BATTERY_PROMPT_TIME, System.currentTimeMillis()).apply();
 
             String manufacturer = Build.MANUFACTURER.toLowerCase();
             boolean launched = false;

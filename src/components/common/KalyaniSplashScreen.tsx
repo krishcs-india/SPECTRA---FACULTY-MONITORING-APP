@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
+import { notificationService } from '../../services/notificationService';
 
 interface KalyaniSplashScreenProps {
   onComplete: () => void;
@@ -7,14 +8,55 @@ interface KalyaniSplashScreenProps {
 
 export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComplete }) => {
   const [isExiting, setIsExiting] = useState(false);
+  const completedRef = useRef(false);
 
   useEffect(() => {
-    // 3.5s smooth duration for refined institutional loading
-    const timer = setTimeout(() => {
+    let isMounted = true;
+    const startTime = Date.now();
+    const MIN_SPLASH_TIME = 3200; // Institutional branding duration
+
+    const runStartupSequence = async () => {
+      // 1. Brief pause so the entrance animation completes and logo is fully visible
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      if (!isMounted) return;
+
+      // 2. Request notification permission while the splash screen is actively presented.
+      // This ensures the system permission dialog sits directly on top of the SPECTRA branding — zero white screen!
+      try {
+        await Promise.race([
+          notificationService.requestPermissions(),
+          new Promise((resolve) => setTimeout(resolve, 6000)) // Safety timeout
+        ]);
+      } catch (err) {
+        console.warn('Splash notification permission request notice:', err);
+      }
+
+      if (!isMounted) return;
+
+      // 3. Ensure the minimum splash duration has elapsed for a luxurious feel
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_SPLASH_TIME - elapsed);
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+
+      if (!isMounted || completedRef.current) return;
+      completedRef.current = true;
+
+      // 4. Smooth exit animation
       setIsExiting(true);
-      setTimeout(() => { onComplete(); }, 600);
-    }, 3500);
-    return () => clearTimeout(timer);
+      setTimeout(() => {
+        if (isMounted) {
+          onComplete();
+        }
+      }, 600);
+    };
+
+    runStartupSequence();
+
+    return () => {
+      isMounted = false;
+    };
   }, [onComplete]);
 
   return (

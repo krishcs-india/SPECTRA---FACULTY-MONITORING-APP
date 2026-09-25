@@ -36,6 +36,18 @@ export const App: React.FC = () => {
     // Opens downloaded files when their "download complete" notification is tapped
     notificationService.native.handleNotificationTaps();
 
+    // Returning from Settings (exact-alarm / battery pages leave the app):
+    // re-run the background permission check so the next pending prompt
+    // appears immediately instead of waiting for a cold start.
+    const handleVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        try {
+          notificationService.checkAndPromptBackgroundPermissions().catch(() => {});
+        } catch {}
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisible);
+
     // Prevent image dragging across the entire application
     const preventDrag = (e: DragEvent) => {
       if (e.target instanceof HTMLImageElement || (e.target as HTMLElement)?.tagName === 'IMG') {
@@ -43,7 +55,10 @@ export const App: React.FC = () => {
       }
     };
     window.addEventListener('dragstart', preventDrag);
-    return () => window.removeEventListener('dragstart', preventDrag);
+    return () => {
+      window.removeEventListener('dragstart', preventDrag);
+      document.removeEventListener('visibilitychange', handleVisible);
+    };
   }, [initStore, initAuth]);
 
   // Role-customized notifications: schedules morning reminder and delivers
@@ -84,9 +99,8 @@ export const App: React.FC = () => {
   const handleSplashComplete = async () => {
     setShowSplash(false);
 
-    // Request notification and system permissions right after the splash screen finishes
+    // Prompt background usage permission if not yet granted
     try {
-      await notificationService.requestPermissions();
       await notificationService.checkAndPromptBackgroundPermissions();
       await notificationService.native.clearPeriodNotification();
 
