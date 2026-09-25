@@ -90,14 +90,18 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
     }
 
     const cleanCode = subjectCode.trim().toUpperCase();
+    const cleanName = subjectName.trim().toLowerCase();
 
     if (editingSubject) {
-      if (cleanCode) {
+      if (cleanCode && cleanName) {
         const duplicate = subjects.find(
-          (s) => (s.subjectCode || '').toUpperCase() === cleanCode && s.id !== editingSubject.id
+          (s) =>
+            (s.subjectCode || '').trim().toUpperCase() === cleanCode &&
+            (s.subjectName || '').trim().toLowerCase() === cleanName &&
+            s.id !== editingSubject.id
         );
         if (duplicate) {
-          setFormError(`Subject Code ${cleanCode} already exists in this department.`);
+          setFormError(`Subject with Code "${cleanCode}" and Name "${subjectName.trim()}" already exists in this department.`);
           return;
         }
       }
@@ -108,9 +112,17 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       setEditingSubject(null);
       setNotificationMsg(`Subject ${cleanCode || subjectName.trim()} updated successfully.`);
     } else {
-      // Check duplicate code only if a code was provided
-      if (cleanCode && subjects.some((s) => (s.subjectCode || '').toUpperCase() === cleanCode)) {
-        setFormError(`Subject Code ${cleanCode} already exists in this department.`);
+      // Check duplicate only if both code and name match an existing subject
+      if (
+        cleanCode &&
+        cleanName &&
+        subjects.some(
+          (s) =>
+            (s.subjectCode || '').trim().toUpperCase() === cleanCode &&
+            (s.subjectName || '').trim().toLowerCase() === cleanName
+        )
+      ) {
+        setFormError(`Subject with Code "${cleanCode}" and Name "${subjectName.trim()}" already exists in this department.`);
         return;
       }
 

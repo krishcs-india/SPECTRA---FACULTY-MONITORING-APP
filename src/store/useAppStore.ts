@@ -694,15 +694,17 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   addSubject: (subjectData) => {
     const cleanDept = normalizeDepartmentId(subjectData.departmentId);
     const cleanCode = (subjectData.subjectCode || '').trim().toUpperCase();
+    const cleanName = (subjectData.subjectName || '').trim();
     const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
+    const safeNameStr = cleanName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().slice(0, 30);
     const id = safeCodeStr
-      ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}`
-      : `sub_${cleanDept.toLowerCase()}_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+      ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}_${safeNameStr}`
+      : `sub_${cleanDept.toLowerCase()}_${safeNameStr || Date.now().toString(36)}`;
     const now = new Date().toISOString();
     const newSubject: Subject = {
       ...subjectData,
       subjectCode: cleanCode,
-      subjectName: subjectData.subjectName.trim(),
+      subjectName: cleanName,
       departmentId: cleanDept,
       id,
       active: subjectData.active !== false,
@@ -795,14 +797,16 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const now = new Date().toISOString();
     const newSubjects: Subject[] = items.map((it) => {
       const cleanCode = (it.subjectCode || '').trim().toUpperCase();
+      const cleanName = (it.subjectName || '').trim();
       const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
+      const safeNameStr = cleanName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().slice(0, 30);
       const id = safeCodeStr
-        ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}`
-        : `sub_${cleanDept.toLowerCase()}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 4)}`;
+        ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}_${safeNameStr}`
+        : `sub_${cleanDept.toLowerCase()}_${safeNameStr || Date.now().toString(36)}`;
       return {
         ...it,
         subjectCode: cleanCode,
-        subjectName: it.subjectName.trim(),
+        subjectName: cleanName,
         id,
         departmentId: cleanDept,
         active: true,

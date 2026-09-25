@@ -29,7 +29,11 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
 
-  const existingCodes = new Set(existingSubjects.map((s) => (s.subjectCode || '').toUpperCase()).filter(Boolean));
+  const existingKeys = new Set(
+    existingSubjects
+      .map((s) => `${(s.subjectCode || '').trim().toUpperCase()}:::${(s.subjectName || '').trim().toLowerCase()}`)
+      .filter(Boolean)
+  );
 
   // Auto-dismiss download confirmation after 5 seconds
   React.useEffect(() => {
@@ -55,7 +59,7 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
     setErrorMsg(null);
 
     try {
-      const res = await excelService.parseSubjectsFile(file, existingCodes);
+      const res = await excelService.parseSubjectsFile(file, existingKeys);
       setParseResult(res);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to parse Excel file. Please ensure it is a valid .xlsx or .xls file.');

@@ -488,11 +488,12 @@ export const excelService = {
   },
 
   /**
-   * Parses an uploaded Excel/CSV file containing Subjects data
+   * Parses an uploaded Excel/CSV file containing Subjects data.
+   * A subject is only considered a duplicate if BOTH its subjectCode AND subjectName match an existing subject.
    */
   async parseSubjectsFile(
     file: File,
-    existingCodes: Set<string>
+    existingSubjectKeys: Set<string>
   ): Promise<ImportResult<SubjectImportRow>> {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -502,7 +503,7 @@ export const excelService = {
 
     const validRecords: SubjectImportRow[] = [];
     const errors: { row: number; data: any; reason: string }[] = [];
-    const seenFileCodes = new Set<string>();
+    const seenFileKeys = new Set<string>();
     let duplicateCount = 0;
 
     rawRows.forEach((row, idx) => {
@@ -515,15 +516,22 @@ export const excelService = {
         return;
       }
 
-      if (code && (existingCodes.has(code) || seenFileCodes.has(code))) {
+      // Composite key: both code and name must match for it to be treated as a duplicate
+      const compositeKey = `${code}:::${name.toLowerCase()}`;
+
+      if (existingSubjectKeys.has(compositeKey) || seenFileKeys.has(compositeKey)) {
         duplicateCount++;
-        errors.push({ row: rowNumber, data: row, reason: `Subject Code already exists (${code})` });
+        errors.push({
+          row: rowNumber,
+          data: row,
+          reason: code
+            ? `Subject with Code (${code}) and Name "${name}" already exists`
+            : `Subject "${name}" already exists`
+        });
         return;
       }
 
-      if (code) {
-        seenFileCodes.add(code);
-      }
+      seenFileKeys.add(compositeKey);
 
       validRecords.push({
         subjectCode: code,
