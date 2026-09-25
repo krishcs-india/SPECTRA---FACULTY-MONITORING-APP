@@ -109,7 +109,13 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
         <>
           {parseResult ? (
             <div className="w-full flex items-center justify-between">
-              <KalyaniButton variant="ghost" size="sm" onClick={handleReset}>
+              <KalyaniButton
+                variant="outline-gold"
+                size="sm"
+                leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
+                onClick={handleReset}
+                className="bg-white dark:bg-[#251026] shadow-xs hover:border-rose-400 font-semibold"
+              >
                 Upload Different File
               </KalyaniButton>
               <div className="flex items-center gap-2">
@@ -215,7 +221,13 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">{parseResult.totalProcessed} total rows found in file</p>
                 </div>
               </div>
-              <KalyaniButton variant="ghost" size="sm" onClick={handleReset}>
+              <KalyaniButton
+                variant="outline-gold"
+                size="sm"
+                leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
+                onClick={handleReset}
+                className="bg-white dark:bg-[#251026] shadow-xs hover:border-rose-400 font-semibold shrink-0"
+              >
                 Upload Different File
               </KalyaniButton>
             </div>
@@ -248,9 +260,6 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
                 <div className="px-4 py-2.5 bg-gradient-to-r from-rose-50 to-pink-50/60 dark:from-[#251026] dark:to-[#1E0D22] border-b border-rose-200/80 dark:border-rose-900/50 flex items-center justify-between">
                   <span className="text-xs font-bold text-rose-950 dark:text-rose-100 uppercase tracking-wider font-marcellus">
                     Preview of Valid Staff Records ({parseResult.validRecords.length})
-                  </span>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    Scroll down to review
                   </span>
                 </div>
                 <div className="max-h-52 overflow-y-auto divide-y divide-rose-100 dark:divide-rose-950/40">
