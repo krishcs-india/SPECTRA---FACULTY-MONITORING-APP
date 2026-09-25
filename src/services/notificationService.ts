@@ -16,6 +16,7 @@ const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 interface PeriodBackgroundSyncPluginType {
   syncCurrentState(options: { departmentId: string; periodCount: number; signature?: string }): Promise<{ success: boolean }>;
   checkNow(): Promise<{ success: boolean }>;
+  showNotification(options: { title: string; body: string }): Promise<{ success: boolean }>;
   clearNotification(): Promise<{ success: boolean }>;
   getOptimizationStatus(): Promise<{ exactAlarmAllowed: boolean; batteryOptimizationIgnored: boolean; alreadyPrompted?: boolean }>;
   requestExactAlarmPermission(): Promise<{ requested: boolean }>;
@@ -115,9 +116,11 @@ class NativeNotificationBridge {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       try {
         await LocalNotifications.deleteChannel({ id: 'spectra_alerts_v2' });
+        await LocalNotifications.deleteChannel({ id: 'spectra_alerts_v3' });
+        await LocalNotifications.deleteChannel({ id: 'spectra_alerts_v4' });
       } catch {}
       await LocalNotifications.createChannel({
-        id: 'spectra_alerts_v3',
+        id: 'spectra_alerts_v5',
         name: 'SPECTRA Institutional Alerts',
         description: 'Live faculty period schedules, reminders and institutional updates',
         importance: 5,
@@ -158,7 +161,7 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA',
-          channelId: 'spectra_alerts_v3',
+          channelId: 'spectra_alerts_v5',
           smallIcon: 'ic_spectra_notification',
           largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
@@ -171,9 +174,19 @@ class NativeNotificationBridge {
 
   /**
    * Dispatches an instant heads-up period notification with fixed ID 88002.
-   * Overwrites any existing period update notification to prevent duplicate stacked cards.
+   * Directly uses native PeriodBackgroundSyncPlugin to ensure high-priority sound and banner,
+   * with fallback to Capacitor LocalNotifications.
    */
   async notifyPeriodUpdate(title: string, body: string): Promise<void> {
+    if (isNative()) {
+      try {
+        await PeriodBackgroundSync.showNotification({ title, body });
+        return;
+      } catch (err) {
+        console.warn('Direct native notification dispatch fallback notice:', err);
+      }
+    }
+
     if (!(await this.requestPermission())) return;
     await this.ensureChannel();
     try {
@@ -185,7 +198,7 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA Period Update',
-          channelId: 'spectra_alerts_v3',
+          channelId: 'spectra_alerts_v5',
           smallIcon: 'ic_spectra_notification',
           largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
@@ -499,9 +512,7 @@ class KalyaniNotificationManager {
   }
 
   async init(): Promise<void> {
-    if (isNative()) {
-      await this.native.clearPeriodNotification();
-    }
+    // Keep notification cards persistent until user explicitly interacts or swipes
   }
 
   async notifySchedulePending(facultyName: string, remainingTime?: string): Promise<void> {

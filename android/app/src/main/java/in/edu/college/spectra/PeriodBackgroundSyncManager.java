@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
@@ -43,7 +45,7 @@ public class PeriodBackgroundSyncManager {
     public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt";
     public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm";
 
-    public static final String CHANNEL_ID = "spectra_alerts_v3";
+    public static final String CHANNEL_ID = "spectra_alerts_v5";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
     public static final int ALARM_REQUEST_CODE = 88001;
     public static final int PERIOD_NOTIFICATION_ID = 88002; // Single fixed ID prevents stacked duplicate notifications
@@ -297,7 +299,7 @@ public class PeriodBackgroundSyncManager {
             Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount
                     + " active periods (known was " + knownCount + ", inForeground=" + appInForeground + ")");
 
-            if (knownCount != -1 && knownCount != 0) {
+            if (knownCount != -1) {
                 boolean countChanged = (activeCount != knownCount);
                 boolean signatureChanged = (!knownSignature.isEmpty() && !knownSignature.equals(currentSignature));
 
@@ -341,15 +343,6 @@ public class PeriodBackgroundSyncManager {
         try {
             ensureNotificationChannel(context);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (androidx.core.content.ContextCompat.checkSelfPermission(
-                        context, android.Manifest.permission.POST_NOTIFICATIONS)
-                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    Log.w(TAG, "POST_NOTIFICATIONS permission not granted; cannot display notification.");
-                    return;
-                }
-            }
-
             Intent openAppIntent = new Intent(context, MainActivity.class);
             openAppIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             PendingIntent contentIntent = PendingIntent.getActivity(
@@ -359,6 +352,8 @@ public class PeriodBackgroundSyncManager {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
+            Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_spectra_notification)
                 .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
@@ -367,9 +362,11 @@ public class PeriodBackgroundSyncManager {
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                 .setSubText("SPECTRA Institutional Alert")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_EVENT)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setSound(defaultSoundUri)
+                .setVibrate(new long[]{0, 300, 200, 300})
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setAutoCancel(true)
                 .setContentIntent(contentIntent);
@@ -404,6 +401,13 @@ public class PeriodBackgroundSyncManager {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm == null) return;
+            try {
+                nm.deleteNotificationChannel("spectra_period_updates");
+                nm.deleteNotificationChannel("spectra_alerts_v2");
+                nm.deleteNotificationChannel("spectra_alerts_v3");
+                nm.deleteNotificationChannel("spectra_alerts_v4");
+            } catch (Exception ignored) {}
+
             NotificationChannel channel = nm.getNotificationChannel(CHANNEL_ID);
             if (channel == null) {
                 channel = new NotificationChannel(
@@ -415,8 +419,16 @@ public class PeriodBackgroundSyncManager {
                 channel.enableLights(true);
                 channel.setLightColor(0xFFF43F5E);
                 channel.enableVibration(true);
-                channel.setVibrationPattern(new long[]{0, 250, 250, 250});
+                channel.setVibrationPattern(new long[]{0, 300, 200, 300});
                 channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+
+                Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build();
+                channel.setSound(soundUri, audioAttributes);
+
                 nm.createNotificationChannel(channel);
             }
         }

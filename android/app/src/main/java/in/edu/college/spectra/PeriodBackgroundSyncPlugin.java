@@ -39,6 +39,16 @@ public class PeriodBackgroundSyncPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void showNotification(PluginCall call) {
+        String title = call.getString("title", "SPECTRA — Period Schedule Updated \uD83D\uDD14");
+        String body = call.getString("body", "The HOD has updated the periods schedule. Please review and update your schedule again.");
+        PeriodBackgroundSyncManager.showPeriodUpdatedNotification(getContext().getApplicationContext(), title, body);
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void clearNotification(PluginCall call) {
         PeriodBackgroundSyncManager.clearPeriodNotification(getContext().getApplicationContext());
         JSObject ret = new JSObject();
