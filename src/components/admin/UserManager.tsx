@@ -367,13 +367,16 @@ export const UserManager: React.FC = () => {
             leftIcon={<Download className="w-4 h-4" />}
             onClick={async () => {
               try {
-                setNotificationMsg(await excelService.downloadUserTemplate());
+                const targetUsers = filteredUsers.length > 0 ? filteredUsers : (users || []).filter((u) => u.role !== 'ADMIN');
+                const deptLabel = deptFilter !== 'ALL' ? deptFilter : 'All_Depts';
+                const msg = await excelService.exportUserDirectory(targetUsers, `SPECTRA_Users_${deptLabel}`);
+                setNotificationMsg(msg);
               } catch (e: any) {
-                setNotificationMsg(`Template download failed: ${e?.message || 'unknown error'}`);
+                setNotificationMsg(`Export failed: ${e?.message || 'unknown error'}`);
               }
             }}
           >
-            Template
+            Export XLS
           </KalyaniButton>
 
           <KalyaniButton

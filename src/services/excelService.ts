@@ -134,20 +134,23 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
 
   const headers = Object.keys(data[0]);
 
-  // Calculate generous column widths based on maximum content length
+  // Calculate generous column widths based on maximum content length and bold 12pt header scaling
   const colWidths = headers.map(header => {
-    let maxLen = header.length;
+    // Bold 12pt header text renders ~35% wider in Microsoft Excel than default 11pt Calibri
+    const headerVisualLen = Math.ceil(header.length * 1.35);
+    let maxContentLen = 0;
     for (const row of data) {
       const val = row[header];
       if (val !== undefined && val !== null) {
         const str = String(val);
-        if (str.length > maxLen) {
-          maxLen = str.length;
+        if (str.length > maxContentLen) {
+          maxContentLen = str.length;
         }
       }
     }
-    // Generous breathing room: +4 chars padding, minimum width 16, max 55
-    return { wch: Math.min(Math.max(maxLen + 4, 16), 55) };
+    // Generous breathing room: extra padding (+8 chars), minimum width 22, max 70
+    const computedWidth = Math.max(headerVisualLen, maxContentLen) + 8;
+    return { wch: Math.min(Math.max(computedWidth, 22), 70) };
   });
 
   ws['!cols'] = colWidths;
@@ -604,7 +607,7 @@ export const excelService = {
   /**
    * Exports User / Staff Directory to Excel
    */
-  async exportUserDirectory(userList: KalyaniUser[], fileNamePrefix = 'SPECTRA_Staff_Directory'): Promise<string> {
+  async exportUserDirectory(userList: KalyaniUser[], fileNamePrefix = 'SPECTRA_Users_Export'): Promise<string> {
     if (!userList || userList.length === 0) {
       return '⚠️ No staff records available to export.';
     }
@@ -612,16 +615,17 @@ export const excelService = {
     const sanitize = (v: any) => excelService.sanitizeCell(v);
     const data = userList.map(u => ({
       "Full Name": sanitize(u.name || 'Unknown User'),
-      "Email ID": sanitize(u.email || 'N/A'),
-      "Department": sanitize(u.departmentName || u.departmentId || 'General'),
+      "College Email": sanitize(u.email || 'N/A'),
+      "Department Code": sanitize(u.departmentId || 'General'),
+      "Department Name": sanitize(u.departmentName || u.departmentId || 'General'),
       "Designation": sanitize(u.designation || 'Staff'),
-      "Role": u.hodType === 'AHOD' ? 'Assistant HOD' : (u.role || 'FACULTY'),
+      "Role": u.hodType === 'AHOD' ? 'AHOD' : (u.role || 'FACULTY'),
       "Status": u.active ? 'Active' : 'Inactive'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     formatWorksheet(ws, data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Staff_Directory");
-    return await saveWorkbook(wb, `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`, "Staff directory excel");
+    XLSX.utils.book_append_sheet(wb, ws, "Users_List");
+    return await saveWorkbook(wb, `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`, "Users directory excel");
   }
 };
