@@ -311,27 +311,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           // Always ensure native background sync knows the current baseline
           notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
 
-          if (oldPeriods && oldPeriods.length > 0 && Array.isArray(data) && data.length > 0) {
-            const oldDeptPeriods = oldPeriods.filter(
-              (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
-            );
-
-            if (oldDeptPeriods.length > 0 && newDeptPeriods.length > 0) {
-              if (oldDeptPeriods.length !== newDeptPeriods.length) {
-                notificationService.notifyPeriodScheduleUpdated(newDeptPeriods.length, targetDept);
-              } else {
-                const oldKeys = oldDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
-                const newKeys = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
-                if (oldKeys !== newKeys) {
-                  notificationService.notifyPeriodUpdated(
-                    `The HOD has updated the period schedule for ${targetDept}. Please review and update your schedule again.`,
-                    targetDept
-                  );
-                }
-              }
-            }
-          }
-
           set({ periods: incoming });
           persist();
         },

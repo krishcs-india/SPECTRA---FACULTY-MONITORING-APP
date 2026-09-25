@@ -46,6 +46,7 @@ public class PeriodBackgroundSyncManager {
     public static final String CHANNEL_ID = "spectra_alerts_v3";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
     public static final int ALARM_REQUEST_CODE = 88001;
+    public static final int PERIOD_NOTIFICATION_ID = 88002; // Single fixed ID prevents stacked duplicate notifications
     public static final long SYNC_INTERVAL_MS = 60 * 1000L; // 60 seconds
 
     private static final String FIRESTORE_URL =
@@ -149,6 +150,7 @@ public class PeriodBackgroundSyncManager {
     /**
      * Queries Firestore REST API directly and compares against the known period state.
      * Guaranteed crash-safe with optJSONObject / optString parsing.
+     * Fires EXACTLY ONCE when actual changes occur, and immediately updates baseline.
      */
     public static void performCheck(Context context) {
         if (context == null) return;
@@ -232,7 +234,8 @@ public class PeriodBackgroundSyncManager {
                         }
                     }
 
-                    periodItems.add(pId + "_" + seq + "_" + pName);
+                    // Format matches TypeScript EXACTLY: id_name_sequence
+                    periodItems.add(pId + "_" + pName + "_" + seq);
                 }
             }
 
@@ -252,6 +255,7 @@ public class PeriodBackgroundSyncManager {
                         "SPECTRA — Period Schedule Updated 🔔",
                         "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
                     );
+                    // Update baseline immediately so this notification NEVER fires redundantly
                     prefs.edit()
                         .putInt(KEY_KNOWN_PERIOD_COUNT, activeCount)
                         .putString(KEY_KNOWN_PERIOD_SIGNATURE, currentSignature)
@@ -263,12 +267,14 @@ public class PeriodBackgroundSyncManager {
                         "SPECTRA — Period Schedule Updated 🔔",
                         "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again."
                     );
+                    // Update baseline immediately so this notification NEVER fires redundantly
                     prefs.edit()
                         .putString(KEY_KNOWN_PERIOD_SIGNATURE, currentSignature)
                         .putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis())
                         .apply();
                 }
             } else {
+                // First initialization — record baseline silently without notifying
                 prefs.edit()
                     .putInt(KEY_KNOWN_PERIOD_COUNT, activeCount)
                     .putString(KEY_KNOWN_PERIOD_SIGNATURE, currentSignature)
@@ -286,7 +292,8 @@ public class PeriodBackgroundSyncManager {
     }
 
     /**
-     * Builds and dispatches a high-priority heads-up system notification.
+     * Builds and dispatches a single high-priority heads-up system notification.
+     * Uses fixed PERIOD_NOTIFICATION_ID so that it NEVER stacks duplicate cards.
      */
     public static void showPeriodUpdatedNotification(Context context, String title, String body) {
         try {
@@ -319,13 +326,27 @@ public class PeriodBackgroundSyncManager {
             NotificationManager notificationManager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (notificationManager != null) {
-                int notifId = (int) (System.currentTimeMillis() % 2000000000L);
-                notificationManager.notify(notifId, builder.build());
-                Log.d(TAG, "Dispatched native background period notification successfully!");
+                // Using stable ID ensures only ONE notification card exists in the drawer
+                notificationManager.notify(PERIOD_NOTIFICATION_ID, builder.build());
+                Log.d(TAG, "Dispatched single native background period notification successfully!");
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to display background period notification", e);
         }
+    }
+
+    /**
+     * Clears the period notification from the status bar when the user enters the app.
+     */
+    public static void clearPeriodNotification(Context context) {
+        if (context == null) return;
+        try {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                nm.cancel(PERIOD_NOTIFICATION_ID);
+                Log.d(TAG, "Cleared period update notification from drawer.");
+            }
+        } catch (Exception ignored) {}
     }
 
     private static void ensureNotificationChannel(Context context) {

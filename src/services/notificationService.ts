@@ -16,7 +16,8 @@ const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 interface PeriodBackgroundSyncPluginType {
   syncCurrentState(options: { departmentId: string; periodCount: number; signature?: string }): Promise<{ success: boolean }>;
   checkNow(): Promise<{ success: boolean }>;
-  getOptimizationStatus(): Promise<{ exactAlarmAllowed: boolean; batteryOptimizationIgnored: boolean }>;
+  clearNotification(): Promise<{ success: boolean }>;
+  getOptimizationStatus(): Promise<{ exactAlarmAllowed: boolean; batteryOptimizationIgnored: boolean; alreadyPrompted?: boolean }>;
   requestExactAlarmPermission(): Promise<{ requested: boolean }>;
   requestBatteryOptimizationExemption(): Promise<{ requested: boolean }>;
 }
@@ -47,6 +48,16 @@ class NativeNotificationBridge {
     } catch (err) {
       console.warn('Background period sync state update notice:', err);
     }
+  }
+
+  /**
+   * Clears any active period update notification from the Android status bar drawer.
+   */
+  async clearPeriodNotification(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      await PeriodBackgroundSync.clearNotification();
+    } catch {}
   }
 
   /**
@@ -461,7 +472,9 @@ class KalyaniNotificationManager {
   }
 
   async init(): Promise<void> {
-    // Setup
+    if (isNative()) {
+      await this.native.clearPeriodNotification();
+    }
   }
 
   async notifySchedulePending(facultyName: string, remainingTime?: string): Promise<void> {

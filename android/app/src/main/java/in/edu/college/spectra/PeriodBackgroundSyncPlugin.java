@@ -39,6 +39,14 @@ public class PeriodBackgroundSyncPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void clearNotification(PluginCall call) {
+        PeriodBackgroundSyncManager.clearPeriodNotification(getContext().getApplicationContext());
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void getOptimizationStatus(PluginCall call) {
         Context context = getContext().getApplicationContext();
         boolean exactAlarmAllowed = PeriodBackgroundSyncManager.canScheduleExactAlarms(context);

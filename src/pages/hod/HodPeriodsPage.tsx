@@ -61,7 +61,6 @@ export const HodPeriodsPage: React.FC = () => {
       });
       setEditingPeriod(null);
       setNotificationMsg(`${cleanName} updated successfully.`);
-      notificationService.notifyPeriodUpdated(`The HOD updated ${cleanName}. Please review and update your schedule again.`, departmentId);
     } else {
       addPeriod({
         name: cleanName,
@@ -75,7 +74,6 @@ export const HodPeriodsPage: React.FC = () => {
       const newCount = activePeriods.length + 1;
       setIsAddModalOpen(false);
       setNotificationMsg(`${cleanName} added. Total periods: ${newCount}.`);
-      notificationService.notifyPeriodScheduleUpdated(newCount, departmentId);
     }
   };
 
@@ -85,7 +83,6 @@ export const HodPeriodsPage: React.FC = () => {
       const newCount = Math.max(0, activePeriods.length - 1);
       setNotificationMsg(`Period removed. Remaining periods (${newCount}) renumbered automatically.`);
       setPeriodToDelete(null);
-      notificationService.notifyPeriodScheduleUpdated(newCount, departmentId);
     }
   };
 

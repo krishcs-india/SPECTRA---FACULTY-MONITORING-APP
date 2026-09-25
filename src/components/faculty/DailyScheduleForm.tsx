@@ -80,23 +80,18 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   const isFuture = isFutureDate(date);
   const submissionBlocked = isPast;
 
-  // Detect when HOD updates the period count in real-time
+  // Detect when HOD updates the period count in real-time and show the in-app card
   useEffect(() => {
     if (prevPeriodCountRef.current !== activePeriods.length) {
-      const oldCount = prevPeriodCountRef.current;
       prevPeriodCountRef.current = activePeriods.length;
       if (!isPast) {
         setHodChangedNotification(
           `The Head of Department (HOD) updated the period allocation structure (${activePeriods.length} active periods). Please review the updated period slots and submit your schedule.`
         );
         userTouchedRef.current = false;
-
-        if (oldCount > 0) {
-          notificationService.notifyPeriodScheduleUpdated(activePeriods.length, currentUser?.departmentId);
-        }
       }
     }
-  }, [activePeriods.length, isPast, currentUser?.departmentId]);
+  }, [activePeriods.length, isPast]);
 
   // Check if existing schedule has outdated period count compared to latest HOD setup
   const isPeriodCountMismatched = useMemo(() => {
