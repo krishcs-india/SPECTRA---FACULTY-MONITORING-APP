@@ -419,6 +419,48 @@ class KalyaniNotificationManager {
     }
   }
 
+  private lastPeriodNotificationTime = 0;
+
+  async notifyPeriodScheduleUpdated(periodCount: number, deptName?: string): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastPeriodNotificationTime < 3000) return;
+    this.lastPeriodNotificationTime = now;
+
+    const title = 'SPECTRA — Period Schedule Updated 🔔';
+    const deptPrefix = deptName ? `[${deptName}] ` : '';
+    const body = `${deptPrefix}The HOD has updated the periods count to ${periodCount} periods. Please review and update your schedule again.`;
+
+    if (isNative()) {
+      await nativeBridge.notifyNow(title, body);
+    } else {
+      await this.provider.sendNotification({
+        title,
+        body,
+        icon: '/assets/app-icon-spectra-logo.png'
+      });
+    }
+  }
+
+  async notifyPeriodUpdated(message?: string, deptName?: string): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastPeriodNotificationTime < 3000) return;
+    this.lastPeriodNotificationTime = now;
+
+    const title = 'SPECTRA — Period Schedule Updated 🔔';
+    const deptPrefix = deptName ? `[${deptName}] ` : '';
+    const body = message || `${deptPrefix}The HOD has updated the periods schedule. Please review and update your schedule again.`;
+
+    if (isNative()) {
+      await nativeBridge.notifyNow(title, body);
+    } else {
+      await this.provider.sendNotification({
+        title,
+        body,
+        icon: '/assets/app-icon-spectra-logo.png'
+      });
+    }
+  }
+
   /** Native mobile notification bar support (Android/iOS) */
   get native(): NativeNotificationBridge {
     return nativeBridge;

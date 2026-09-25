@@ -23,6 +23,7 @@ import {
   Calendar,
   AlertTriangle
 } from 'lucide-react';
+import { notificationService } from '../../services/notificationService';
 
 interface DailyScheduleFormProps {
   date: string;
@@ -82,15 +83,20 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   // Detect when HOD updates the period count in real-time
   useEffect(() => {
     if (prevPeriodCountRef.current !== activePeriods.length) {
+      const oldCount = prevPeriodCountRef.current;
       prevPeriodCountRef.current = activePeriods.length;
       if (!isPast) {
         setHodChangedNotification(
           `The Head of Department (HOD) updated the period allocation structure (${activePeriods.length} active periods). Please review the updated period slots and submit your schedule.`
         );
         userTouchedRef.current = false;
+
+        if (oldCount > 0) {
+          notificationService.notifyPeriodScheduleUpdated(activePeriods.length, currentUser?.departmentId);
+        }
       }
     }
-  }, [activePeriods.length, isPast]);
+  }, [activePeriods.length, isPast, currentUser?.departmentId]);
 
   // Check if existing schedule has outdated period count compared to latest HOD setup
   const isPeriodCountMismatched = useMemo(() => {

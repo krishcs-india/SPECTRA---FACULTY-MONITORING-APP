@@ -51,8 +51,8 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
 
   const filteredSubjects = subjects.filter(
     (s) =>
-      s.subjectCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.subjectName.toLowerCase().includes(searchTerm.toLowerCase())
+      (s.subjectCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.subjectName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleToggleSelectAll = () => {
@@ -78,34 +78,38 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
 
   const openEditModal = (s: Subject) => {
     setEditingSubject(s);
-    setSubjectCode(s.subjectCode);
-    setSubjectName(s.subjectName);
+    setSubjectCode(s.subjectCode || '');
+    setSubjectName(s.subjectName || '');
     setFormError(null);
   };
 
   const handleSaveSubject = () => {
-    if (!subjectCode.trim() || !subjectName.trim()) {
-      setFormError('Subject Code and Subject Name are required fields.');
+    if (!subjectName.trim()) {
+      setFormError('Official Subject Name is a required field.');
       return;
     }
 
     const cleanCode = subjectCode.trim().toUpperCase();
 
     if (editingSubject) {
-      const duplicate = subjects.find((s) => s.subjectCode.toUpperCase() === cleanCode && s.id !== editingSubject.id);
-      if (duplicate) {
-        setFormError(`Subject Code ${cleanCode} already exists in this department.`);
-        return;
+      if (cleanCode) {
+        const duplicate = subjects.find(
+          (s) => (s.subjectCode || '').toUpperCase() === cleanCode && s.id !== editingSubject.id
+        );
+        if (duplicate) {
+          setFormError(`Subject Code ${cleanCode} already exists in this department.`);
+          return;
+        }
       }
       updateSubject(editingSubject.id, {
         subjectCode: cleanCode,
         subjectName: subjectName.trim(),
       });
       setEditingSubject(null);
-      setNotificationMsg(`Subject ${cleanCode} updated successfully.`);
+      setNotificationMsg(`Subject ${cleanCode || subjectName.trim()} updated successfully.`);
     } else {
-      // Check duplicate code
-      if (subjects.some((s) => s.subjectCode.toUpperCase() === cleanCode)) {
+      // Check duplicate code only if a code was provided
+      if (cleanCode && subjects.some((s) => (s.subjectCode || '').toUpperCase() === cleanCode)) {
         setFormError(`Subject Code ${cleanCode} already exists in this department.`);
         return;
       }
@@ -117,7 +121,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
         active: true,
       });
       setIsAddModalOpen(false);
-      setNotificationMsg(`Subject ${cleanCode} created successfully.`);
+      setNotificationMsg(`Subject ${cleanCode || subjectName.trim()} created successfully.`);
     }
   };
 
@@ -125,7 +129,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
     if (subjectToDelete) {
       deleteSubject(subjectToDelete.id);
       setSelectedIds((prev) => prev.filter((id) => id !== subjectToDelete.id));
-      setNotificationMsg(`Subject ${subjectToDelete.subjectCode} permanently deleted from Firebase & Catalog.`);
+      setNotificationMsg(`Subject ${subjectToDelete.subjectCode || subjectToDelete.subjectName} permanently deleted from Firebase & Catalog.`);
       setSubjectToDelete(null);
     }
   };
@@ -134,7 +138,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
     if (subjectToToggle) {
       const nextActive = !subjectToToggle.active;
       toggleSubjectActive(subjectToToggle.id, nextActive);
-      setNotificationMsg(`Subject ${subjectToToggle.subjectCode} is now ${nextActive ? 'Active' : 'Disabled'}.`);
+      setNotificationMsg(`Subject ${subjectToToggle.subjectCode || subjectToToggle.subjectName} is now ${nextActive ? 'Active' : 'Disabled'}.`);
       setSubjectToToggle(null);
     }
   };
@@ -181,7 +185,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       header: 'Code',
       accessor: (row: Subject) => (
         <span className="px-2.5 py-1 rounded font-bold text-xs bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-400/30 text-rose-700 dark:text-rose-300">
-          {row.subjectCode}
+          {row.subjectCode || '—'}
         </span>
       ),
     },
@@ -381,7 +385,6 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
               value={subjectCode}
               onChange={(e) => setSubjectCode(e.target.value.toUpperCase())}
               placeholder="e.g. CS501"
-              required
             />
 
             <KalyaniInput
@@ -402,7 +405,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
         onConfirm={handleConfirmPermanentDelete}
         variant="danger"
         title="Permanently Delete Subject"
-        message={`Are you sure you want to permanently delete "${subjectToDelete?.subjectCode} - ${subjectToDelete?.subjectName}"? This will permanently rip this record from Cloud Firestore and the institution catalog.`}
+        message={`Are you sure you want to permanently delete "${subjectToDelete?.subjectCode ? `${subjectToDelete.subjectCode} — ` : ''}${subjectToDelete?.subjectName}"? This will permanently rip this record from Cloud Firestore and the institution catalog.`}
         confirmText="Delete Permanently"
       />
 
@@ -426,8 +429,8 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
         title={subjectToToggle?.active ? 'Deactivate Subject' : 'Activate Subject'}
         message={
           subjectToToggle?.active
-            ? `Deactivating ${subjectToToggle.subjectCode} will hide it from future faculty schedule selectors, but retain existing records.`
-            : `Activating ${subjectToToggle?.subjectCode} will make it immediately selectable by faculty.`
+            ? `Deactivating ${subjectToToggle.subjectCode || subjectToToggle.subjectName} will hide it from future faculty schedule selectors, but retain existing records.`
+            : `Activating ${subjectToToggle?.subjectCode || subjectToToggle?.subjectName} will make it immediately selectable by faculty.`
         }
         confirmText={subjectToToggle?.active ? 'Deactivate' : 'Activate'}
       />

@@ -510,22 +510,20 @@ export const excelService = {
       const code = (row["Subject Code"] || row["Code"] || row["subjectCode"] || "").toString().trim().toUpperCase();
       const name = (row["Subject Name"] || row["Name"] || row["subjectName"] || "").toString().trim();
 
-      if (!code) {
-        errors.push({ row: rowNumber, data: row, reason: "Missing Subject Code" });
-        return;
-      }
       if (!name) {
         errors.push({ row: rowNumber, data: row, reason: "Missing Subject Name" });
         return;
       }
 
-      if (existingCodes.has(code) || seenFileCodes.has(code)) {
+      if (code && (existingCodes.has(code) || seenFileCodes.has(code))) {
         duplicateCount++;
         errors.push({ row: rowNumber, data: row, reason: `Subject Code already exists (${code})` });
         return;
       }
 
-      seenFileCodes.add(code);
+      if (code) {
+        seenFileCodes.add(code);
+      }
 
       validRecords.push({
         subjectCode: code,

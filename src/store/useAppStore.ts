@@ -21,6 +21,7 @@ import {
   isDateExpiredBeyondRetention,
   isDateWithinRetentionWindow
 } from '../utils/dateUtils';
+import { notificationService } from '../services/notificationService';
 
 interface AppStoreState {
   users: KalyaniUser[];
@@ -292,7 +293,41 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           persist();
         },
         onPeriods: (data) => {
-          set({ periods: Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS });
+          const incoming = Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS;
+          const oldPeriods = get().periods;
+
+          if (oldPeriods && oldPeriods.length > 0 && Array.isArray(data) && data.length > 0) {
+            let userDept = '';
+            try {
+              const authUser = JSON.parse(localStorage.getItem('kalyani_auth_user') || '{}');
+              userDept = authUser?.departmentId || '';
+            } catch {}
+
+            const targetDept = userDept || 'CSE';
+            const oldDeptPeriods = oldPeriods.filter(
+              (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
+            );
+            const newDeptPeriods = incoming.filter(
+              (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
+            );
+
+            if (oldDeptPeriods.length > 0 && newDeptPeriods.length > 0) {
+              if (oldDeptPeriods.length !== newDeptPeriods.length) {
+                notificationService.notifyPeriodScheduleUpdated(newDeptPeriods.length, targetDept);
+              } else {
+                const oldKeys = oldDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+                const newKeys = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+                if (oldKeys !== newKeys) {
+                  notificationService.notifyPeriodUpdated(
+                    `The HOD has updated the period schedule for ${targetDept}. Please review and update your schedule again.`,
+                    targetDept
+                  );
+                }
+              }
+            }
+          }
+
+          set({ periods: incoming });
           persist();
         },
         onSystemSettings: (data) => {
@@ -641,7 +676,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
     const id = safeCodeStr
       ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}`
-      : `sub_${cleanDept.toLowerCase()}_${Date.now().toString(36)}`;
+      : `sub_${cleanDept.toLowerCase()}_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
     const newSubject: Subject = {
       ...subjectData,
@@ -675,9 +710,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     let updated: Subject | undefined;
     const next = get().subjects.map((s) => {
       if (s.id === id) {
+        const cleanCode = updates.subjectCode !== undefined ? (updates.subjectCode || '').trim().toUpperCase() : s.subjectCode;
         updated = {
           ...s,
           ...updates,
+          subjectCode: cleanCode,
+          ...(updates.subjectName ? { subjectName: updates.subjectName.trim() } : {}),
           ...(updates.departmentId ? { departmentId: normalizeDepartmentId(updates.departmentId) } : {}),
           updatedAt: new Date().toISOString()
         };

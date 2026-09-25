@@ -9,6 +9,7 @@ import { usePeriods } from '../../hooks/usePeriods';
 import { useAuth } from '../../hooks/useAuth';
 import { Period } from '../../types/period';
 import { Plus, Edit2, Trash2, CheckCircle2, Info } from 'lucide-react';
+import { notificationService } from '../../services/notificationService';
 
 export const HodPeriodsPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -60,6 +61,7 @@ export const HodPeriodsPage: React.FC = () => {
       });
       setEditingPeriod(null);
       setNotificationMsg(`${cleanName} updated successfully.`);
+      notificationService.notifyPeriodUpdated(`The HOD updated ${cleanName}. Please review and update your schedule again.`, departmentId);
     } else {
       addPeriod({
         name: cleanName,
@@ -70,16 +72,20 @@ export const HodPeriodsPage: React.FC = () => {
         active: true,
         departmentId: departmentId,
       });
+      const newCount = activePeriods.length + 1;
       setIsAddModalOpen(false);
-      setNotificationMsg(`${cleanName} added.`);
+      setNotificationMsg(`${cleanName} added. Total periods: ${newCount}.`);
+      notificationService.notifyPeriodScheduleUpdated(newCount, departmentId);
     }
   };
 
   const handleConfirmDelete = () => {
     if (periodToDelete) {
       deletePeriod(periodToDelete.id);
-      setNotificationMsg(`Period removed. Remaining periods renumbered automatically.`);
+      const newCount = Math.max(0, activePeriods.length - 1);
+      setNotificationMsg(`Period removed. Remaining periods (${newCount}) renumbered automatically.`);
       setPeriodToDelete(null);
+      notificationService.notifyPeriodScheduleUpdated(newCount, departmentId);
     }
   };
 

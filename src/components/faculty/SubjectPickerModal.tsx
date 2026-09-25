@@ -39,8 +39,8 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
 
   const filteredSubjects = subjects.filter(
     (s) =>
-      s.subjectCode.toLowerCase().includes(cleanSearch.toLowerCase()) ||
-      s.subjectName.toLowerCase().includes(cleanSearch.toLowerCase())
+      (s.subjectCode || '').toLowerCase().includes(cleanSearch.toLowerCase()) ||
+      (s.subjectName || '').toLowerCase().includes(cleanSearch.toLowerCase())
   );
 
   const hasExactMatch = subjects.some(

@@ -29,7 +29,7 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
 
-  const existingCodes = new Set(existingSubjects.map((s) => s.subjectCode.toUpperCase()));
+  const existingCodes = new Set(existingSubjects.map((s) => (s.subjectCode || '').toUpperCase()).filter(Boolean));
 
   // Auto-dismiss download confirmation after 5 seconds
   React.useEffect(() => {
@@ -174,7 +174,7 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
                 <div key={idx} className="py-2 px-3 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <span className="px-1.5 py-0.5 rounded font-bold bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300">
-                      {item.subjectCode}
+                      {item.subjectCode || '—'}
                     </span>
                     <span className="text-slate-700 dark:text-slate-200">{item.subjectName}</span>
                   </div>
