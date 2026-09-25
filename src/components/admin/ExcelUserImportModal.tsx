@@ -123,33 +123,22 @@ export const ExcelUserImportModal: React.FC<ExcelUserImportModalProps> = ({
       title="Bulk Import Institutional Users via Excel"
       subtitle="Import faculty members, HODs, and administrators into the central directory"
       footer={
-        parseResult ? (
-          <div className="w-full flex items-center justify-between">
+        <div className="w-full flex items-center justify-end gap-2">
+          <KalyaniButton variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </KalyaniButton>
+          {parseResult && (
             <KalyaniButton
-              variant="outline-gold"
+              variant="gold"
               size="sm"
-              leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
-              onClick={handleReset}
-              className="bg-white dark:bg-[#251026] shadow-xs hover:border-rose-400 font-semibold"
+              leftIcon={<CheckCircle2 className="w-4 h-4" />}
+              onClick={handleConfirmImport}
+              disabled={parseResult.validCount === 0}
             >
-              Upload Different File
+              Confirm Import ({parseResult.validCount})
             </KalyaniButton>
-            <div className="flex items-center gap-2">
-              <KalyaniButton variant="ghost" size="sm" onClick={onClose}>
-                Cancel
-              </KalyaniButton>
-              <KalyaniButton
-                variant="gold"
-                size="sm"
-                leftIcon={<CheckCircle2 className="w-4 h-4" />}
-                onClick={handleConfirmImport}
-                disabled={parseResult.validCount === 0}
-              >
-                Confirm Import ({parseResult.validCount})
-              </KalyaniButton>
-            </div>
-          </div>
-        ) : undefined
+          )}
+        </div>
       }
     >
       <div className="space-y-4">

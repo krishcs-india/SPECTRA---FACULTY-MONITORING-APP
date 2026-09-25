@@ -106,38 +106,21 @@ export const ExcelDepartmentStaffImportModal: React.FC<ExcelDepartmentStaffImpor
       title={`Excel Bulk Staff Import — ${departmentName}`}
       subtitle={`Import faculties and Assistant HODs into ${departmentName} via Excel or CSV`}
       footer={
-        <>
-          {parseResult ? (
-            <div className="w-full flex items-center justify-between">
-              <KalyaniButton
-                variant="outline-gold"
-                size="sm"
-                leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
-                onClick={handleReset}
-                className="bg-white dark:bg-[#251026] shadow-xs hover:border-rose-400 font-semibold"
-              >
-                Upload Different File
-              </KalyaniButton>
-              <div className="flex items-center gap-2">
-                <KalyaniButton variant="ghost" size="sm" onClick={handleClose}>
-                  Cancel
-                </KalyaniButton>
-                <KalyaniButton
-                  variant="gold"
-                  size="sm"
-                  onClick={handleConfirmImport}
-                  disabled={parseResult.validRecords.length === 0}
-                >
-                  Confirm &amp; Import ({parseResult.validRecords.length} Staff)
-                </KalyaniButton>
-              </div>
-            </div>
-          ) : (
-            <KalyaniButton variant="ghost" size="sm" onClick={handleClose}>
-              Cancel
+        <div className="w-full flex items-center justify-end gap-2">
+          <KalyaniButton variant="ghost" size="sm" onClick={handleClose}>
+            Cancel
+          </KalyaniButton>
+          {parseResult && (
+            <KalyaniButton
+              variant="gold"
+              size="sm"
+              onClick={handleConfirmImport}
+              disabled={parseResult.validRecords.length === 0}
+            >
+              Confirm &amp; Import ({parseResult.validRecords.length} Staff)
             </KalyaniButton>
           )}
-        </>
+        </div>
       }
     >
       <div className="space-y-4">
