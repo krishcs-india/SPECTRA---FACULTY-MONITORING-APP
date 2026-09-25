@@ -334,21 +334,16 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           const lastKnownSig = localStorage.getItem(knownSigKey);
 
           // If this is the first load of periods in this app session (app opening):
-          // If a stored baseline exists and differs, the HOD changed periods
-          // while this app was killed — that is a REAL change, notify it
-          // instead of silently swallowing (fixes 2nd-change-lost).
+          // Silently sync baseline signatures with native background service and storage.
+          // Do NOT fire an in-app period notification on app open:
+          // If periods were updated while closed, the Android background service already notified the user.
+          // Firing here causes redundant duplicate notifications upon app launch.
           if (!hasLoadedPeriodsSession) {
             hasLoadedPeriodsSession = true;
-            const hadBaseline = lastKnownSig !== null && lastKnownSig !== '';
-            const changedWhileClosed = hadBaseline && lastKnownSig !== newSignature;
             try {
               localStorage.setItem(knownSigKey, newSignature);
             } catch {}
             notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
-            if (changedWhileClosed && newDeptPeriods.length > 0 && !isCurrentHod) {
-              const msg = `The HOD has updated the period schedule for ${targetDept}. Please review and update your schedule again.`;
-              notificationService.notifyPeriodUpdated(msg, targetDept);
-            }
           } else {
             // Subsequent snapshot in the active session means HOD added, deleted, or updated periods!
             const countChanged = newDeptPeriods.length !== oldDeptPeriods.length;

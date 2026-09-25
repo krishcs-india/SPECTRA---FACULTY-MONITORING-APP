@@ -21,7 +21,8 @@ import {
   AlertCircle,
   Lock,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 
@@ -70,6 +71,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hodChangedNotification, setHodChangedNotification] = useState<string | null>(null);
+  const [isDismissedMismatched, setIsDismissedMismatched] = useState<boolean>(false);
 
   // Tracks if user has explicitly interacted with form fields
   const userTouchedRef = useRef<boolean>(false);
@@ -88,6 +90,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
         setHodChangedNotification(
           `The Head of Department (HOD) updated the period allocation structure (${activePeriods.length} active periods). Please review the updated period slots and submit your schedule.`
         );
+        setIsDismissedMismatched(false);
         userTouchedRef.current = false;
       }
     }
@@ -95,10 +98,10 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
 
   // Check if existing schedule has outdated period count compared to latest HOD setup
   const isPeriodCountMismatched = useMemo(() => {
-    if (!existingSchedule?.periods || isPast) return false;
+    if (!existingSchedule?.periods || isPast || isDismissedMismatched) return false;
     const existingKeys = Object.keys(existingSchedule.periods);
     return existingKeys.length > 0 && existingKeys.length !== activePeriods.length;
-  }, [existingSchedule, activePeriods.length, isPast]);
+  }, [existingSchedule, activePeriods.length, isPast, isDismissedMismatched]);
 
   // Reset form + messages when switching date or user
   useEffect(() => {
@@ -106,6 +109,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
     setSubmitError(null);
     setSubmitSuccessMsg(null);
     setHodChangedNotification(null);
+    setIsDismissedMismatched(false);
   }, [date, facultyId]);
 
   // Synchronize local form state with the reactive persisted schedule from Firestore
@@ -234,8 +238,14 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   const handleSubmitSchedule = () => {
     if (submissionBlocked) return;
 
+    // Prune periodsState strictly to activePeriods so no stale/deleted period keys linger
+    const sanitizedPeriods: Record<string, PeriodEntry> = {};
+    activePeriods.forEach((p) => {
+      sanitizedPeriods[p.id] = periodsState[p.id] || { type: 'FREE' };
+    });
+
     // Validate
-    const validation = validateSchedulePeriods(periodsState);
+    const validation = validateSchedulePeriods(sanitizedPeriods);
     if (!validation.isValid) {
       setSubmitError(validation.error || 'Validation error');
       return;
@@ -244,11 +254,17 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const result = submitSchedule(facultyId, date, periodsState);
+    const result = submitSchedule(facultyId, date, sanitizedPeriods);
     setIsSubmitting(false);
 
     if (result.success) {
       userTouchedRef.current = false;
+      // DYNAMICALLY DISMISS THE HOD CARD:
+      setHodChangedNotification(null);
+      setIsDismissedMismatched(true);
+      prevPeriodCountRef.current = activePeriods.length;
+      setPeriodsState(sanitizedPeriods);
+
       const isAllFree = assignedCount === 0;
       setSubmitSuccessMsg(
         isAllFree
@@ -278,6 +294,18 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
 
     if (result.success) {
       userTouchedRef.current = false;
+      // DYNAMICALLY DISMISS THE HOD CARD:
+      setHodChangedNotification(null);
+      setIsDismissedMismatched(true);
+      prevPeriodCountRef.current = activePeriods.length;
+
+      // Update local periodsState to all free matching current activePeriods
+      const freePeriods: Record<string, PeriodEntry> = {};
+      activePeriods.forEach((p) => {
+        freePeriods[p.id] = { type: 'FREE' };
+      });
+      setPeriodsState(freePeriods);
+
       setSubmitSuccessMsg('Full day marked as Free! Available for substitution.');
       try {
         confetti({
@@ -378,15 +406,28 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       )}
 
       {/* HOD Period Count Modification Alert */}
-      {(isPeriodCountMismatched || hodChangedNotification) && (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-500/50 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3 animate-in fade-in shadow-sm">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-amber-800 dark:text-amber-300">Department Period Allocation Revised by HOD</p>
-            <p className="mt-0.5 text-slate-700 dark:text-slate-200 leading-relaxed">
-              The Head of Department (HOD) updated the period count to <span className="font-bold text-rose-700 dark:text-rose-300">{activePeriods.length} periods</span>. Please review the latest period slots below and submit your schedule.
-            </p>
+      {!(isPast || isDismissedMismatched) && (isPeriodCountMismatched || hodChangedNotification) && (
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-500/50 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start justify-between gap-3 animate-in fade-in shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-800 dark:text-amber-300">Department Period Allocation Revised by HOD</p>
+              <p className="mt-0.5 text-slate-700 dark:text-slate-200 leading-relaxed">
+                The Head of Department (HOD) updated the period allocation structure to <span className="font-bold text-rose-700 dark:text-rose-300">{activePeriods.length} periods</span>. Please review the updated period slots below and submit your schedule.
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setHodChangedNotification(null);
+              setIsDismissedMismatched(true);
+            }}
+            className="p-1 rounded-lg text-amber-700 hover:text-amber-900 hover:bg-amber-200/50 dark:text-amber-300 dark:hover:text-amber-100 transition-colors shrink-0"
+            title="Dismiss notice"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
