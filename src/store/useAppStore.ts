@@ -310,6 +310,10 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
             const newDeptPeriods = incoming.filter(
               (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
             );
+            const newSignature = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+
+            // Synchronize baseline with native background monitoring so it alerts when app is closed
+            notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
 
             if (oldDeptPeriods.length > 0 && newDeptPeriods.length > 0) {
               if (oldDeptPeriods.length !== newDeptPeriods.length) {

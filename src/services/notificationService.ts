@@ -13,6 +13,13 @@ interface AppFileOpenerPluginType {
 
 const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 
+interface PeriodBackgroundSyncPluginType {
+  syncCurrentState(options: { departmentId: string; periodCount: number; signature?: string }): Promise<{ success: boolean }>;
+  checkNow(): Promise<{ success: boolean }>;
+}
+
+const PeriodBackgroundSync = registerPlugin<PeriodBackgroundSyncPluginType>('PeriodBackgroundSync');
+
 const isNative = () =>
   typeof window !== 'undefined' && Capacitor.isNativePlatform?.();
 
@@ -20,6 +27,24 @@ const isNative = () =>
 class NativeNotificationBridge {
   private static readonly DAILY_REMINDER_ID = 42001;
   private channelCreated = false;
+
+  /**
+   * Synchronizes the latest known period count and signature to native SharedPreferences.
+   * This allows the native Android background alarm/receiver to detect HOD changes
+   * and pop notifications even when the user has not opened the app.
+   */
+  async syncBackgroundPeriodState(departmentId: string, periodCount: number, signature?: string): Promise<void> {
+    if (!isNative()) return;
+    try {
+      await PeriodBackgroundSync.syncCurrentState({
+        departmentId: departmentId || 'CSE',
+        periodCount,
+        signature: signature || ''
+      });
+    } catch (err) {
+      console.warn('Background period sync state update notice:', err);
+    }
+  }
 
   private async ensureChannel(): Promise<void> {
     if (this.channelCreated || !isNative()) return;
@@ -458,6 +483,12 @@ class KalyaniNotificationManager {
         body,
         icon: '/assets/app-icon-spectra-logo.png'
       });
+    }
+  }
+
+  syncBackgroundPeriodState(departmentId: string, periodCount: number, signature?: string): void {
+    if (isNative()) {
+      nativeBridge.syncBackgroundPeriodState(departmentId, periodCount, signature);
     }
   }
 

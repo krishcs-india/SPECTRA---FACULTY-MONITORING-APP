@@ -7,6 +7,10 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AppFileOpenerPlugin.class);
+        registerPlugin(PeriodBackgroundSyncPlugin.class);
         super.onCreate(savedInstanceState);
+
+        // Ensure background period sync monitoring is armed
+        PeriodBackgroundSyncManager.scheduleNextCheck(getApplicationContext(), 10000L);
     }
 }
