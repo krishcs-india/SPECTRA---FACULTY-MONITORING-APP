@@ -16,6 +16,9 @@ const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 interface PeriodBackgroundSyncPluginType {
   syncCurrentState(options: { departmentId: string; periodCount: number; signature?: string }): Promise<{ success: boolean }>;
   checkNow(): Promise<{ success: boolean }>;
+  getOptimizationStatus(): Promise<{ exactAlarmAllowed: boolean; batteryOptimizationIgnored: boolean }>;
+  requestExactAlarmPermission(): Promise<{ requested: boolean }>;
+  requestBatteryOptimizationExemption(): Promise<{ requested: boolean }>;
 }
 
 const PeriodBackgroundSync = registerPlugin<PeriodBackgroundSyncPluginType>('PeriodBackgroundSync');
@@ -44,6 +47,48 @@ class NativeNotificationBridge {
     } catch (err) {
       console.warn('Background period sync state update notice:', err);
     }
+  }
+
+  /**
+   * Prompts user for exact alarm and battery optimization exemptions on Android 12-16+
+   * so Vivo, Samsung, and Android 14/15/16 never suppress background period alerts.
+   */
+  async checkAndPromptBackgroundPermissions(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      const status = await PeriodBackgroundSync.getOptimizationStatus();
+      if (!status.exactAlarmAllowed) {
+        await PeriodBackgroundSync.requestExactAlarmPermission();
+      }
+      if (!status.batteryOptimizationIgnored) {
+        await PeriodBackgroundSync.requestBatteryOptimizationExemption();
+      }
+    } catch (err) {
+      console.warn('Background permissions prompt error:', err);
+    }
+  }
+
+  async getOptimizationStatus(): Promise<{ exactAlarmAllowed: boolean; batteryOptimizationIgnored: boolean }> {
+    if (!isNative()) return { exactAlarmAllowed: true, batteryOptimizationIgnored: true };
+    try {
+      return await PeriodBackgroundSync.getOptimizationStatus();
+    } catch {
+      return { exactAlarmAllowed: true, batteryOptimizationIgnored: true };
+    }
+  }
+
+  async requestExactAlarmPermission(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      await PeriodBackgroundSync.requestExactAlarmPermission();
+    } catch {}
+  }
+
+  async requestBatteryOptimizationExemption(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      await PeriodBackgroundSync.requestBatteryOptimizationExemption();
+    } catch {}
   }
 
   private async ensureChannel(): Promise<void> {
@@ -489,6 +534,12 @@ class KalyaniNotificationManager {
   syncBackgroundPeriodState(departmentId: string, periodCount: number, signature?: string): void {
     if (isNative()) {
       nativeBridge.syncBackgroundPeriodState(departmentId, periodCount, signature);
+    }
+  }
+
+  async checkAndPromptBackgroundPermissions(): Promise<void> {
+    if (isNative()) {
+      await nativeBridge.checkAndPromptBackgroundPermissions();
     }
   }
 

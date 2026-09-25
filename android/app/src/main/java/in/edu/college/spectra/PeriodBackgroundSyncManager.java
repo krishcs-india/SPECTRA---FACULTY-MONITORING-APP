@@ -8,10 +8,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -23,6 +31,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class PeriodBackgroundSyncManager {
     private static final String TAG = "SpectraPeriodSync";
@@ -35,7 +44,7 @@ public class PeriodBackgroundSyncManager {
     public static final String CHANNEL_ID = "spectra_alerts_v3";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
     public static final int ALARM_REQUEST_CODE = 88001;
-    public static final long SYNC_INTERVAL_MS = 3 * 60 * 1000L; // 3 minutes
+    public static final long SYNC_INTERVAL_MS = 90 * 1000L; // 90 seconds (1.5 minutes)
 
     private static final String FIRESTORE_URL =
         "https://firestore.googleapis.com/v1/projects/kalyani-e2179/databases/(default)/documents/periods?key=AIzaSyAORDu_NpbDw1nJ4Jk-u7li988WlVl_u4U";
@@ -51,6 +60,32 @@ public class PeriodBackgroundSyncManager {
             .apply();
 
         scheduleNextCheck(context, SYNC_INTERVAL_MS);
+        scheduleWorkManager(context);
+    }
+
+    public static void scheduleWorkManager(Context context) {
+        if (context == null) return;
+        try {
+            Constraints constraints = new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
+
+            PeriodicWorkRequest syncWorkRequest = new PeriodicWorkRequest.Builder(
+                PeriodSyncWorker.class,
+                15, TimeUnit.MINUTES
+            )
+            .setConstraints(constraints)
+            .build();
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "SpectraPeriodSyncWork",
+                ExistingPeriodicWorkPolicy.KEEP,
+                syncWorkRequest
+            );
+            Log.d(TAG, "WorkManager periodic sync scheduled.");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to schedule WorkManager", e);
+        }
     }
 
     public static void scheduleNextCheck(Context context, long delayMillis) {
@@ -100,7 +135,8 @@ public class PeriodBackgroundSyncManager {
         }).start();
     }
 
-    private static void performCheck(Context context) {
+    public static void performCheck(Context context) {
+        if (context == null) return;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String targetDept = prefs.getString(KEY_DEPARTMENT_ID, "CSE");
         int knownCount = prefs.getInt(KEY_KNOWN_PERIOD_COUNT, -1);
@@ -111,13 +147,13 @@ public class PeriodBackgroundSyncManager {
             URL url = new URL(FIRESTORE_URL);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(10000);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
             conn.setRequestProperty("Accept", "application/json");
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
-                Log.w(TAG, "Firestore REST API returned code: " + responseCode);
+                Log.w(TAG, "Firestore REST API returned response code: " + responseCode);
                 return;
             }
 
@@ -175,7 +211,7 @@ public class PeriodBackgroundSyncManager {
 
             Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount + " periods (known was " + knownCount + ")");
 
-            if (knownCount != -1) {
+            if (knownCount != -1 && knownCount != 0) {
                 if (activeCount != knownCount) {
                     showPeriodUpdatedNotification(
                         context,
@@ -269,6 +305,52 @@ public class PeriodBackgroundSyncManager {
                 channel.setLightColor(0xFFF43F5E);
                 channel.enableVibration(true);
                 nm.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    public static boolean canScheduleExactAlarms(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            return alarmManager != null && alarmManager.canScheduleExactAlarms();
+        }
+        return true;
+    }
+
+    public static boolean isBatteryOptimizationIgnored(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            return powerManager != null && powerManager.isIgnoringBatteryOptimizations(context.getPackageName());
+        }
+        return true;
+    }
+
+    public static void requestExactAlarmPermission(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                intent.setData(Uri.parse("package:" + context.getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to open exact alarm settings", e);
+            }
+        }
+    }
+
+    public static void requestBatteryOptimizationExemption(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + context.getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception ignored) {}
             }
         }
     }

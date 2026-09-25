@@ -10,7 +10,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PeriodBackgroundSyncPlugin.class);
         super.onCreate(savedInstanceState);
 
-        // Ensure background period sync monitoring is armed
+        // Ensure background period sync monitoring is armed via both WorkManager and AlarmManager
+        PeriodBackgroundSyncManager.scheduleWorkManager(getApplicationContext());
         PeriodBackgroundSyncManager.scheduleNextCheck(getApplicationContext(), 10000L);
     }
 }

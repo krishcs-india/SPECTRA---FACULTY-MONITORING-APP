@@ -34,4 +34,31 @@ public class PeriodBackgroundSyncPlugin extends Plugin {
         ret.put("success", true);
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void getOptimizationStatus(PluginCall call) {
+        boolean exactAlarmAllowed = PeriodBackgroundSyncManager.canScheduleExactAlarms(getContext().getApplicationContext());
+        boolean batteryOptimizationIgnored = PeriodBackgroundSyncManager.isBatteryOptimizationIgnored(getContext().getApplicationContext());
+
+        JSObject ret = new JSObject();
+        ret.put("exactAlarmAllowed", exactAlarmAllowed);
+        ret.put("batteryOptimizationIgnored", batteryOptimizationIgnored);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestExactAlarmPermission(PluginCall call) {
+        PeriodBackgroundSyncManager.requestExactAlarmPermission(getContext().getApplicationContext());
+        JSObject ret = new JSObject();
+        ret.put("requested", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestBatteryOptimizationExemption(PluginCall call) {
+        PeriodBackgroundSyncManager.requestBatteryOptimizationExemption(getContext().getApplicationContext());
+        JSObject ret = new JSObject();
+        ret.put("requested", true);
+        call.resolve(ret);
+    }
 }

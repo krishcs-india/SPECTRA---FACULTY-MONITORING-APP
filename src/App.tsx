@@ -82,6 +82,7 @@ export const App: React.FC = () => {
     // Request notification and system permissions right after the splash screen finishes
     try {
       await notificationService.requestPermissions();
+      await notificationService.checkAndPromptBackgroundPermissions();
     } catch (err) {
       console.warn('Post-splash permission request error:', err);
     }
