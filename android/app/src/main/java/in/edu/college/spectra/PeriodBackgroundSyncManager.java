@@ -40,15 +40,20 @@ public class PeriodBackgroundSyncManager {
     public static final String KEY_KNOWN_PERIOD_COUNT = "known_period_count";
     public static final String KEY_KNOWN_PERIOD_SIGNATURE = "known_period_signature";
     public static final String KEY_LAST_CHECK_TIME = "last_check_time";
+    public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt";
+    public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm";
 
     public static final String CHANNEL_ID = "spectra_alerts_v3";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
     public static final int ALARM_REQUEST_CODE = 88001;
-    public static final long SYNC_INTERVAL_MS = 90 * 1000L; // 90 seconds (1.5 minutes)
+    public static final long SYNC_INTERVAL_MS = 60 * 1000L; // 60 seconds
 
     private static final String FIRESTORE_URL =
         "https://firestore.googleapis.com/v1/projects/kalyani-e2179/databases/(default)/documents/periods?key=AIzaSyAORDu_NpbDw1nJ4Jk-u7li988WlVl_u4U";
 
+    /**
+     * Updates the local known baseline from the active web session.
+     */
     public static void updateBaseline(Context context, String departmentId, int periodCount, String signature) {
         if (context == null) return;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -59,10 +64,13 @@ public class PeriodBackgroundSyncManager {
             .putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis())
             .apply();
 
-        scheduleNextCheck(context, SYNC_INTERVAL_MS);
         scheduleWorkManager(context);
+        scheduleNextCheck(context, SYNC_INTERVAL_MS);
     }
 
+    /**
+     * Schedules the WorkManager periodic backup and starts the continuous cycle.
+     */
     public static void scheduleWorkManager(Context context) {
         if (context == null) return;
         try {
@@ -78,16 +86,22 @@ public class PeriodBackgroundSyncManager {
             .build();
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "SpectraPeriodSyncWork",
-                ExistingPeriodicWorkPolicy.KEEP,
+                "SpectraPeriodSyncPeriodic",
+                ExistingPeriodicWorkPolicy.UPDATE,
                 syncWorkRequest
             );
-            Log.d(TAG, "WorkManager periodic sync scheduled.");
+
+            // Also kick off immediate/continuous WorkManager worker
+            PeriodSyncWorker.enqueueImmediate(context);
+            Log.d(TAG, "WorkManager background periodic and immediate sync scheduled.");
         } catch (Exception e) {
             Log.e(TAG, "Failed to schedule WorkManager", e);
         }
     }
 
+    /**
+     * Schedules an AlarmManager RTC_WAKEUP alarm for hardware level heartbeat.
+     */
     public static void scheduleNextCheck(Context context, long delayMillis) {
         if (context == null) return;
         try {
@@ -118,23 +132,24 @@ public class PeriodBackgroundSyncManager {
             } else {
                 alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
             }
-            Log.d(TAG, "Scheduled next background period check in " + (delayMillis / 1000) + "s");
+            Log.d(TAG, "Scheduled next background period check alarm in " + (delayMillis / 1000) + "s");
         } catch (Exception e) {
             Log.e(TAG, "Failed to schedule period check alarm", e);
         }
     }
 
+    /**
+     * Triggers an immediate check via WorkManager.
+     */
     public static void checkFirestorePeriodsAsync(final Context context) {
         if (context == null) return;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                performCheck(context);
-                scheduleNextCheck(context, SYNC_INTERVAL_MS);
-            }
-        }).start();
+        PeriodSyncWorker.enqueueImmediate(context);
     }
 
+    /**
+     * Queries Firestore REST API directly and compares against the known period state.
+     * Guaranteed crash-safe with optJSONObject / optString parsing.
+     */
     public static void performCheck(Context context) {
         if (context == null) return;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -153,7 +168,7 @@ public class PeriodBackgroundSyncManager {
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
-                Log.w(TAG, "Firestore REST API returned response code: " + responseCode);
+                Log.w(TAG, "Firestore REST API returned non-200 code: " + responseCode);
                 return;
             }
 
@@ -175,29 +190,48 @@ public class PeriodBackgroundSyncManager {
             int activeCount = 0;
 
             for (int i = 0; i < docs.length(); i++) {
-                JSONObject doc = docs.getJSONObject(i);
-                if (!doc.has("fields")) continue;
-                JSONObject fields = doc.getJSONObject("fields");
+                JSONObject doc = docs.optJSONObject(i);
+                if (doc == null || !doc.has("fields")) continue;
+                JSONObject fields = doc.optJSONObject("fields");
+                if (fields == null) continue;
 
                 boolean active = true;
-                if (fields.has("active") && fields.getJSONObject("active").has("booleanValue")) {
-                    active = fields.getJSONObject("active").getBoolean("booleanValue");
+                JSONObject activeObj = fields.optJSONObject("active");
+                if (activeObj != null && activeObj.has("booleanValue")) {
+                    active = activeObj.optBoolean("booleanValue", true);
                 }
                 if (!active) continue;
 
                 String dept = "";
-                if (fields.has("departmentId") && fields.getJSONObject("departmentId").has("stringValue")) {
-                    dept = fields.getJSONObject("departmentId").getString("stringValue").trim().toUpperCase();
+                JSONObject deptObj = fields.optJSONObject("departmentId");
+                if (deptObj != null && deptObj.has("stringValue")) {
+                    dept = deptObj.optString("stringValue", "").trim().toUpperCase();
                 }
 
-                if (dept.equalsIgnoreCase(targetDept) || targetDept.isEmpty()) {
+                if (dept.equalsIgnoreCase(targetDept) || targetDept.isEmpty() || targetDept.equalsIgnoreCase("ALL")) {
                     activeCount++;
-                    String pId = fields.has("id") && fields.getJSONObject("id").has("stringValue")
-                        ? fields.getJSONObject("id").getString("stringValue") : ("p_" + i);
-                    String pName = fields.has("name") && fields.getJSONObject("name").has("stringValue")
-                        ? fields.getJSONObject("name").getString("stringValue") : "";
-                    String seq = fields.has("sequence") && fields.getJSONObject("sequence").has("integerValue")
-                        ? fields.getJSONObject("sequence").getString("integerValue") : String.valueOf(i);
+                    String pId = "p_" + i;
+                    JSONObject idObj = fields.optJSONObject("id");
+                    if (idObj != null && idObj.has("stringValue")) {
+                        pId = idObj.optString("stringValue", pId);
+                    }
+
+                    String pName = "";
+                    JSONObject nameObj = fields.optJSONObject("name");
+                    if (nameObj != null && nameObj.has("stringValue")) {
+                        pName = nameObj.optString("stringValue", "");
+                    }
+
+                    String seq = String.valueOf(i);
+                    JSONObject seqObj = fields.optJSONObject("sequence");
+                    if (seqObj != null) {
+                        if (seqObj.has("integerValue")) {
+                            seq = seqObj.optString("integerValue", String.valueOf(i));
+                        } else if (seqObj.has("stringValue")) {
+                            seq = seqObj.optString("stringValue", String.valueOf(i));
+                        }
+                    }
+
                     periodItems.add(pId + "_" + seq + "_" + pName);
                 }
             }
@@ -209,14 +243,14 @@ public class PeriodBackgroundSyncManager {
             }
             String currentSignature = sigBuilder.toString();
 
-            Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount + " periods (known was " + knownCount + ")");
+            Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount + " active periods (known was " + knownCount + ")");
 
             if (knownCount != -1 && knownCount != 0) {
                 if (activeCount != knownCount) {
                     showPeriodUpdatedNotification(
                         context,
                         "SPECTRA — Period Schedule Updated 🔔",
-                        "The HOD has updated the periods count to " + activeCount + " periods. Please review and update your schedule again."
+                        "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
                     );
                     prefs.edit()
                         .putInt(KEY_KNOWN_PERIOD_COUNT, activeCount)
@@ -251,6 +285,9 @@ public class PeriodBackgroundSyncManager {
         }
     }
 
+    /**
+     * Builds and dispatches a high-priority heads-up system notification.
+     */
     public static void showPeriodUpdatedNotification(Context context, String title, String body) {
         try {
             ensureNotificationChannel(context);
@@ -271,8 +308,10 @@ public class PeriodBackgroundSyncManager {
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setSubText("SPECTRA")
+                .setSubText("SPECTRA Institutional Alert")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_EVENT)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setAutoCancel(true)
                 .setContentIntent(contentIntent);
@@ -282,7 +321,7 @@ public class PeriodBackgroundSyncManager {
             if (notificationManager != null) {
                 int notifId = (int) (System.currentTimeMillis() % 2000000000L);
                 notificationManager.notify(notifId, builder.build());
-                Log.d(TAG, "Dispatched native background notification successfully!");
+                Log.d(TAG, "Dispatched native background period notification successfully!");
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to display background period notification", e);
@@ -304,6 +343,8 @@ public class PeriodBackgroundSyncManager {
                 channel.enableLights(true);
                 channel.setLightColor(0xFFF43F5E);
                 channel.enableVibration(true);
+                channel.setVibrationPattern(new long[]{0, 250, 250, 250});
+                channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
                 nm.createNotificationChannel(channel);
             }
         }
@@ -327,6 +368,12 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestExactAlarmPermission(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            if (prefs.getBoolean(KEY_PROMPTED_EXACT_ALARM, false)) {
+                return; // Already prompted, do not re-prompt on every launch
+            }
+            prefs.edit().putBoolean(KEY_PROMPTED_EXACT_ALARM, true).apply();
+
             try {
                 Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
                 intent.setData(Uri.parse("package:" + context.getPackageName()));
@@ -340,6 +387,12 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestBatteryOptimizationExemption(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            if (prefs.getBoolean(KEY_PROMPTED_BATTERY_OPT, false)) {
+                return; // Already prompted, do not re-prompt on every launch
+            }
+            prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true).apply();
+
             try {
                 Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
                 intent.setData(Uri.parse("package:" + context.getPackageName()));

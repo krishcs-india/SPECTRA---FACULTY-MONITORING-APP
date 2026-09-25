@@ -296,24 +296,25 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           const incoming = Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS;
           const oldPeriods = get().periods;
 
-          if (oldPeriods && oldPeriods.length > 0 && Array.isArray(data) && data.length > 0) {
-            let userDept = '';
-            try {
-              const authUser = JSON.parse(localStorage.getItem('kalyani_auth_user') || '{}');
-              userDept = authUser?.departmentId || '';
-            } catch {}
+          let userDept = '';
+          try {
+            const authUser = JSON.parse(localStorage.getItem('kalyani_auth_user') || '{}');
+            userDept = authUser?.departmentId || '';
+          } catch {}
 
-            const targetDept = userDept || 'CSE';
+          const targetDept = userDept || 'CSE';
+          const newDeptPeriods = incoming.filter(
+            (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
+          );
+          const newSignature = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+
+          // Always ensure native background sync knows the current baseline
+          notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
+
+          if (oldPeriods && oldPeriods.length > 0 && Array.isArray(data) && data.length > 0) {
             const oldDeptPeriods = oldPeriods.filter(
               (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
             );
-            const newDeptPeriods = incoming.filter(
-              (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
-            );
-            const newSignature = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
-
-            // Synchronize baseline with native background monitoring so it alerts when app is closed
-            notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
 
             if (oldDeptPeriods.length > 0 && newDeptPeriods.length > 0) {
               if (oldDeptPeriods.length !== newDeptPeriods.length) {

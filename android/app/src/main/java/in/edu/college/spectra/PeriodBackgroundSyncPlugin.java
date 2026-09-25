@@ -1,5 +1,8 @@
 package in.edu.college.spectra;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -37,12 +40,17 @@ public class PeriodBackgroundSyncPlugin extends Plugin {
 
     @PluginMethod
     public void getOptimizationStatus(PluginCall call) {
-        boolean exactAlarmAllowed = PeriodBackgroundSyncManager.canScheduleExactAlarms(getContext().getApplicationContext());
-        boolean batteryOptimizationIgnored = PeriodBackgroundSyncManager.isBatteryOptimizationIgnored(getContext().getApplicationContext());
+        Context context = getContext().getApplicationContext();
+        boolean exactAlarmAllowed = PeriodBackgroundSyncManager.canScheduleExactAlarms(context);
+        boolean batteryOptimizationIgnored = PeriodBackgroundSyncManager.isBatteryOptimizationIgnored(context);
+
+        SharedPreferences prefs = context.getSharedPreferences(PeriodBackgroundSyncManager.PREFS_NAME, Context.MODE_PRIVATE);
+        boolean alreadyPrompted = prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_BATTERY_OPT, false);
 
         JSObject ret = new JSObject();
         ret.put("exactAlarmAllowed", exactAlarmAllowed);
         ret.put("batteryOptimizationIgnored", batteryOptimizationIgnored);
+        ret.put("alreadyPrompted", alreadyPrompted);
         call.resolve(ret);
     }
 

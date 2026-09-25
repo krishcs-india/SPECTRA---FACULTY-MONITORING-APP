@@ -14,8 +14,10 @@ public class BootReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || "android.intent.action.MY_PACKAGE_REPLACED".equals(action)) {
             Log.d(TAG, "Phone rebooted or app updated. Automatically resuming background period sync.");
             if (context != null) {
-                PeriodBackgroundSyncManager.scheduleWorkManager(context.getApplicationContext());
-                PeriodBackgroundSyncManager.scheduleNextCheck(context.getApplicationContext(), 15000L);
+                Context appContext = context.getApplicationContext();
+                PeriodBackgroundSyncManager.scheduleWorkManager(appContext);
+                PeriodSyncWorker.enqueueImmediate(appContext);
+                PeriodBackgroundSyncManager.scheduleNextCheck(appContext, 15000L);
             }
         }
     }

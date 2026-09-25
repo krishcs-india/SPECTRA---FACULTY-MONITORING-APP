@@ -74,7 +74,17 @@ export const App: React.FC = () => {
       effectiveRole,
       isSubmitted
     );
-  }, [currentUser?.uid, currentUser?.role, currentUser?.hodType]);
+
+    // Synchronize baseline period monitoring for user's department in native Android background manager
+    try {
+      const userDept = currentUser.departmentId || 'CSE';
+      const deptPeriods = useAppStore.getState().getActivePeriods(userDept);
+      const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+      notificationService.syncBackgroundPeriodState(userDept, deptPeriods.length, signature);
+    } catch (e) {
+      console.warn('Initial period sync notice:', e);
+    }
+  }, [currentUser?.uid, currentUser?.role, currentUser?.hodType, currentUser?.departmentId]);
 
   const handleSplashComplete = async () => {
     setShowSplash(false);

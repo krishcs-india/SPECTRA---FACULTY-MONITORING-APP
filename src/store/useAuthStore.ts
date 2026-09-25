@@ -29,11 +29,21 @@ const persistActiveUser = (user: KalyaniUser | null) => {
     try {
       localStorage.setItem(AUTH_USER_KEY, user.uid);
       localStorage.setItem(AUTH_USER_DATA_KEY, JSON.stringify(user));
+      localStorage.setItem('kalyani_auth_user', JSON.stringify(user));
+    } catch {}
+    try {
+      import('../services/notificationService').then((m) => {
+        const userDept = user.departmentId || 'CSE';
+        const deptPeriods = useAppStore.getState().getActivePeriods(userDept);
+        const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+        m.notificationService.syncBackgroundPeriodState(userDept, deptPeriods.length, signature);
+      });
     } catch {}
   } else {
     try {
       localStorage.removeItem(AUTH_USER_KEY);
       localStorage.removeItem(AUTH_USER_DATA_KEY);
+      localStorage.removeItem('kalyani_auth_user');
     } catch {}
   }
 };

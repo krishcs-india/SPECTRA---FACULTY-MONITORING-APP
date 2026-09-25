@@ -52,10 +52,16 @@ class NativeNotificationBridge {
   /**
    * Prompts user for exact alarm and battery optimization exemptions on Android 12-16+
    * so Vivo, Samsung, and Android 14/15/16 never suppress background period alerts.
+   * Prompts only once across the app lifecycle to avoid harassing the user on every startup.
    */
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (!isNative()) return;
     try {
+      const alreadyPrompted = localStorage.getItem('kalyani_bg_prompted_v3');
+      if (alreadyPrompted === 'true') {
+        return; // Already asked, do not spam or interrupt user on every launch
+      }
+
       const status = await PeriodBackgroundSync.getOptimizationStatus();
       if (!status.exactAlarmAllowed) {
         await PeriodBackgroundSync.requestExactAlarmPermission();
@@ -63,8 +69,9 @@ class NativeNotificationBridge {
       if (!status.batteryOptimizationIgnored) {
         await PeriodBackgroundSync.requestBatteryOptimizationExemption();
       }
+      localStorage.setItem('kalyani_bg_prompted_v3', 'true');
     } catch (err) {
-      console.warn('Background permissions prompt error:', err);
+      console.warn('Background permissions prompt notice:', err);
     }
   }
 
@@ -493,7 +500,7 @@ class KalyaniNotificationManager {
 
   async notifyPeriodScheduleUpdated(periodCount: number, deptName?: string): Promise<void> {
     const now = Date.now();
-    if (now - this.lastPeriodNotificationTime < 3000) return;
+    if (now - this.lastPeriodNotificationTime < 10000) return;
     this.lastPeriodNotificationTime = now;
 
     const title = 'SPECTRA — Period Schedule Updated 🔔';
@@ -513,7 +520,7 @@ class KalyaniNotificationManager {
 
   async notifyPeriodUpdated(message?: string, deptName?: string): Promise<void> {
     const now = Date.now();
-    if (now - this.lastPeriodNotificationTime < 3000) return;
+    if (now - this.lastPeriodNotificationTime < 10000) return;
     this.lastPeriodNotificationTime = now;
 
     const title = 'SPECTRA — Period Schedule Updated 🔔';
