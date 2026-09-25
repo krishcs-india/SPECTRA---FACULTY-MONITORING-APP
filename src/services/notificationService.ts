@@ -62,27 +62,37 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Prompts user for exact alarm and battery optimization exemptions on Android 12-16+
-   * so Vivo, Samsung, and Android 14/15/16 never suppress background period alerts.
-   * Prompts only once across the app lifecycle to avoid harassing the user on every startup.
+   * Prompts user for exact alarm and battery optimization exemptions on Android 12-17
+   * so Vivo, Samsung, Xiaomi and Android 15/16/17 never suppress background period alerts.
+   * Re-prompts if still denied (max once per 24h) — fixes "only first notification"
+   * where user denied once and was never asked again while alarms silently degraded.
    */
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (!isNative()) return;
     try {
-      // Version v5: bumped to force re-prompt with OEM-specific battery settings for Xiaomi, Samsung, Realme, etc.
-      const alreadyPrompted = localStorage.getItem('kalyani_bg_prompted_v5');
-      if (alreadyPrompted === 'true') {
-        return; // Already asked with v5 OEM-specific prompts, do not spam on every launch
-      }
-
+      // v6: force one re-prompt after reliability fix; then throttle to 24h
+      const PROMPT_KEY = 'kalyani_bg_prompted_v6';
+      const LAST_KEY = 'kalyani_bg_prompted_v6_time';
       const status = await PeriodBackgroundSync.getOptimizationStatus();
+      const allGranted = status.exactAlarmAllowed && status.batteryOptimizationIgnored;
+      if (allGranted) {
+        localStorage.setItem(PROMPT_KEY, 'true');
+        return;
+      }
+      const last = Number(localStorage.getItem(LAST_KEY) || '0');
+      if (Date.now() - last < 24 * 60 * 60 * 1000 && localStorage.getItem(PROMPT_KEY) === 'true') {
+        return;
+      }
       if (!status.exactAlarmAllowed) {
         await PeriodBackgroundSync.requestExactAlarmPermission();
       }
       if (!status.batteryOptimizationIgnored) {
         await PeriodBackgroundSync.requestBatteryOptimizationExemption();
       }
-      localStorage.setItem('kalyani_bg_prompted_v5', 'true');
+      localStorage.setItem(PROMPT_KEY, 'true');
+      localStorage.setItem(LAST_KEY, String(Date.now()));
+      // Clear legacy gate so old installs re-prompt once
+      localStorage.removeItem('kalyani_bg_prompted_v5');
     } catch (err) {
       console.warn('Background permissions prompt notice:', err);
     }
@@ -174,17 +184,44 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Dispatches an instant heads-up period notification with fixed ID 88002.
-   * Directly uses native PeriodBackgroundSyncPlugin to ensure high-priority sound and banner,
-   * with fallback to Capacitor LocalNotifications.
+   * Dispatches an instant heads-up period notification.
+   * Uses a UNIQUE id per change so the 2nd/3rd HOD edit always
+   * produces a fresh banner + sound on Vivo/Samsung/Xiaomi
+   * (fixed ID 88002 silently replaced the card → looked "ignored").
+   * Directly uses native PeriodBackgroundSyncPlugin first for
+   * high-priority sound and banner, with LocalNotifications fallback.
    */
   async notifyPeriodUpdate(title: string, body: string): Promise<void> {
+    const uniqueId = 88002 + (Math.floor(Date.now() / 1000) % 9000);
     if (isNative()) {
       try {
         await PeriodBackgroundSync.showNotification({ title, body });
-        return;
       } catch (err) {
         console.warn('Direct native notification dispatch fallback notice:', err);
+      }
+      // Always ALSO schedule via LocalNotifications with unique id so that
+      // even if the native fixed-ID card is suppressed, a fresh card appears.
+      try {
+        if (!(await this.requestPermission())) return;
+        await this.ensureChannel();
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        await LocalNotifications.schedule({
+          notifications: [{
+            id: uniqueId,
+            title,
+            body,
+            largeBody: body,
+            summaryText: 'SPECTRA Period Update',
+            channelId: 'spectra_alerts_v5',
+            smallIcon: 'ic_spectra_notification',
+            largeIcon: 'ic_launcher',
+            iconColor: '#F43F5E'
+          }]
+        });
+        return;
+      } catch (err) {
+        console.warn('Period update notification failed:', err);
+        return;
       }
     }
 
@@ -194,7 +231,7 @@ class NativeNotificationBridge {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       await LocalNotifications.schedule({
         notifications: [{
-          id: 88002, // Matches native PERIOD_NOTIFICATION_ID = 88002
+          id: uniqueId,
           title,
           body,
           largeBody: body,
@@ -308,6 +345,8 @@ class NativeNotificationBridge {
       localStorage.removeItem('kalyani_scheduled_reminder_role');
       // Also reset the OEM battery prompt gate so a new user on the same device gets prompted
       localStorage.removeItem('kalyani_bg_prompted_v5');
+      localStorage.removeItem('kalyani_bg_prompted_v6');
+      localStorage.removeItem('kalyani_bg_prompted_v6_time');
     } catch {}
   }
 
@@ -583,11 +622,28 @@ class KalyaniNotificationManager {
   }
 
   private lastPeriodNotificationTime = 0;
+  private lastPeriodNotificationSig = '';
+
+  /**
+   * Deduplicates by CONTENT, not by time alone: the same signature within
+   * 10s is suppressed (echo), but a DIFFERENT HOD change always notifies.
+   * Fixes shared-throttle bug where 2nd rapid HOD edit was dropped because
+   * both notifyPeriodScheduleUpdated (10s) and notifyPeriodUpdated (5s)
+   * shared one timestamp.
+   */
+  private shouldSuppressPeriodAlert(sig: string, windowMs: number): boolean {
+    const now = Date.now();
+    if (sig && sig === this.lastPeriodNotificationSig && now - this.lastPeriodNotificationTime < windowMs) {
+      return true;
+    }
+    this.lastPeriodNotificationSig = sig;
+    this.lastPeriodNotificationTime = now;
+    return false;
+  }
 
   async notifyPeriodScheduleUpdated(periodCount: number, deptName?: string): Promise<void> {
-    const now = Date.now();
-    if (now - this.lastPeriodNotificationTime < 10000) return;
-    this.lastPeriodNotificationTime = now;
+    const sig = `count:${deptName || ''}:${periodCount}`;
+    if (this.shouldSuppressPeriodAlert(sig, 10000)) return;
 
     const title = 'SPECTRA — Period Schedule Updated 🔔';
     const deptPrefix = deptName ? `[${deptName}] ` : '';
@@ -605,9 +661,8 @@ class KalyaniNotificationManager {
   }
 
   async notifyPeriodUpdated(message?: string, deptName?: string): Promise<void> {
-    const now = Date.now();
-    if (now - this.lastPeriodNotificationTime < 5000) return;
-    this.lastPeriodNotificationTime = now;
+    const sig = `${deptName || ''}:${message || ''}`;
+    if (this.shouldSuppressPeriodAlert(sig, 5000)) return;
 
     const title = 'SPECTRA — Period Schedule Updated 🔔';
     const deptPrefix = deptName ? `[${deptName}] ` : '';

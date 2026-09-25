@@ -33,9 +33,12 @@ const persistActiveUser = (user: KalyaniUser | null) => {
     } catch {}
     try {
       import('../services/notificationService').then((m) => {
+        // Only re-baseline native state when cloud data is hydrated;
+        // otherwise the stale cache would overwrite a real HOD change.
+        if (!useAppStore.getState().isCloudHydrated) return;
         const userDept = user.departmentId || 'CSE';
         const deptPeriods = useAppStore.getState().getActivePeriods(userDept);
-        const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+        const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.startTime || ''}_${p.endTime || ''}_${p.sequence}`).sort().join('|');
         m.notificationService.syncBackgroundPeriodState(userDept, deptPeriods.length, signature);
       });
     } catch {}

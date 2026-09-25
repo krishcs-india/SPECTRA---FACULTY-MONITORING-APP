@@ -31,7 +31,10 @@ public class PeriodSyncReceiver extends BroadcastReceiver {
             : null;
         if (wakeLock != null) {
             try {
-                wakeLock.acquire(8000L); // 8s safety timeout
+                // 25s covers Firestore 7s connect + 7s read + overhead on slow
+                // networks; old 8s timeout killed the thread mid-GET on Android
+                // 14+ Cached Apps Freezer, losing 2nd+ notifications.
+                wakeLock.acquire(25000L); // 25s safety timeout
             } catch (Exception ignored) {}
         }
 

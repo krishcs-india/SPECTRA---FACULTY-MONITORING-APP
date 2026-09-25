@@ -59,6 +59,9 @@ public class PeriodSyncWorker extends Worker {
 
     /**
      * Enqueues an immediate WorkManager job to check Firestore right now.
+     * Uses APPEND policy so an in-flight check is never cancelled by a
+     * concurrent alarm trigger (old REPLACE cancelled the chain mid-flight,
+     * losing the 2nd HOD change).
      */
     public static void enqueueImmediate(Context context) {
         if (context == null) return;
@@ -73,7 +76,7 @@ public class PeriodSyncWorker extends Worker {
 
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.APPEND,
                 work
             );
             Log.d(TAG, "Immediate WorkManager sync enqueued successfully.");
@@ -85,6 +88,7 @@ public class PeriodSyncWorker extends Worker {
     /**
      * Enqueues the next WorkManager check with an initial delay.
      * Survives app closure and recent apps dismissal because it is held by system_server JobScheduler.
+     * Uses APPEND so delayed chaining never replaces (cancels) an immediate check.
      */
     public static void scheduleNextRun(Context context, long delaySeconds) {
         if (context == null) return;
@@ -100,7 +104,7 @@ public class PeriodSyncWorker extends Worker {
 
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.APPEND,
                 nextWork
             );
             Log.d(TAG, "Scheduled next WorkManager sync in " + delaySeconds + "s");

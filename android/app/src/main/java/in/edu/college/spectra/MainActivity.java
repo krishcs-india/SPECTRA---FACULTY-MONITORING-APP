@@ -23,5 +23,17 @@ public class MainActivity extends BridgeActivity {
         PeriodBackgroundSyncManager.scheduleWorkManager(getApplicationContext());
         PeriodBackgroundSyncManager.scheduleNextCheck(getApplicationContext(), 5000L);
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Android 15/16/17 can revoke SCHEDULE_EXACT_ALARM at runtime — re-arm the
+        // Doze-exempt heartbeat every time the app returns to foreground so the
+        // 2nd+ HOD change is never stuck on a dead inexact alarm.
+        try {
+            PeriodBackgroundSyncManager.scheduleNextCheck(getApplicationContext(), 5000L);
+            PeriodSyncWorker.enqueueImmediate(getApplicationContext());
+        } catch (Exception ignored) {}
+    }
 }
 

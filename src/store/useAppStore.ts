@@ -23,6 +23,20 @@ import {
 } from '../utils/dateUtils';
 import { notificationService } from '../services/notificationService';
 
+/**
+ * Canonical period signature — MUST match native
+ * PeriodBackgroundSyncManager.java periodItems format.
+ * Includes timing + shortName so HOD renames AND time edits
+ * always produce a different signature (fixes "only first
+ * notification fires" when 2nd change is timing-only).
+ */
+export const buildPeriodSignature = (periods: Period[]): string => {
+  return (periods || [])
+    .map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.startTime || ''}_${p.endTime || ''}_${p.sequence}`)
+    .sort()
+    .join('|');
+};
+
 interface AppStoreState {
   users: KalyaniUser[];
   departments: Department[];
@@ -310,23 +324,31 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           const newDeptPeriods = incoming.filter(
             (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
           );
-          const newSignature = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+          const newSignature = buildPeriodSignature(newDeptPeriods);
           const oldDeptPeriods = (oldPeriods || []).filter(
             (p) => (p.departmentId || '').toUpperCase() === targetDept.toUpperCase() && p.active !== false
           );
-          const oldSignature = oldDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+          const oldSignature = buildPeriodSignature(oldDeptPeriods);
 
           const knownSigKey = `kalyani_known_period_sig_${targetDept}`;
           const lastKnownSig = localStorage.getItem(knownSigKey);
 
           // If this is the first load of periods in this app session (app opening):
-          // Silently synchronize baseline so opening the app NEVER triggers a false alarm.
+          // If a stored baseline exists and differs, the HOD changed periods
+          // while this app was killed — that is a REAL change, notify it
+          // instead of silently swallowing (fixes 2nd-change-lost).
           if (!hasLoadedPeriodsSession) {
             hasLoadedPeriodsSession = true;
+            const hadBaseline = lastKnownSig !== null && lastKnownSig !== '';
+            const changedWhileClosed = hadBaseline && lastKnownSig !== newSignature;
             try {
               localStorage.setItem(knownSigKey, newSignature);
             } catch {}
             notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
+            if (changedWhileClosed && newDeptPeriods.length > 0 && !isCurrentHod) {
+              const msg = `The HOD has updated the period schedule for ${targetDept}. Please review and update your schedule again.`;
+              notificationService.notifyPeriodUpdated(msg, targetDept);
+            }
           } else {
             // Subsequent snapshot in the active session means HOD added, deleted, or updated periods!
             const countChanged = newDeptPeriods.length !== oldDeptPeriods.length;
@@ -897,7 +919,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     } catch {}
 
     const newDeptPeriods = nextPeriods.filter((p) => normalizeDepartmentId(p.departmentId) === cleanDept && p.active !== false);
-    const newSig = newDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+    const newSig = buildPeriodSignature(newDeptPeriods);
     try {
       localStorage.setItem(`kalyani_known_period_sig_${cleanDept}`, newSig);
     } catch {}
@@ -912,6 +934,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   updatePeriod: (id, updates) => {
     let updated: Period | undefined;
+    let updatedDept = '';
     const next = get().periods.map((p) => {
       if (p.id === id) {
         updated = {
@@ -919,6 +942,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           ...updates,
           ...(updates.departmentId ? { departmentId: normalizeDepartmentId(updates.departmentId) } : {})
         };
+        updatedDept = normalizeDepartmentId(updated.departmentId) || 'CSE';
         return updated;
       }
       return p;
@@ -928,7 +952,18 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: next }));
     } catch {}
 
-    if (updated) firestoreService.savePeriod(updated);
+    // Sync baseline so native background checker tracks renames/timing edits.
+    // HOD self-notify is still suppressed by isCurrentHod guard in onPeriods;
+    // faculty devices detect the change via Firestore echo (old vs new sig).
+    if (updated) {
+      try {
+        const deptPeriods = next.filter((p) => normalizeDepartmentId(p.departmentId) === updatedDept && p.active !== false);
+        const newSig = buildPeriodSignature(deptPeriods);
+        localStorage.setItem(`kalyani_known_period_sig_${updatedDept}`, newSig);
+        notificationService.syncBackgroundPeriodState(updatedDept, deptPeriods.length, newSig);
+      } catch {}
+      firestoreService.savePeriod(updated);
+    }
   },
 
   deletePeriod: (id) => {
@@ -990,7 +1025,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       idsToDelete.add(`P_${cleanDept}_${s}`);
     }
 
-    const newSig = remaining.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+    const newSig = buildPeriodSignature(remaining);
     try {
       localStorage.setItem(`kalyani_known_period_sig_${cleanDept}`, newSig);
     } catch {}
@@ -1016,6 +1051,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     set({ periods: next });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), periods: next }));
+      const deptPeriods = next.filter((p) => normalizeDepartmentId(p.departmentId) === cleanDept && p.active !== false);
+      localStorage.setItem(`kalyani_known_period_sig_${cleanDept}`, buildPeriodSignature(deptPeriods));
+    } catch {}
+    try {
+      const deptPeriods = next.filter((p) => normalizeDepartmentId(p.departmentId) === cleanDept && p.active !== false);
+      notificationService.syncBackgroundPeriodState(cleanDept, deptPeriods.length, buildPeriodSignature(deptPeriods));
     } catch {}
     initial.forEach((p: Period) => firestoreService.savePeriod(p));
     return initial;

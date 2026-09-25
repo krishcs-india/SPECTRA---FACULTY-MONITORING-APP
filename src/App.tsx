@@ -65,16 +65,21 @@ export const App: React.FC = () => {
       currentUser.uid
     );
 
-    // Synchronize baseline period monitoring for user's department in native Android background manager
+    // Synchronize baseline period monitoring for user's department in native Android background manager.
+    // IMPORTANT: only sync AFTER cloud hydration — syncing the stale local
+    // cache first would overwrite a real HOD change with old count/sig and
+    // permanently swallow the pending background notification.
     try {
+      const hydrated = useAppStore.getState().isCloudHydrated;
+      if (!hydrated) return;
       const userDept = currentUser.departmentId || 'CSE';
       const deptPeriods = useAppStore.getState().getActivePeriods(userDept);
-      const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
+      const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.startTime || ''}_${p.endTime || ''}_${p.sequence}`).sort().join('|');
       notificationService.syncBackgroundPeriodState(userDept, deptPeriods.length, signature);
     } catch (e) {
       console.warn('Initial period sync notice:', e);
     }
-  }, [currentUser?.uid, currentUser?.role, currentUser?.hodType, currentUser?.departmentId]);
+  }, [currentUser?.uid, currentUser?.role, currentUser?.hodType, currentUser?.departmentId, isCloudHydrated]);
 
   const handleSplashComplete = async () => {
     setShowSplash(false);

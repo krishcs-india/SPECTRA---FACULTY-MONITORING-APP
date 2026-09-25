@@ -45,6 +45,9 @@ public class PeriodBackgroundSyncManager {
     public static final String KEY_LAST_CHECK_TIME = "last_check_time";
     public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt_v5";
     public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm_v5";
+    public static final String KEY_LAST_PROMPT_TIME = "last_permission_prompt_time_v6";
+    public static final String KEY_LAST_NOTIFIED_SIG = "last_notified_signature_v6";
+    public static final String KEY_NOTIF_COUNTER = "notif_id_counter_v6";
 
     public static final String CHANNEL_ID = "spectra_alerts_v5";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
@@ -105,7 +108,10 @@ public class PeriodBackgroundSyncManager {
 
     /**
      * Schedules an AlarmManager alarm for hardware level heartbeat.
-     * Uses setAlarmClock when exact alarms are permitted to exit Android Doze mode immediately.
+     * Android 15/16/17 (API 35/36/37): setExactAndAllowWhileIdle is batched in
+     * Doze — only setAlarmClock fires immediately. Use setAlarmClock when exact
+     * alarms are permitted, otherwise fall back gracefully. This fixes 20s polls
+     * silently stretching to minutes/hours after the first fire.
      */
     public static void scheduleNextCheck(Context context, long delayMillis) {
         if (context == null) return;
@@ -124,16 +130,21 @@ public class PeriodBackgroundSyncManager {
 
             long triggerAtMillis = System.currentTimeMillis() + delayMillis;
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (alarmManager.canScheduleExactAlarms()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    // Doze-exempt: fires even in deep Doze on API 31-37.
+                    try {
+                        AlarmManager.AlarmClockInfo clockInfo = new AlarmManager.AlarmClockInfo(
+                            triggerAtMillis, pendingIntent);
+                        alarmManager.setAlarmClock(clockInfo, pendingIntent);
+                    } catch (Exception e) {
                         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-                    } else {
-                        alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
                     }
                 } else {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
                 }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
             } else {
                 alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
             }
@@ -262,6 +273,24 @@ public class PeriodBackgroundSyncManager {
                         pName = nameObj.optString("stringValue", "");
                     }
 
+                    String shortName = "";
+                    JSONObject shortObj = fields.optJSONObject("shortName");
+                    if (shortObj != null && shortObj.has("stringValue")) {
+                        shortName = shortObj.optString("stringValue", "");
+                    }
+
+                    String startTime = "";
+                    JSONObject startObj = fields.optJSONObject("startTime");
+                    if (startObj != null && startObj.has("stringValue")) {
+                        startTime = startObj.optString("stringValue", "");
+                    }
+
+                    String endTime = "";
+                    JSONObject endObj = fields.optJSONObject("endTime");
+                    if (endObj != null && endObj.has("stringValue")) {
+                        endTime = endObj.optString("stringValue", "");
+                    }
+
                     String seq = "";
                     JSONObject seqObj = fields.optJSONObject("sequence");
                     if (seqObj != null) {
@@ -277,38 +306,55 @@ public class PeriodBackgroundSyncManager {
                         seq = String.valueOf(i + 1);
                     }
 
-                    // Format matches TypeScript EXACTLY: id_name_sequence
-                    periodItems.add(pId + "_" + pName + "_" + seq);
+                    // Format matches TypeScript EXACTLY: id_name_shortName_startTime_endTime_sequence
+                    // (expanded from id_name_sequence so timing/rename edits are detected —
+                    // previously 2nd HOD change with same count+name was invisible)
+                    periodItems.add(pId + "_" + pName + "_" + shortName + "_" + startTime + "_" + endTime + "_" + seq);
                 }
             }
 
             Collections.sort(periodItems);
             // Matches TypeScript's array.sort().join('|') without any trailing delimiter
             String currentSignature = String.join("|", periodItems);
-            boolean appInForeground = isAppInForeground(context);
 
             Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount
-                    + " active periods (known was " + knownCount + ", inForeground=" + appInForeground + ")");
+                    + " active periods (known was " + knownCount + ")");
 
             if (knownCount != -1) {
                 boolean countChanged = (activeCount != knownCount);
                 boolean signatureChanged = (!knownSignature.isEmpty() && !knownSignature.equals(currentSignature));
 
                 if (countChanged || signatureChanged) {
-                    if (!appInForeground) {
-                        String title = "SPECTRA — Period Schedule Updated 🔔";
-                        String body = countChanged
-                            ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
-                            : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
-                        showPeriodUpdatedNotification(context, title, body);
-                    }
+                    // Deduplicate identical re-deliveries (e.g. double alarm + worker firing
+                    // together) but NEVER suppress a genuinely new signature — every HOD
+                    // add/delete/rename/timing edit must alert, not just the first.
+                    String lastNotified = prefs.getString(KEY_LAST_NOTIFIED_SIG, "");
+                    boolean alreadyNotified = currentSignature.equals(lastNotified);
 
-                    // Update baseline immediately so this notification NEVER fires redundantly
+                    // Always update baseline so this change NEVER fires redundantly…
                     prefs.edit()
                         .putInt(KEY_KNOWN_PERIOD_COUNT, activeCount)
                         .putString(KEY_KNOWN_PERIOD_SIGNATURE, currentSignature)
                         .putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis())
                         .apply();
+
+                    if (!alreadyNotified) {
+                        String title = "SPECTRA — Period Schedule Updated 🔔";
+                        String body = countChanged
+                            ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
+                            : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
+                        // …and always notify — foreground or background. The old
+                        // `if (!appInForeground)` gate advanced the baseline while
+                        // suppressing the alert, so any edit made while the app was
+                        // open permanently swallowed all future notifications.
+                        // JS onSnapshot may also fire in-foreground; the fixed-ID
+                        // card is now re-alerted with unique IDs so duplicates
+                        // collapse visually instead of losing alerts.
+                        showPeriodUpdatedNotification(context, title, body);
+                        prefs.edit().putString(KEY_LAST_NOTIFIED_SIG, currentSignature).apply();
+                    } else {
+                        Log.d(TAG, "Skipping duplicate notify for identical signature.");
+                    }
                 }
             } else {
                 // First initialization — record baseline silently without notifying
@@ -330,7 +376,9 @@ public class PeriodBackgroundSyncManager {
 
     /**
      * Builds and dispatches a single high-priority heads-up system notification.
-     * Uses fixed PERIOD_NOTIFICATION_ID so that it NEVER stacks duplicate cards.
+     * Uses a UNIQUE id per change (base 88002 + rotating counter) so the 2nd/3rd
+     * HOD edit always produces a fresh banner + sound on Vivo OriginOS, Samsung
+     * OneUI and Xiaomi HyperOS — the old fixed ID silently replaced the card.
      */
     public static void showPeriodUpdatedNotification(Context context, String title, String body) {
         try {
@@ -338,9 +386,11 @@ public class PeriodBackgroundSyncManager {
 
             Intent openAppIntent = new Intent(context, MainActivity.class);
             openAppIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            // Unique requestCode per notification so taps never collide
+            int requestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
             PendingIntent contentIntent = PendingIntent.getActivity(
                 context,
-                0,
+                requestCode,
                 openAppIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
@@ -362,14 +412,19 @@ public class PeriodBackgroundSyncManager {
                 .setVibrate(new long[]{0, 300, 200, 300})
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setAutoCancel(true)
+                .setOnlyAlertOnce(false)
                 .setContentIntent(contentIntent);
 
             NotificationManager notificationManager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (notificationManager != null) {
-                // Using stable ID ensures only ONE notification card exists in the drawer
-                notificationManager.notify(PERIOD_NOTIFICATION_ID, builder.build());
-                Log.d(TAG, "Dispatched single native background period notification successfully!");
+                // Rotating ID guarantees every HOD change re-alerts with heads-up
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                int counter = prefs.getInt(KEY_NOTIF_COUNTER, 0);
+                int notifId = PERIOD_NOTIFICATION_ID + (counter % 50);
+                prefs.edit().putInt(KEY_NOTIF_COUNTER, counter + 1).apply();
+                notificationManager.notify(notifId, builder.build());
+                Log.d(TAG, "Dispatched native background period notification id=" + notifId);
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to display background period notification", e);
@@ -377,7 +432,7 @@ public class PeriodBackgroundSyncManager {
     }
 
     /**
-     * Clears the period notification from the status bar when the user enters the app.
+     * Clears all period notifications (base + rotated ids) when the user enters the app.
      */
     public static void clearPeriodNotification(Context context) {
         if (context == null) return;
@@ -385,7 +440,13 @@ public class PeriodBackgroundSyncManager {
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm != null) {
                 nm.cancel(PERIOD_NOTIFICATION_ID);
-                Log.d(TAG, "Cleared period update notification from drawer.");
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                int counter = prefs.getInt(KEY_NOTIF_COUNTER, 0);
+                for (int i = 0; i < 50; i++) {
+                    try { nm.cancel(PERIOD_NOTIFICATION_ID + i); } catch (Exception ignored) {}
+                }
+                prefs.edit().putInt(KEY_NOTIF_COUNTER, counter).apply();
+                Log.d(TAG, "Cleared period update notifications from drawer.");
             }
         } catch (Exception ignored) {}
     }
@@ -402,7 +463,10 @@ public class PeriodBackgroundSyncManager {
             } catch (Exception ignored) {}
 
             NotificationChannel channel = nm.getNotificationChannel(CHANNEL_ID);
-            if (channel == null) {
+            // Repair path: if the user/OS demoted the channel below HIGH, recreate it
+            // so heads-up banners + sound keep working on Android 15/16/17.
+            if (channel == null || channel.getImportance() < NotificationManager.IMPORTANCE_HIGH) {
+                try { nm.deleteNotificationChannel(CHANNEL_ID); } catch (Exception ignored) {}
                 channel = new NotificationChannel(
                     CHANNEL_ID,
                     "SPECTRA Institutional Alerts",
@@ -446,10 +510,15 @@ public class PeriodBackgroundSyncManager {
     public static void requestExactAlarmPermission(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            if (prefs.getBoolean(KEY_PROMPTED_EXACT_ALARM, false)) {
-                return; // Already prompted, do not re-prompt on every launch
+            // Allow re-prompt once per 24h if still denied (old once-forever gate
+            // left alarms on inexact fallback permanently after a single denial).
+            long last = prefs.getLong(KEY_LAST_PROMPT_TIME, 0);
+            boolean prompted = prefs.getBoolean(KEY_PROMPTED_EXACT_ALARM, false);
+            if (prompted && System.currentTimeMillis() - last < 24L * 60L * 60L * 1000L) {
+                return;
             }
-            prefs.edit().putBoolean(KEY_PROMPTED_EXACT_ALARM, true).apply();
+            prefs.edit().putBoolean(KEY_PROMPTED_EXACT_ALARM, true)
+                .putLong(KEY_LAST_PROMPT_TIME, System.currentTimeMillis()).apply();
 
             try {
                 Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
@@ -464,11 +533,18 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestBatteryOptimizationExemption(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // If already exempt, nothing to do (but keep heartbeat armed by caller).
+            if (isBatteryOptimizationIgnored(context)) return;
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            if (prefs.getBoolean(KEY_PROMPTED_BATTERY_OPT, false)) {
-                return; // Already prompted, do not re-prompt on every launch
+            long last = prefs.getLong(KEY_LAST_PROMPT_TIME, 0);
+            boolean prompted = prefs.getBoolean(KEY_PROMPTED_BATTERY_OPT, false);
+            // Re-prompt at most once per 24h until granted — Vivo/Samsung kill
+            // background sync otherwise and only the first change ever arrives.
+            if (prompted && System.currentTimeMillis() - last < 24L * 60L * 60L * 1000L) {
+                return;
             }
-            prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true).apply();
+            prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true)
+                .putLong(KEY_LAST_PROMPT_TIME, System.currentTimeMillis()).apply();
 
             String manufacturer = Build.MANUFACTURER.toLowerCase();
             boolean launched = false;
