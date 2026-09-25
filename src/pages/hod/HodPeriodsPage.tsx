@@ -9,7 +9,6 @@ import { usePeriods } from '../../hooks/usePeriods';
 import { useAuth } from '../../hooks/useAuth';
 import { Period } from '../../types/period';
 import { Plus, Edit2, Trash2, CheckCircle2, Info } from 'lucide-react';
-import { notificationService } from '../../services/notificationService';
 
 export const HodPeriodsPage: React.FC = () => {
   const { currentUser } = useAuth();

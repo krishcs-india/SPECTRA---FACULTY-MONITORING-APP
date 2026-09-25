@@ -148,14 +148,39 @@ public class PeriodBackgroundSyncManager {
     }
 
     /**
+     * Checks if the app is currently in the foreground (user is actively interacting with the UI).
+     */
+    public static boolean isAppInForeground(Context context) {
+        if (context == null) return false;
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return false;
+            List<android.app.ActivityManager.RunningAppProcessInfo> processInfos = am.getRunningAppProcesses();
+            if (processInfos == null) return false;
+            String packageName = context.getPackageName();
+            for (android.app.ActivityManager.RunningAppProcessInfo info : processInfos) {
+                if (info.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                        && packageName.equals(info.processName)) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /**
      * Queries Firestore REST API directly and compares against the known period state.
      * Guaranteed crash-safe with optJSONObject / optString parsing.
-     * Fires EXACTLY ONCE when actual changes occur, and immediately updates baseline.
+     * Fires EXACTLY ONCE when actual changes occur while the app is in the background.
+     * Never repeats or stacks notifications, and suppresses alerts when user is already in-app.
      */
     public static void performCheck(Context context) {
         if (context == null) return;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String targetDept = prefs.getString(KEY_DEPARTMENT_ID, "CSE");
+        if (targetDept == null) targetDept = "CSE";
+        targetDept = targetDept.trim().toUpperCase();
+
         int knownCount = prefs.getInt(KEY_KNOWN_PERIOD_COUNT, -1);
         String knownSignature = prefs.getString(KEY_KNOWN_PERIOD_SIGNATURE, "");
 
@@ -212,10 +237,19 @@ public class PeriodBackgroundSyncManager {
 
                 if (dept.equalsIgnoreCase(targetDept) || targetDept.isEmpty() || targetDept.equalsIgnoreCase("ALL")) {
                     activeCount++;
-                    String pId = "p_" + i;
+
+                    String pId = "";
                     JSONObject idObj = fields.optJSONObject("id");
                     if (idObj != null && idObj.has("stringValue")) {
-                        pId = idObj.optString("stringValue", pId);
+                        pId = idObj.optString("stringValue", "");
+                    }
+                    if (pId.isEmpty()) {
+                        String docName = doc.optString("name", "");
+                        if (docName.contains("/")) {
+                            pId = docName.substring(docName.lastIndexOf('/') + 1);
+                        } else {
+                            pId = "p_" + (i + 1);
+                        }
                     }
 
                     String pName = "";
@@ -224,14 +258,19 @@ public class PeriodBackgroundSyncManager {
                         pName = nameObj.optString("stringValue", "");
                     }
 
-                    String seq = String.valueOf(i);
+                    String seq = "";
                     JSONObject seqObj = fields.optJSONObject("sequence");
                     if (seqObj != null) {
                         if (seqObj.has("integerValue")) {
-                            seq = seqObj.optString("integerValue", String.valueOf(i));
+                            seq = seqObj.optString("integerValue", "");
                         } else if (seqObj.has("stringValue")) {
-                            seq = seqObj.optString("stringValue", String.valueOf(i));
+                            seq = seqObj.optString("stringValue", "");
+                        } else if (seqObj.has("doubleValue")) {
+                            seq = String.valueOf((int) seqObj.optDouble("doubleValue", 0));
                         }
+                    }
+                    if (seq.isEmpty()) {
+                        seq = String.valueOf(i + 1);
                     }
 
                     // Format matches TypeScript EXACTLY: id_name_sequence
@@ -240,35 +279,34 @@ public class PeriodBackgroundSyncManager {
             }
 
             Collections.sort(periodItems);
-            StringBuilder sigBuilder = new StringBuilder();
-            for (String item : periodItems) {
-                sigBuilder.append(item).append("|");
-            }
-            String currentSignature = sigBuilder.toString();
+            // Matches TypeScript's array.sort().join('|') without any trailing delimiter
+            String currentSignature = String.join("|", periodItems);
+            boolean appInForeground = isAppInForeground(context);
 
-            Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount + " active periods (known was " + knownCount + ")");
+            Log.d(TAG, "Background check complete for dept " + targetDept + ": found " + activeCount
+                    + " active periods (known was " + knownCount + ", inForeground=" + appInForeground + ")");
 
             if (knownCount != -1 && knownCount != 0) {
-                if (activeCount != knownCount) {
-                    showPeriodUpdatedNotification(
-                        context,
-                        "SPECTRA — Period Schedule Updated 🔔",
-                        "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
-                    );
+                boolean countChanged = (activeCount != knownCount);
+                boolean signatureChanged = (!knownSignature.isEmpty() && !knownSignature.equals(currentSignature));
+
+                if (countChanged || signatureChanged) {
+                    // Only dispatch status-bar notification if app is in background or closed
+                    // If the user is actively inside the app, the in-app amber card handles visual alerting
+                    if (!appInForeground) {
+                        String title = "SPECTRA — Period Schedule Updated 🔔";
+                        String body = countChanged
+                            ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
+                            : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
+                        showPeriodUpdatedNotification(context, title, body);
+                    } else {
+                        // User is in the app, clear any stale notification
+                        clearPeriodNotification(context);
+                    }
+
                     // Update baseline immediately so this notification NEVER fires redundantly
                     prefs.edit()
                         .putInt(KEY_KNOWN_PERIOD_COUNT, activeCount)
-                        .putString(KEY_KNOWN_PERIOD_SIGNATURE, currentSignature)
-                        .putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis())
-                        .apply();
-                } else if (!knownSignature.isEmpty() && !knownSignature.equals(currentSignature)) {
-                    showPeriodUpdatedNotification(
-                        context,
-                        "SPECTRA — Period Schedule Updated 🔔",
-                        "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again."
-                    );
-                    // Update baseline immediately so this notification NEVER fires redundantly
-                    prefs.edit()
                         .putString(KEY_KNOWN_PERIOD_SIGNATURE, currentSignature)
                         .putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis())
                         .apply();
@@ -298,6 +336,15 @@ public class PeriodBackgroundSyncManager {
     public static void showPeriodUpdatedNotification(Context context, String title, String body) {
         try {
             ensureNotificationChannel(context);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(
+                        context, android.Manifest.permission.POST_NOTIFICATIONS)
+                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    Log.w(TAG, "POST_NOTIFICATIONS permission not granted; cannot display notification.");
+                    return;
+                }
+            }
 
             Intent openAppIntent = new Intent(context, MainActivity.class);
             openAppIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);

@@ -65,16 +65,6 @@ export const App: React.FC = () => {
       currentUser.uid
     );
 
-    const todaySchedule = useAppStore.getState().getSchedule(currentUser.uid, getTodayDateString());
-    const isSubmitted = todaySchedule?.status === 'SUBMITTED' || todaySchedule?.status === 'FULL_DAY_FREE';
-
-    notificationService.native.notifyAppLaunchByRole(
-      currentUser.uid,
-      currentUser.name,
-      effectiveRole,
-      isSubmitted
-    );
-
     // Synchronize baseline period monitoring for user's department in native Android background manager
     try {
       const userDept = currentUser.departmentId || 'CSE';

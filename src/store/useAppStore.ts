@@ -310,6 +310,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
           // Always ensure native background sync knows the current baseline
           notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);
+          notificationService.native.clearPeriodNotification();
 
           set({ periods: incoming });
           persist();
