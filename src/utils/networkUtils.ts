@@ -11,9 +11,7 @@ export async function isDeviceOnline(): Promise<boolean> {
     // 1. Native Capacitor check: queries OS network hardware status
     if (Capacitor.isNativePlatform?.()) {
       const status = await Network.getStatus();
-      if (!status.connected) {
-        return false;
-      }
+      return Boolean(status.connected);
     }
   } catch (err) {
     console.warn('Native network status check skipped:', err);
@@ -24,40 +22,12 @@ export async function isDeviceOnline(): Promise<boolean> {
     return false;
   }
 
-  // 3. Active HTTP probe with 2.5s timeout to guarantee actual internet packet routing
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-    await fetch(`https://www.google.com/favicon.ico?_kalyani_net=${Date.now()}`, {
-      method: 'HEAD',
-      mode: 'no-cors',
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
+  // 3. For web browser: if navigator.onLine is true, verify or fallback gracefully
+  if (typeof window !== 'undefined') {
     return true;
-  } catch (err: any) {
-    // Try secondary lightweight endpoint if first failed due to specific domain block
-    try {
-      const controller2 = new AbortController();
-      const timeoutId2 = setTimeout(() => controller2.abort(), 2000);
-
-      await fetch(`https://1.1.1.1/cdn-cgi/trace?_kalyani_net=${Date.now()}`, {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-store',
-        signal: controller2.signal,
-      });
-
-      clearTimeout(timeoutId2);
-      return true;
-    } catch {
-      // Both network probes failed -> No actual internet routing
-      return false;
-    }
   }
+
+  return true;
 }
 
 /**

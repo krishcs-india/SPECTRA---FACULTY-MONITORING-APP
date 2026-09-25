@@ -295,11 +295,13 @@ public class PeriodBackgroundSyncManager {
                 boolean signatureChanged = (!knownSignature.isEmpty() && !knownSignature.equals(currentSignature));
 
                 if (countChanged || signatureChanged) {
-                    String title = "SPECTRA — Period Schedule Updated 🔔";
-                    String body = countChanged
-                        ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
-                        : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
-                    showPeriodUpdatedNotification(context, title, body);
+                    if (!appInForeground) {
+                        String title = "SPECTRA — Period Schedule Updated 🔔";
+                        String body = countChanged
+                            ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
+                            : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
+                        showPeriodUpdatedNotification(context, title, body);
+                    }
 
                     // Update baseline immediately so this notification NEVER fires redundantly
                     prefs.edit()

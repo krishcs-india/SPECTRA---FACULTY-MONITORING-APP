@@ -530,6 +530,19 @@ export const firestoreService = {
     }
   },
 
+  async deletePeriodsBatch(ids: string[]): Promise<void> {
+    if (!isLiveFirebaseConfigured || !db || ids.length === 0) return;
+    try {
+      const batch = writeBatch(db);
+      ids.forEach((id) => {
+        batch.delete(doc(db, 'periods', id));
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error('Error batch deleting periods in Firestore:', err);
+    }
+  },
+
   async savePeriodsBatch(periods: Period[]): Promise<void> {
     if (!isLiveFirebaseConfigured || !db || periods.length === 0) return;
     try {

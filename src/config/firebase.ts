@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 
 // Default Firebase configuration from environment variables or safe fallback
 const firebaseConfig = {
@@ -20,7 +20,14 @@ let googleProvider: GoogleAuthProvider;
 try {
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   auth = getAuth(app);
-  db = getFirestore(app);
+  try {
+    // Enable long polling to prevent WebChannel stream disconnects behind proxies, firewalls and SSL filters
+    db = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  } catch {
+    db = getFirestore(app);
+  }
   googleProvider = new GoogleAuthProvider();
   googleProvider.setCustomParameters({ prompt: 'select_account' });
 } catch (error) {
