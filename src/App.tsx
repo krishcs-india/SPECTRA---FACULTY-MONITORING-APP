@@ -83,6 +83,27 @@ export const App: React.FC = () => {
     try {
       await notificationService.requestPermissions();
       await notificationService.checkAndPromptBackgroundPermissions();
+      await notificationService.native.clearPeriodNotification();
+
+      if (currentUser) {
+        const todayDate = new Date().toISOString().slice(0, 10);
+        const todayKey = `${currentUser.uid}_${todayDate}`;
+        const sched = useAppStore.getState().schedules[todayKey];
+        const isSubmitted = Boolean(sched && sched.status && sched.status !== 'NOT_SUBMITTED');
+        const effRole: 'ADMIN' | 'HOD' | 'FACULTY' =
+          currentUser.role === 'ADMIN'
+            ? 'ADMIN'
+            : currentUser.role === 'HOD' && currentUser.hodType !== 'AHOD'
+            ? 'HOD'
+            : 'FACULTY';
+        await notificationService.native.notifyLoginOrPendingStatus(
+          currentUser.uid,
+          currentUser.name,
+          effRole,
+          isSubmitted,
+          false
+        );
+      }
     } catch (err) {
       console.warn('Post-splash permission request error:', err);
     }

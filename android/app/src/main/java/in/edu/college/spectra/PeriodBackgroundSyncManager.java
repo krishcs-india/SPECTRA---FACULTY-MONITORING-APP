@@ -4,6 +4,7 @@ import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -42,8 +43,8 @@ public class PeriodBackgroundSyncManager {
     public static final String KEY_KNOWN_PERIOD_COUNT = "known_period_count";
     public static final String KEY_KNOWN_PERIOD_SIGNATURE = "known_period_signature";
     public static final String KEY_LAST_CHECK_TIME = "last_check_time";
-    public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt";
-    public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm";
+    public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt_v5";
+    public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm_v5";
 
     public static final String CHANNEL_ID = "spectra_alerts_v5";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
@@ -52,7 +53,7 @@ public class PeriodBackgroundSyncManager {
     public static final long SYNC_INTERVAL_MS = 20 * 1000L; // 20 seconds for rapid synchronization
 
     private static final String FIRESTORE_URL =
-        "https://firestore.googleapis.com/v1/projects/kalyani-e2179/databases/(default)/documents/periods?key=AIzaSyAORDu_NpbDw1nJ4Jk-u7li988WlVl_u4U";
+        "https://firestore.googleapis.com/v1/projects/kalyani-e2179/databases/(default)/documents/periods?pageSize=300&key=AIzaSyAORDu_NpbDw1nJ4Jk-u7li988WlVl_u4U";
 
     /**
      * Updates the local known baseline from the active web session.
@@ -123,17 +124,7 @@ public class PeriodBackgroundSyncManager {
 
             long triggerAtMillis = System.currentTimeMillis() + delayMillis;
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && canScheduleExactAlarms(context)) {
-                Intent showIntent = new Intent(context, MainActivity.class);
-                PendingIntent showPendingIntent = PendingIntent.getActivity(
-                    context,
-                    0,
-                    showIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                );
-                AlarmManager.AlarmClockInfo clockInfo = new AlarmManager.AlarmClockInfo(triggerAtMillis, showPendingIntent);
-                alarmManager.setAlarmClock(clockInfo, pendingIntent);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     if (alarmManager.canScheduleExactAlarms()) {
                         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
@@ -202,8 +193,8 @@ public class PeriodBackgroundSyncManager {
             URL url = new URL(FIRESTORE_URL);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(15000);
-            conn.setReadTimeout(15000);
+            conn.setConnectTimeout(7000);
+            conn.setReadTimeout(7000);
             conn.setRequestProperty("Accept", "application/json");
 
             int responseCode = conn.getResponseCode();
@@ -477,16 +468,78 @@ public class PeriodBackgroundSyncManager {
             }
             prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true).apply();
 
+            String manufacturer = Build.MANUFACTURER.toLowerCase();
+            boolean launched = false;
+
+            // 1. Always try standard Android battery exemption request first (works on stock Android and Pixel)
             try {
-                Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                intent.setData(Uri.parse("package:" + context.getPackageName()));
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(intent);
-            } catch (Exception e) {
-                try {
-                    Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                if (!isBatteryOptimizationIgnored(context)) {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + context.getPackageName()));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(intent);
+                    launched = true;
+                    Log.d(TAG, "Battery optimization exemption requested via standard Android dialog.");
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Standard battery exemption failed, trying OEM fallback: " + e.getMessage());
+            }
+
+            // 2. OEM-specific deep-link into battery settings for brands that override standard intent
+            if (!launched) {
+                try {
+                    Intent oemIntent = null;
+
+                    if (manufacturer.contains("samsung")) {
+                        // Samsung One UI — open Device Care battery settings
+                        oemIntent = new Intent();
+                        oemIntent.setComponent(new ComponentName(
+                            "com.samsung.android.lool",
+                            "com.samsung.android.sm.ui.battery.BatteryActivity"
+                        ));
+                    } else if (manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")) {
+                        // Xiaomi HyperOS / MIUI — open Security Center Autostart Management
+                        oemIntent = new Intent();
+                        oemIntent.setComponent(new ComponentName(
+                            "com.miui.securitycenter",
+                            "com.miui.permcenter.autostart.AutoStartManagementActivity"
+                        ));
+                    } else if (manufacturer.contains("oppo") || manufacturer.contains("realme") || manufacturer.contains("oneplus")) {
+                        // OPPO ColorOS / Realme UI / OxygenOS
+                        oemIntent = new Intent();
+                        oemIntent.setAction("android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS");
+                        oemIntent.setData(Uri.parse("package:" + context.getPackageName()));
+                    } else if (manufacturer.contains("huawei") || manufacturer.contains("honor")) {
+                        // Huawei EMUI / Honor MagicUI
+                        oemIntent = new Intent();
+                        oemIntent.setComponent(new ComponentName(
+                            "com.huawei.systemmanager",
+                            "com.huawei.systemmanager.startemup.StartupNormalAppListActivity"
+                        ));
+                    } else if (manufacturer.contains("vivo") || manufacturer.contains("iqoo")) {
+                        // Vivo Origin OS / Funtouch OS
+                        oemIntent = new Intent();
+                        oemIntent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    }
+
+                    if (oemIntent != null) {
+                        oemIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(oemIntent);
+                        launched = true;
+                        Log.d(TAG, "OEM-specific battery settings opened for manufacturer: " + Build.MANUFACTURER);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "OEM battery settings not available: " + e.getMessage());
+                }
+            }
+
+            // 3. Final universal fallback — opens battery optimization settings list
+            if (!launched) {
+                try {
+                    Intent fallback = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(fallback);
+                    Log.d(TAG, "Opened generic battery optimization settings as final fallback.");
                 } catch (Exception ignored) {}
             }
         }

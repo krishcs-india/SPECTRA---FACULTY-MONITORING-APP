@@ -312,15 +312,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           );
           const oldSignature = oldDeptPeriods.map((p) => `${p.id}_${p.name}_${p.sequence}`).sort().join('|');
 
-          // Live real-time check: if this is a live update from HOD, notify immediately in sub-second time
-          const hasLoadedOnce = (get() as any)._hasLoadedPeriodsOnce;
-          if (hasLoadedOnce && oldDeptPeriods.length > 0) {
-            if (newDeptPeriods.length !== oldDeptPeriods.length) {
-              notificationService.notifyPeriodScheduleUpdated(newDeptPeriods.length, targetDept);
-            } else if (oldSignature && newSignature && oldSignature !== newSignature) {
-              notificationService.notifyPeriodUpdated(undefined, targetDept);
-            }
-          }
+          // Native background sync holds baseline and alerts once when HOD alters periods in background.
+          // No redundant in-app notification needed here so opening the app never fires duplicate alerts.
 
           // Always ensure native background sync knows the current baseline
           notificationService.syncBackgroundPeriodState(targetDept, newDeptPeriods.length, newSignature);

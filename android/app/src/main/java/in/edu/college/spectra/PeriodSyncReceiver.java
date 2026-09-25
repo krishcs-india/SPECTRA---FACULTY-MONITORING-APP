@@ -3,29 +3,59 @@ package in.edu.college.spectra;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.PowerManager;
 import android.util.Log;
 
 /**
  * PeriodSyncReceiver handles AlarmManager triggers while the SPECTRA app is closed or backgrounded.
  *
- * Rather than spawning a raw background thread (which Android 14, 15, 16's Linux Cached Apps Freezer
- * puts to sleep and cuts off network traffic), this receiver delegates the network check
- * directly to WorkManager (JobScheduler), which is fully authorized by the OS for background network I/O.
+ * It uses goAsync() + WakeLock to run the Firestore REST network check immediately,
+ * guaranteeing instantaneous notification delivery even when the device is locked or in Doze mode.
+ * In addition, it enqueues WorkManager as a system-level secondary fallback.
  */
 public class PeriodSyncReceiver extends BroadcastReceiver {
     private static final String TAG = "SpectraPeriodReceiver";
 
     @Override
     public void onReceive(final Context context, Intent intent) {
-        Log.d(TAG, "PeriodSyncReceiver alarm triggered. Delegating check to WorkManager JobScheduler.");
         if (context == null) return;
+        final Context appContext = context.getApplicationContext();
+        Log.d(TAG, "PeriodSyncReceiver triggered. Running instant background period check.");
 
-        Context appContext = context.getApplicationContext();
+        // 1. Immediate direct check via goAsync() + short WakeLock
+        // This ensures zero-delay Firestore polling during deep Doze mode without waiting for WorkManager batching
+        final PendingResult pendingResult = goAsync();
+        PowerManager pm = (PowerManager) appContext.getSystemService(Context.POWER_SERVICE);
+        final PowerManager.WakeLock wakeLock = (pm != null)
+            ? pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Spectra:PeriodSyncWakeLock")
+            : null;
+        if (wakeLock != null) {
+            try {
+                wakeLock.acquire(8000L); // 8s safety timeout
+            } catch (Exception ignored) {}
+        }
 
-        // 1. Delegate network check to WorkManager so it runs with guaranteed system network clearance
+        new Thread(() -> {
+            try {
+                PeriodBackgroundSyncManager.performCheck(appContext);
+            } catch (Exception e) {
+                Log.e(TAG, "Direct background check error", e);
+            } finally {
+                try {
+                    if (wakeLock != null && wakeLock.isHeld()) {
+                        wakeLock.release();
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    pendingResult.finish();
+                } catch (Exception ignored) {}
+            }
+        }).start();
+
+        // 2. Delegate to WorkManager as secondary OS-level backup
         PeriodSyncWorker.enqueueImmediate(appContext);
 
-        // 2. Also ensure AlarmManager is scheduled for the next 60s as a secondary hardware heartbeat
+        // 3. Re-arm the AlarmManager hardware wakeup heartbeat for the next SYNC_INTERVAL_MS (20s)
         PeriodBackgroundSyncManager.scheduleNextCheck(appContext, PeriodBackgroundSyncManager.SYNC_INTERVAL_MS);
     }
 }

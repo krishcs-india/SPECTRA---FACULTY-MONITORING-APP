@@ -196,6 +196,18 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
     persistActiveUser(matched);
     set({ currentUser: matched, isAuthenticated: true, isLoading: false, error: null });
+
+    try {
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const todayKey = `${matched.uid}_${todayDate}`;
+      const sched = useAppStore.getState().schedules[todayKey];
+      const isSubmitted = Boolean(sched && sched.status && sched.status !== 'NOT_SUBMITTED');
+      const effRole = matched.role === 'ADMIN' ? 'ADMIN' : matched.role === 'HOD' && matched.hodType !== 'AHOD' ? 'HOD' : 'FACULTY';
+      import('../services/notificationService').then((m) =>
+        m.notificationService.native.notifyLoginOrPendingStatus(matched.uid, matched.name, effRole, isSubmitted, true)
+      );
+    } catch {}
+
     return { success: true };
   },
 
@@ -268,6 +280,11 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
     persistActiveUser(adminUser);
     set({ currentUser: adminUser, isAuthenticated: true, isLoading: false, error: null });
+    try {
+      import('../services/notificationService').then((m) =>
+        m.notificationService.native.notifyLoginOrPendingStatus(adminUser.uid, adminUser.name, 'ADMIN', true, true)
+      );
+    } catch {}
     return { success: true };
   },
 
@@ -277,6 +294,16 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     if (user) {
       persistActiveUser(user);
       set({ currentUser: user, isAuthenticated: true, isLoading: false, error: null });
+      try {
+        const todayDate = new Date().toISOString().slice(0, 10);
+        const todayKey = `${user.uid}_${todayDate}`;
+        const sched = useAppStore.getState().schedules[todayKey];
+        const isSubmitted = Boolean(sched && sched.status && sched.status !== 'NOT_SUBMITTED');
+        const effRole = user.role === 'ADMIN' ? 'ADMIN' : user.role === 'HOD' && user.hodType !== 'AHOD' ? 'HOD' : 'FACULTY';
+        import('../services/notificationService').then((m) =>
+          m.notificationService.native.notifyLoginOrPendingStatus(user.uid, user.name, effRole, isSubmitted, true)
+        );
+      } catch {}
     }
   },
 

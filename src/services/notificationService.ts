@@ -69,9 +69,10 @@ class NativeNotificationBridge {
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (!isNative()) return;
     try {
-      const alreadyPrompted = localStorage.getItem('kalyani_bg_prompted_v3');
+      // Version v5: bumped to force re-prompt with OEM-specific battery settings for Xiaomi, Samsung, Realme, etc.
+      const alreadyPrompted = localStorage.getItem('kalyani_bg_prompted_v5');
       if (alreadyPrompted === 'true') {
-        return; // Already asked, do not spam or interrupt user on every launch
+        return; // Already asked with v5 OEM-specific prompts, do not spam on every launch
       }
 
       const status = await PeriodBackgroundSync.getOptimizationStatus();
@@ -81,7 +82,7 @@ class NativeNotificationBridge {
       if (!status.batteryOptimizationIgnored) {
         await PeriodBackgroundSync.requestBatteryOptimizationExemption();
       }
-      localStorage.setItem('kalyani_bg_prompted_v3', 'true');
+      localStorage.setItem('kalyani_bg_prompted_v5', 'true');
     } catch (err) {
       console.warn('Background permissions prompt notice:', err);
     }
@@ -222,23 +223,27 @@ class NativeNotificationBridge {
   ): Promise<void> {
     if (!isNative()) return;
     try {
-      const todayDate = new Date().toISOString().slice(0, 10);
-      const lastScheduledUser = localStorage.getItem('kalyani_scheduled_reminder_user');
-      const lastScheduledRole = localStorage.getItem('kalyani_scheduled_reminder_role');
-      const lastScheduledDate = localStorage.getItem('kalyani_scheduled_reminder_date');
-
-      // If already scheduled for this exact user and role today, do not reschedule redundantly
-      if (
-        lastScheduledUser === userId &&
-        lastScheduledRole === role &&
-        lastScheduledDate === todayDate
-      ) {
-        return;
-      }
+      // Version v5 keys ensure that updates or reinstalls re-arm the schedule properly
+      const lastScheduledUser = localStorage.getItem('kalyani_scheduled_reminder_v5_user');
+      const lastScheduledRole = localStorage.getItem('kalyani_scheduled_reminder_v5_role');
 
       if (!(await this.requestPermission())) return;
 
       const { LocalNotifications } = await import('@capacitor/local-notifications');
+
+      // Verify if the alarm is actually registered and active in Android's pending list
+      let isActuallyPending = false;
+      try {
+        const pending = await LocalNotifications.getPending();
+        isActuallyPending = pending.notifications?.some(
+          (n) => n.id === NativeNotificationBridge.DAILY_REMINDER_ID
+        ) || false;
+      } catch {}
+
+      // If user and role haven't changed and the alarm is actively registered in Android → skip redundant scheduling
+      if (lastScheduledUser === userId && lastScheduledRole === role && isActuallyPending) {
+        return;
+      }
 
       // Always cancel previous reminder to prevent old role reminders from leaking
       try {
@@ -266,17 +271,21 @@ class NativeNotificationBridge {
           body,
           largeBody: body,
           summaryText: 'SPECTRA Morning Update',
-          channelId: 'spectra_alerts_v3',
-          schedule: { on: { hour, minute }, allowWhileIdle: true },
+          channelId: 'spectra_alerts_v5',
+          schedule: {
+            on: { hour, minute },
+            allowWhileIdle: true
+          },
           smallIcon: 'ic_spectra_notification',
           largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
         }]
       });
 
-      localStorage.setItem('kalyani_scheduled_reminder_user', userId);
-      localStorage.setItem('kalyani_scheduled_reminder_role', role);
-      localStorage.setItem('kalyani_scheduled_reminder_date', todayDate);
+      localStorage.setItem('kalyani_scheduled_reminder_v5_user', userId);
+      localStorage.setItem('kalyani_scheduled_reminder_v5_role', role);
+      localStorage.removeItem('kalyani_scheduled_reminder_user');
+      localStorage.removeItem('kalyani_scheduled_reminder_role');
     } catch (err) {
       console.warn('Daily reminder scheduling failed:', err);
     }
@@ -292,10 +301,61 @@ class NativeNotificationBridge {
       await LocalNotifications.cancel({
         notifications: [{ id: NativeNotificationBridge.DAILY_REMINDER_ID }]
       });
+      // Clear scheduling gate — next login (possibly a different user) will reschedule
+      localStorage.removeItem('kalyani_scheduled_reminder_v5_user');
+      localStorage.removeItem('kalyani_scheduled_reminder_v5_role');
       localStorage.removeItem('kalyani_scheduled_reminder_user');
       localStorage.removeItem('kalyani_scheduled_reminder_role');
-      localStorage.removeItem('kalyani_scheduled_reminder_date');
+      // Also reset the OEM battery prompt gate so a new user on the same device gets prompted
+      localStorage.removeItem('kalyani_bg_prompted_v5');
     } catch {}
+  }
+
+  /**
+   * Dispatches login / daily launch reminder:
+   * - If Faculty hasn't updated today's schedule, notifies:
+   *   "Welcome back, [Name]! You haven’t updated your schedule today. Kindly confirm your periods or mark yourself free in just a tap."
+   * - If HOD logs in, welcomes HOD with department status.
+   * - If Admin logs in, welcomes Admin with portal status.
+   */
+  async notifyLoginOrPendingStatus(
+    userId: string,
+    userName: string,
+    role: 'ADMIN' | 'HOD' | 'FACULTY',
+    isSubmittedToday = false,
+    isExplicitLogin = false
+  ): Promise<void> {
+    if (!isNative()) return;
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const key = `kalyani_pending_notified_${userId}_${dateStr}`;
+    // If not an explicit login, only show once per day to prevent spam on every app resume
+    if (!isExplicitLogin && localStorage.getItem(key)) return;
+
+    if (role === 'HOD') {
+      if (isExplicitLogin) {
+        await this.notifyNow(
+          'SPECTRA — Department Overview ✨',
+          `Welcome back, ${userName}! Live faculty availability and today's period assignments are ready for your review.`
+        );
+      }
+    } else if (role === 'ADMIN') {
+      if (isExplicitLogin) {
+        await this.notifyNow(
+          'SPECTRA — Administrator Portal ✨',
+          `Welcome back, ${userName}! Institutional directories and system configurations are running smoothly.`
+        );
+      }
+    } else {
+      // FACULTY / AHOD
+      if (!isSubmittedToday) {
+        await this.notifyNow(
+          'SPECTRA — Welcome Back ✨',
+          `Welcome back, ${userName}! You haven’t updated your schedule today. Kindly confirm your periods or mark yourself free in just a tap.`
+        );
+        localStorage.setItem(key, '1');
+      }
+    }
   }
 
   /**
@@ -307,39 +367,14 @@ class NativeNotificationBridge {
     role: 'ADMIN' | 'HOD' | 'FACULTY',
     isSubmittedToday = false
   ): Promise<void> {
-    if (!isNative()) return;
-    const key = `kalyani_launch_notified_${userId}_${new Date().toISOString().slice(0, 10)}`;
-    if (localStorage.getItem(key)) return;
-
-    if (role === 'HOD') {
-      await this.notifyNow(
-        'SPECTRA — Department Overview ✨',
-        `Welcome back, ${userName}! Live faculty availability and today's period assignments are ready for your review.`
-      );
-      localStorage.setItem(key, '1');
-    } else if (role === 'ADMIN') {
-      await this.notifyNow(
-        'SPECTRA — Administrator Portal ✨',
-        `Welcome back, ${userName}! Institutional directories and system configurations are running smoothly.`
-      );
-      localStorage.setItem(key, '1');
-    } else {
-      // FACULTY / AHOD - only notify if today's schedule is pending
-      if (!isSubmittedToday) {
-        await this.notifyNow(
-          'SPECTRA — Quick Schedule Check ✨',
-          `Welcome back, ${userName}! Let’s get today’s schedule lined up. Please confirm your periods or mark yourself free in just a tap.`
-        );
-        localStorage.setItem(key, '1');
-      }
-    }
+    return this.notifyLoginOrPendingStatus(userId, userName, role, isSubmittedToday, false);
   }
 
   /**
    * Instant nudge if today's schedule is still pending (kept for backward compatibility)
    */
   async notifyIfPendingToday(userId: string, userName: string, isSubmitted: boolean): Promise<void> {
-    return this.notifyAppLaunchByRole(userId, userName, 'FACULTY', isSubmitted);
+    return this.notifyLoginOrPendingStatus(userId, userName, 'FACULTY', isSubmitted, true);
   }
 
   /**
@@ -362,7 +397,7 @@ class NativeNotificationBridge {
           body: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           largeBody: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           summaryText: 'SPECTRA Export',
-          channelId: 'spectra_alerts_v3',
+          channelId: 'spectra_alerts_v5',
           smallIcon: 'ic_spectra_notification',
           largeIcon: 'ic_launcher',
           iconColor: '#F43F5E'
