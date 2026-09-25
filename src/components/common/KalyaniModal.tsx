@@ -58,7 +58,7 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
         {/* Compact Floating Modal Dialog Card Container */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-full ${maxWidths[maxWidth]} text-left bg-white/95 dark:bg-[#180E1C]/95 border border-rose-200 dark:border-rose-900/50 rounded-3xl shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[72vh] sm:max-h-[75vh]`}
+          className={`relative w-full ${maxWidths[maxWidth]} text-left bg-white/95 dark:bg-[#180E1C]/95 border border-rose-200 dark:border-rose-900/50 rounded-3xl shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] sm:max-h-[88vh]`}
         >
           {/* Top Rose Gradient Accent Line */}
           <div className="h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent shrink-0" />
