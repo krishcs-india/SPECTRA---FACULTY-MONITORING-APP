@@ -170,6 +170,33 @@ class NativeNotificationBridge {
   }
 
   /**
+   * Dispatches an instant heads-up period notification with fixed ID 88002.
+   * Overwrites any existing period update notification to prevent duplicate stacked cards.
+   */
+  async notifyPeriodUpdate(title: string, body: string): Promise<void> {
+    if (!(await this.requestPermission())) return;
+    await this.ensureChannel();
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: 88002, // Matches native PERIOD_NOTIFICATION_ID = 88002
+          title,
+          body,
+          largeBody: body,
+          summaryText: 'SPECTRA Period Update',
+          channelId: 'spectra_alerts_v3',
+          smallIcon: 'ic_spectra_notification',
+          largeIcon: 'ic_launcher',
+          iconColor: '#F43F5E'
+        }]
+      });
+    } catch (err) {
+      console.warn('Period update notification failed:', err);
+    }
+  }
+
+  /**
    * Registers a repeating daily morning reminder customized for the user's role.
    * Cancels any previously scheduled reminder from a different role/user so notifications never conflict.
    */
@@ -521,7 +548,7 @@ class KalyaniNotificationManager {
     const body = `${deptPrefix}The HOD has updated the periods count to ${periodCount} periods. Please review and update your schedule again.`;
 
     if (isNative()) {
-      await nativeBridge.notifyNow(title, body);
+      await nativeBridge.notifyPeriodUpdate(title, body);
     } else {
       await this.provider.sendNotification({
         title,
@@ -533,7 +560,7 @@ class KalyaniNotificationManager {
 
   async notifyPeriodUpdated(message?: string, deptName?: string): Promise<void> {
     const now = Date.now();
-    if (now - this.lastPeriodNotificationTime < 10000) return;
+    if (now - this.lastPeriodNotificationTime < 5000) return;
     this.lastPeriodNotificationTime = now;
 
     const title = 'SPECTRA — Period Schedule Updated 🔔';
@@ -541,7 +568,7 @@ class KalyaniNotificationManager {
     const body = message || `${deptPrefix}The HOD has updated the periods schedule. Please review and update your schedule again.`;
 
     if (isNative()) {
-      await nativeBridge.notifyNow(title, body);
+      await nativeBridge.notifyPeriodUpdate(title, body);
     } else {
       await this.provider.sendNotification({
         title,

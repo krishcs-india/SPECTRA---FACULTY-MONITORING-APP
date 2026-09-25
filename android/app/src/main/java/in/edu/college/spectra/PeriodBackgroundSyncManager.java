@@ -47,7 +47,7 @@ public class PeriodBackgroundSyncManager {
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
     public static final int ALARM_REQUEST_CODE = 88001;
     public static final int PERIOD_NOTIFICATION_ID = 88002; // Single fixed ID prevents stacked duplicate notifications
-    public static final long SYNC_INTERVAL_MS = 60 * 1000L; // 60 seconds
+    public static final long SYNC_INTERVAL_MS = 20 * 1000L; // 20 seconds for rapid synchronization
 
     private static final String FIRESTORE_URL =
         "https://firestore.googleapis.com/v1/projects/kalyani-e2179/databases/(default)/documents/periods?key=AIzaSyAORDu_NpbDw1nJ4Jk-u7li988WlVl_u4U";
@@ -101,7 +101,8 @@ public class PeriodBackgroundSyncManager {
     }
 
     /**
-     * Schedules an AlarmManager RTC_WAKEUP alarm for hardware level heartbeat.
+     * Schedules an AlarmManager alarm for hardware level heartbeat.
+     * Uses setAlarmClock when exact alarms are permitted to exit Android Doze mode immediately.
      */
     public static void scheduleNextCheck(Context context, long delayMillis) {
         if (context == null) return;
@@ -120,7 +121,17 @@ public class PeriodBackgroundSyncManager {
 
             long triggerAtMillis = System.currentTimeMillis() + delayMillis;
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && canScheduleExactAlarms(context)) {
+                Intent showIntent = new Intent(context, MainActivity.class);
+                PendingIntent showPendingIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    showIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                );
+                AlarmManager.AlarmClockInfo clockInfo = new AlarmManager.AlarmClockInfo(triggerAtMillis, showPendingIntent);
+                alarmManager.setAlarmClock(clockInfo, pendingIntent);
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     if (alarmManager.canScheduleExactAlarms()) {
                         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
@@ -291,18 +302,11 @@ public class PeriodBackgroundSyncManager {
                 boolean signatureChanged = (!knownSignature.isEmpty() && !knownSignature.equals(currentSignature));
 
                 if (countChanged || signatureChanged) {
-                    // Only dispatch status-bar notification if app is in background or closed
-                    // If the user is actively inside the app, the in-app amber card handles visual alerting
-                    if (!appInForeground) {
-                        String title = "SPECTRA — Period Schedule Updated 🔔";
-                        String body = countChanged
-                            ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
-                            : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
-                        showPeriodUpdatedNotification(context, title, body);
-                    } else {
-                        // User is in the app, clear any stale notification
-                        clearPeriodNotification(context);
-                    }
+                    String title = "SPECTRA — Period Schedule Updated 🔔";
+                    String body = countChanged
+                        ? "The HOD has updated the periods count to " + activeCount + " periods for " + targetDept + ". Please review and update your schedule again."
+                        : "The HOD has updated the period schedule for " + targetDept + ". Please review and update your schedule again.";
+                    showPeriodUpdatedNotification(context, title, body);
 
                     // Update baseline immediately so this notification NEVER fires redundantly
                     prefs.edit()

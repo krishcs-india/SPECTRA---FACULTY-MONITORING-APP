@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class PeriodSyncWorker extends Worker {
     private static final String TAG = "SpectraPeriodWorker";
     public static final String UNIQUE_WORK_NAME = "SpectraPeriodSyncContinuous";
-    public static final long SYNC_DELAY_SECONDS = 60L;
+    public static final long SYNC_DELAY_SECONDS = 20L;
 
     public PeriodSyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
