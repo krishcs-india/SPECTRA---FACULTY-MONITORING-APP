@@ -31,9 +31,13 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class PeriodBackgroundSyncManager {
@@ -45,16 +49,27 @@ public class PeriodBackgroundSyncManager {
     public static final String KEY_LAST_CHECK_TIME = "last_check_time";
     public static final String KEY_PROMPTED_BATTERY_OPT = "has_prompted_battery_opt_v8";
     public static final String KEY_PROMPTED_EXACT_ALARM = "has_prompted_exact_alarm_v8";
+    public static final String KEY_PROMPTED_PERMANENT = "has_prompted_bg_permissions_permanent_v1";
     public static final String KEY_LAST_PROMPT_TIME = "last_permission_prompt_time_v6";
     public static final String KEY_LAST_EXACT_PROMPT_TIME = "last_exact_alarm_prompt_time_v8";
     public static final String KEY_LAST_BATTERY_PROMPT_TIME = "last_battery_prompt_time_v8";
     public static final String KEY_LAST_NOTIFIED_SIG = "last_notified_signature_v6";
     public static final String KEY_NOTIF_COUNTER = "notif_id_counter_v6";
 
+    // Logged-in user details for native 8:30 AM morning reminder
+    public static final String KEY_LOGGED_USER_ID = "logged_user_id";
+    public static final String KEY_LOGGED_USER_NAME = "logged_user_name";
+    public static final String KEY_LOGGED_USER_ROLE = "logged_user_role";
+    public static final String KEY_LOGGED_USER_DEPT = "logged_user_dept";
+    public static final String KEY_LAST_DAILY_REMINDER_DATE = "last_morning_reminder_date";
+
     public static final String CHANNEL_ID = "spectra_alerts_v5";
     public static final String ACTION_CHECK_PERIODS = "in.edu.college.spectra.ACTION_CHECK_PERIODS";
+    public static final String ACTION_DAILY_REMINDER = "in.edu.college.spectra.ACTION_DAILY_REMINDER";
     public static final int ALARM_REQUEST_CODE = 88001;
     public static final int PERIOD_NOTIFICATION_ID = 88002; // Single fixed ID prevents stacked duplicate notifications
+    public static final int DAILY_REMINDER_REQUEST_CODE = 88003;
+    public static final int DAILY_REMINDER_NOTIFICATION_ID = 88004;
     public static final long SYNC_INTERVAL_MS = 20 * 1000L; // 20 seconds for rapid synchronization
 
     private static final String FIRESTORE_URL =
@@ -75,6 +90,252 @@ public class PeriodBackgroundSyncManager {
 
         scheduleWorkManager(context);
         scheduleNextCheck(context, SYNC_INTERVAL_MS);
+    }
+
+    /**
+     * Stores user identity details and immediately arms the 8:30 AM daily reminder.
+     * Also checks if today's 8:30 AM morning reminder should be delivered right now
+     * (e.g. user logs in or launches app at/after 8:30 AM today).
+     */
+    public static void saveUserDetails(Context context, String userId, String userName, String role, String departmentId) {
+        if (context == null) return;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+            .putString(KEY_LOGGED_USER_ID, userId != null ? userId.trim() : "")
+            .putString(KEY_LOGGED_USER_NAME, userName != null ? userName.trim() : "Faculty")
+            .putString(KEY_LOGGED_USER_ROLE, role != null ? role.trim().toUpperCase() : "FACULTY")
+            .putString(KEY_LOGGED_USER_DEPT, departmentId != null ? departmentId.trim().toUpperCase() : "CSE")
+            .apply();
+
+        Log.d(TAG, "Saved logged user details to native SharedPreferences: uid=" + userId + ", name=" + userName + ", role=" + role);
+
+        // Schedule the 8:30 AM alarm
+        scheduleDailyReminder(context);
+
+        // If today is already past 8:30 AM and user hasn't received today's reminder, deliver now!
+        checkAndDeliverMorningReminderIfNeeded(context);
+    }
+
+    /**
+     * Clears user details on logout and cancels the daily reminder alarm.
+     */
+    public static void clearUserDetails(Context context) {
+        if (context == null) return;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+            .remove(KEY_LOGGED_USER_ID)
+            .remove(KEY_LOGGED_USER_NAME)
+            .remove(KEY_LOGGED_USER_ROLE)
+            .remove(KEY_LOGGED_USER_DEPT)
+            .remove(KEY_LAST_DAILY_REMINDER_DATE)
+            .apply();
+
+        try {
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null) {
+                Intent intent = new Intent(context, PeriodSyncReceiver.class);
+                intent.setAction(ACTION_DAILY_REMINDER);
+                PendingIntent pi = PendingIntent.getBroadcast(
+                    context,
+                    DAILY_REMINDER_REQUEST_CODE,
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+                );
+                if (pi != null) {
+                    alarmManager.cancel(pi);
+                    pi.cancel();
+                }
+            }
+        } catch (Exception ignored) {}
+        Log.d(TAG, "Cleared user details and cancelled 8:30 AM alarm.");
+    }
+
+    /**
+     * Arms an exact hardware wakeup alarm for 8:30 AM daily.
+     * Uses AlarmClockInfo on Android 12-15 to completely bypass Doze mode.
+     */
+    public static void scheduleDailyReminder(Context context) {
+        if (context == null) return;
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String userId = prefs.getString(KEY_LOGGED_USER_ID, null);
+            if (userId == null || userId.trim().isEmpty()) {
+                Log.d(TAG, "No logged user; skipping 8:30 AM alarm scheduling.");
+                return;
+            }
+
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) return;
+
+            Intent intent = new Intent(context, PeriodSyncReceiver.class);
+            intent.setAction(ACTION_DAILY_REMINDER);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                DAILY_REMINDER_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            Calendar now = Calendar.getInstance();
+            Calendar target = Calendar.getInstance();
+            target.set(Calendar.HOUR_OF_DAY, 8);
+            target.set(Calendar.MINUTE, 30);
+            target.set(Calendar.SECOND, 0);
+            target.set(Calendar.MILLISECOND, 0);
+
+            if (now.getTimeInMillis() >= target.getTimeInMillis()) {
+                // If it is already past 8:30 AM today, schedule for tomorrow at 8:30 AM
+                target.add(Calendar.DAY_OF_YEAR, 1);
+            }
+
+            long triggerAtMillis = target.getTimeInMillis();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    try {
+                        AlarmManager.AlarmClockInfo clockInfo = new AlarmManager.AlarmClockInfo(
+                            triggerAtMillis, pendingIntent);
+                        alarmManager.setAlarmClock(clockInfo, pendingIntent);
+                    } catch (Exception e) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                    }
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            }
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+            Log.d(TAG, "Scheduled 8:30 AM daily reminder for " + userId + " at " + sdf.format(new Date(triggerAtMillis)));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to schedule 8:30 AM daily reminder", e);
+        }
+    }
+
+    /**
+     * Builds and delivers the daily morning reminder notification customized for the user's role.
+     */
+    public static void performDailyReminder(Context context) {
+        if (context == null) return;
+        try {
+            ensureNotificationChannel(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String userId = prefs.getString(KEY_LOGGED_USER_ID, null);
+            if (userId == null || userId.trim().isEmpty()) {
+                Log.d(TAG, "No logged user, skipping daily morning reminder.");
+                return;
+            }
+
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            String lastNotifiedDate = prefs.getString(KEY_LAST_DAILY_REMINDER_DATE, "");
+            if (today.equals(lastNotifiedDate)) {
+                Log.d(TAG, "Daily morning reminder already delivered today (" + today + ")");
+                return;
+            }
+
+            String userName = prefs.getString(KEY_LOGGED_USER_NAME, "Faculty");
+            String role = prefs.getString(KEY_LOGGED_USER_ROLE, "FACULTY");
+
+            String title;
+            String body;
+
+            if ("HOD".equalsIgnoreCase(role)) {
+                title = "SPECTRA — Good Morning, HOD! ☀️";
+                body = "A wonderful day of leadership awaits, " + userName + "! Live faculty availability and today's period allocations are ready for your review.";
+            } else if ("ADMIN".equalsIgnoreCase(role)) {
+                title = "SPECTRA — Institutional Overview 🏛️";
+                body = "Good morning, " + userName + "! Institutional operations, department allocations, and user directories are active and monitored.";
+            } else {
+                // FACULTY / AHOD
+                title = "SPECTRA — Ready for a Great Day! ☀️";
+                body = "A wonderful day of teaching awaits, " + userName + "! Please take a quick moment to update your period availability or mark Full Day Free.";
+            }
+
+            Intent openAppIntent = new Intent(context, MainActivity.class);
+            openAppIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent contentIntent = PendingIntent.getActivity(
+                context,
+                DAILY_REMINDER_REQUEST_CODE,
+                openAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_spectra_notification)
+                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
+                .setColor(0xFFF43F5E)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                .setSubText("SPECTRA Morning Update")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_EVENT)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setSound(defaultSoundUri)
+                .setVibrate(new long[]{0, 300, 200, 300})
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(false)
+                .setContentIntent(contentIntent);
+
+            NotificationManager notificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                notificationManager.notify(DAILY_REMINDER_NOTIFICATION_ID, builder.build());
+                prefs.edit().putString(KEY_LAST_DAILY_REMINDER_DATE, today).apply();
+                Log.d(TAG, "Dispatched 8:30 AM daily morning notification for " + userName + " (" + role + ")");
+            }
+
+            // Re-arm for tomorrow at 8:30 AM
+            scheduleDailyReminder(context);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to perform daily morning reminder", e);
+        }
+    }
+
+    /**
+     * Checks if today's morning reminder should be delivered right now upon app launch or login.
+     * If the time is >= 8:30 AM today and today's reminder hasn't been shown yet, delivers it.
+     */
+    public static void checkAndDeliverMorningReminderIfNeeded(Context context) {
+        if (context == null) return;
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String userId = prefs.getString(KEY_LOGGED_USER_ID, null);
+            if (userId == null || userId.trim().isEmpty()) return;
+
+            Calendar cal = Calendar.getInstance();
+            int hour = cal.get(Calendar.HOUR_OF_DAY);
+            int minute = cal.get(Calendar.MINUTE);
+
+            boolean isPast830 = (hour > 8) || (hour == 8 && minute >= 30);
+            if (!isPast830) return;
+
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            String lastNotifiedDate = prefs.getString(KEY_LAST_DAILY_REMINDER_DATE, "");
+
+            if (!today.equals(lastNotifiedDate)) {
+                Log.d(TAG, "Delivering today's morning reminder upon app launch/login (time >= 8:30 AM, today=" + today + ")");
+                performDailyReminder(context);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking morning reminder delivery upon app launch", e);
+        }
+    }
+
+    /**
+     * Immediately triggers the morning reminder notification for testing / verification.
+     */
+    public static void forceDailyReminderNow(Context context) {
+        if (context == null) return;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().remove(KEY_LAST_DAILY_REMINDER_DATE).apply();
+        performDailyReminder(context);
     }
 
     /**
@@ -511,18 +772,21 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestExactAlarmPermission(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            if (prefs.getBoolean(KEY_PROMPTED_PERMANENT, false) || prefs.getBoolean(KEY_PROMPTED_EXACT_ALARM, false)) {
+                Log.d(TAG, "Exact alarm permission already prompted previously. Skipping.");
+                return;
+            }
             if (canScheduleExactAlarms(context)) {
                 Log.d(TAG, "Exact alarm permission already granted.");
+                prefs.edit().putBoolean(KEY_PROMPTED_EXACT_ALARM, true).apply();
                 return;
             }
-            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            long last = prefs.getLong(KEY_LAST_EXACT_PROMPT_TIME, 0);
-            boolean prompted = prefs.getBoolean(KEY_PROMPTED_EXACT_ALARM, false);
-            if (prompted && System.currentTimeMillis() - last < 24L * 60L * 60L * 1000L) {
-                return;
-            }
-            prefs.edit().putBoolean(KEY_PROMPTED_EXACT_ALARM, true)
-                .putLong(KEY_LAST_EXACT_PROMPT_TIME, System.currentTimeMillis()).apply();
+            prefs.edit()
+                .putBoolean(KEY_PROMPTED_EXACT_ALARM, true)
+                .putBoolean(KEY_PROMPTED_PERMANENT, true)
+                .putLong(KEY_LAST_EXACT_PROMPT_TIME, System.currentTimeMillis())
+                .apply();
 
             try {
                 Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
@@ -537,20 +801,22 @@ public class PeriodBackgroundSyncManager {
 
     public static void requestBatteryOptimizationExemption(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            if (prefs.getBoolean(KEY_PROMPTED_PERMANENT, false) || prefs.getBoolean(KEY_PROMPTED_BATTERY_OPT, false)) {
+                Log.d(TAG, "Battery optimization exemption already prompted previously. Skipping.");
+                return;
+            }
             // Intelligently check if already exempt (ON) — if so, do not prompt!
             if (isBatteryOptimizationIgnored(context)) {
                 Log.d(TAG, "Battery optimization is already ignored (ON). No popup needed.");
+                prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true).apply();
                 return;
             }
-            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            long last = prefs.getLong(KEY_LAST_BATTERY_PROMPT_TIME, 0);
-            boolean prompted = prefs.getBoolean(KEY_PROMPTED_BATTERY_OPT, false);
-            // Re-prompt at most once per 12h until granted
-            if (prompted && System.currentTimeMillis() - last < 12L * 60L * 60L * 1000L) {
-                return;
-            }
-            prefs.edit().putBoolean(KEY_PROMPTED_BATTERY_OPT, true)
-                .putLong(KEY_LAST_BATTERY_PROMPT_TIME, System.currentTimeMillis()).apply();
+            prefs.edit()
+                .putBoolean(KEY_PROMPTED_BATTERY_OPT, true)
+                .putBoolean(KEY_PROMPTED_PERMANENT, true)
+                .putLong(KEY_LAST_BATTERY_PROMPT_TIME, System.currentTimeMillis())
+                .apply();
 
             String manufacturer = Build.MANUFACTURER.toLowerCase();
             boolean launched = false;

@@ -20,6 +20,36 @@ public class PeriodSyncReceiver extends BroadcastReceiver {
     public void onReceive(final Context context, Intent intent) {
         if (context == null) return;
         final Context appContext = context.getApplicationContext();
+        final String action = intent != null ? intent.getAction() : null;
+
+        // Handle 8:30 AM daily morning reminder alarm
+        if (PeriodBackgroundSyncManager.ACTION_DAILY_REMINDER.equals(action)) {
+            Log.d(TAG, "PeriodSyncReceiver: 8:30 AM daily morning reminder alarm received.");
+            final PendingResult pendingResult = goAsync();
+            PowerManager pm = (PowerManager) appContext.getSystemService(Context.POWER_SERVICE);
+            final PowerManager.WakeLock wakeLock = (pm != null)
+                ? pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Spectra:DailyReminderWakeLock")
+                : null;
+            if (wakeLock != null) {
+                try { wakeLock.acquire(15000L); } catch (Exception ignored) {}
+            }
+            new Thread(() -> {
+                try {
+                    PeriodBackgroundSyncManager.performDailyReminder(appContext);
+                } catch (Exception e) {
+                    Log.e(TAG, "Daily reminder execution error", e);
+                } finally {
+                    try {
+                        if (wakeLock != null && wakeLock.isHeld()) {
+                            wakeLock.release();
+                        }
+                    } catch (Exception ignored) {}
+                    try { pendingResult.finish(); } catch (Exception ignored) {}
+                }
+            }).start();
+            return;
+        }
+
         Log.d(TAG, "PeriodSyncReceiver triggered. Running instant background period check.");
 
         // 1. Immediate direct check via goAsync() + short WakeLock

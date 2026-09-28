@@ -57,13 +57,51 @@ public class PeriodBackgroundSyncPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void saveUserDetails(PluginCall call) {
+        String userId = call.getString("userId", "");
+        String userName = call.getString("userName", "Faculty");
+        String role = call.getString("role", "FACULTY");
+        String departmentId = call.getString("departmentId", "CSE");
+
+        PeriodBackgroundSyncManager.saveUserDetails(
+            getContext().getApplicationContext(),
+            userId,
+            userName,
+            role,
+            departmentId
+        );
+
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void clearUserDetails(PluginCall call) {
+        PeriodBackgroundSyncManager.clearUserDetails(getContext().getApplicationContext());
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void triggerDailyReminderNow(PluginCall call) {
+        PeriodBackgroundSyncManager.forceDailyReminderNow(getContext().getApplicationContext());
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void getOptimizationStatus(PluginCall call) {
         Context context = getContext().getApplicationContext();
         boolean exactAlarmAllowed = PeriodBackgroundSyncManager.canScheduleExactAlarms(context);
         boolean batteryOptimizationIgnored = PeriodBackgroundSyncManager.isBatteryOptimizationIgnored(context);
 
         SharedPreferences prefs = context.getSharedPreferences(PeriodBackgroundSyncManager.PREFS_NAME, Context.MODE_PRIVATE);
-        boolean alreadyPrompted = prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_BATTERY_OPT, false);
+        boolean alreadyPrompted = prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_PERMANENT, false)
+            || prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_BATTERY_OPT, false)
+            || prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_EXACT_ALARM, false);
 
         JSObject ret = new JSObject();
         ret.put("exactAlarmAllowed", exactAlarmAllowed);

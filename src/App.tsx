@@ -36,18 +36,6 @@ export const App: React.FC = () => {
     // Opens downloaded files when their "download complete" notification is tapped
     notificationService.native.handleNotificationTaps();
 
-    // Returning from Settings (exact-alarm / battery pages leave the app):
-    // re-run the background permission check so the next pending prompt
-    // appears immediately instead of waiting for a cold start.
-    const handleVisible = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        try {
-          notificationService.checkAndPromptBackgroundPermissions().catch(() => {});
-        } catch {}
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisible);
-
     // Prevent image dragging across the entire application
     const preventDrag = (e: DragEvent) => {
       if (e.target instanceof HTMLImageElement || (e.target as HTMLElement)?.tagName === 'IMG') {
@@ -57,7 +45,6 @@ export const App: React.FC = () => {
     window.addEventListener('dragstart', preventDrag);
     return () => {
       window.removeEventListener('dragstart', preventDrag);
-      document.removeEventListener('visibilitychange', handleVisible);
     };
   }, [initStore, initAuth]);
 
@@ -77,7 +64,8 @@ export const App: React.FC = () => {
     notificationService.native.ensureDailyReminder(
       effectiveRole,
       currentUser.name,
-      currentUser.uid
+      currentUser.uid,
+      currentUser.departmentId || 'CSE'
     );
 
     // Synchronize baseline period monitoring for user's department in native Android background manager.

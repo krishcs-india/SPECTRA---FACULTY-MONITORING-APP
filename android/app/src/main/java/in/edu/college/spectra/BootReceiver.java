@@ -28,6 +28,8 @@ public class BootReceiver extends BroadcastReceiver {
                 PeriodBackgroundSyncManager.scheduleWorkManager(appContext);
                 PeriodSyncWorker.enqueueImmediate(appContext);
                 PeriodBackgroundSyncManager.scheduleNextCheck(appContext, 15000L);
+                PeriodBackgroundSyncManager.scheduleDailyReminder(appContext);
+                PeriodBackgroundSyncManager.checkAndDeliverMorningReminderIfNeeded(appContext);
             }
         }
     }

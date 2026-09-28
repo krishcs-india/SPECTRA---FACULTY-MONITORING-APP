@@ -42,6 +42,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="in.edu.college.spectra.ACTION_CHECK_PERIODS" />
+                <action android:name="in.edu.college.spectra.ACTION_DAILY_REMINDER" />
             </intent-filter>
         </receiver>
 

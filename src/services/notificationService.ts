@@ -15,6 +15,9 @@ const AppFileOpener = registerPlugin<AppFileOpenerPluginType>('AppFileOpener');
 
 interface PeriodBackgroundSyncPluginType {
   syncCurrentState(options: { departmentId: string; periodCount: number; signature?: string }): Promise<{ success: boolean }>;
+  saveUserDetails(options: { userId: string; userName: string; role: string; departmentId?: string }): Promise<{ success: boolean }>;
+  clearUserDetails(): Promise<{ success: boolean }>;
+  triggerDailyReminderNow(): Promise<{ success: boolean }>;
   checkNow(): Promise<{ success: boolean }>;
   showNotification(options: { title: string; body: string }): Promise<{ success: boolean }>;
   clearNotification(): Promise<{ success: boolean }>;
@@ -62,56 +65,39 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Prompts user for exact alarm and battery optimization exemptions on Android 12-17
-   * so Vivo, Samsung, Xiaomi and Android 15/16/17 never suppress background period alerts.
-   * Re-prompts if still denied (max once per 24h) — fixes "only first notification"
-   * where user denied once and was never asked again while alarms silently degraded.
+   * Prompts user for exact alarm and battery optimization exemptions on Android 12-15
+   * ONLY ONCE. Never repeats or annoys the user if already prompted or granted.
    */
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (!isNative()) return;
     try {
-      // v8: Prioritize Battery Optimization Exemption first — it shows the native
-      // in-app dialog "[Deny] [Allow]" and prevents Doze/OEM background killing.
-      // Exact alarms are checked once battery is handled.
-      const PROMPT_KEY = 'kalyani_bg_prompted_v8';
-      const EXACT_KEY = 'kalyani_bg_exact_v8_time';
-      const BATTERY_KEY = 'kalyani_bg_battery_v8_time';
-      const DAY = 24 * 60 * 60 * 1000;
-      const status = await PeriodBackgroundSync.getOptimizationStatus();
-
-      // If both are already active (ON), intelligently return without any popups
-      if (status.exactAlarmAllowed && status.batteryOptimizationIgnored) {
-        localStorage.setItem(PROMPT_KEY, 'true');
+      const PERM_PROMPTED_KEY = 'spectra_bg_perm_prompted_permanent_v1';
+      // If already prompted once in the webview, respect user preference and exit immediately
+      if (localStorage.getItem(PERM_PROMPTED_KEY) === 'true') {
         return;
       }
 
-      // Priority 1: Battery Optimization Exemption ("Allow app to run in background")
+      const status = await PeriodBackgroundSync.getOptimizationStatus();
+
+      // If already prompted in native preferences, or both active (ON), exit immediately
+      if (status.alreadyPrompted || (status.exactAlarmAllowed && status.batteryOptimizationIgnored)) {
+        localStorage.setItem(PERM_PROMPTED_KEY, 'true');
+        return;
+      }
+
+      // Mark prompted immediately BEFORE launching so it NEVER loops
+      localStorage.setItem(PERM_PROMPTED_KEY, 'true');
+
+      // Priority 1: Battery Optimization Exemption
       if (!status.batteryOptimizationIgnored) {
-        const last = Number(localStorage.getItem(BATTERY_KEY) || '0');
-        if (Date.now() - last >= DAY) {
-          localStorage.setItem(BATTERY_KEY, String(Date.now()));
-          await PeriodBackgroundSync.requestBatteryOptimizationExemption();
-          return;
-        }
+        await PeriodBackgroundSync.requestBatteryOptimizationExemption();
+        return;
       }
 
       // Priority 2: Exact Alarms (Android 12+)
-      // Only prompt if battery optimization is already granted (or exempt)
       if (!status.exactAlarmAllowed) {
-        const last = Number(localStorage.getItem(EXACT_KEY) || '0');
-        if (Date.now() - last >= DAY) {
-          localStorage.setItem(EXACT_KEY, String(Date.now()));
-          await PeriodBackgroundSync.requestExactAlarmPermission();
-        }
+        await PeriodBackgroundSync.requestExactAlarmPermission();
       }
-
-      // Clear legacy gates so older keys are cleanly replaced
-      localStorage.removeItem('kalyani_bg_prompted_v5');
-      localStorage.removeItem('kalyani_bg_prompted_v6');
-      localStorage.removeItem('kalyani_bg_prompted_v6_time');
-      localStorage.removeItem('kalyani_bg_prompted_v7');
-      localStorage.removeItem('kalyani_bg_exact_v7_time');
-      localStorage.removeItem('kalyani_bg_battery_v7_time');
     } catch (err) {
       console.warn('Background permissions prompt notice:', err);
     }
@@ -274,16 +260,32 @@ class NativeNotificationBridge {
     role: 'ADMIN' | 'HOD' | 'FACULTY' = 'FACULTY',
     userName = 'Faculty',
     userId = 'unknown',
+    departmentId = 'CSE',
     hour = 8,
     minute = 30
   ): Promise<void> {
     if (!isNative()) return;
     try {
+      await this.requestPermission();
+      await this.ensureChannel();
+
+      // 1. SAVE USER DETAILS TO NATIVE ANDROID ENGINE
+      // Persists user details in native Android SharedPreferences, arms the exact 8:30 AM alarm,
+      // and triggers today's reminder immediately if current time is >= 8:30 AM!
+      try {
+        await PeriodBackgroundSync.saveUserDetails({
+          userId: userId || 'unknown',
+          userName: userName || 'Faculty',
+          role: role || 'FACULTY',
+          departmentId: departmentId || 'CSE'
+        });
+      } catch (nativeErr) {
+        console.warn('Native saveUserDetails notice:', nativeErr);
+      }
+
       // Version v5 keys ensure that updates or reinstalls re-arm the schedule properly
       const lastScheduledUser = localStorage.getItem('kalyani_scheduled_reminder_v5_user');
       const lastScheduledRole = localStorage.getItem('kalyani_scheduled_reminder_v5_role');
-
-      if (!(await this.requestPermission())) return;
 
       const { LocalNotifications } = await import('@capacitor/local-notifications');
 
@@ -309,17 +311,16 @@ class NativeNotificationBridge {
       } catch {}
 
       let title = 'SPECTRA — Ready for a Great Day! ☀️';
-      let body = 'A wonderful day of teaching awaits. Please take a quick moment to update your period availability or mark Full Day Free to get started.';
+      let body = `A wonderful day of teaching awaits, ${userName}! Please take a quick moment to update your period availability or mark Full Day Free to get started.`;
 
       if (role === 'HOD') {
         title = 'SPECTRA — Good Morning, HOD! ☀️';
-        body = 'A wonderful day of leadership awaits. Keep track of today’s faculty period availability and department allocations seamlessly in SPECTRA.';
+        body = `A wonderful day of leadership awaits, ${userName}! Keep track of today’s faculty period availability and department allocations seamlessly in SPECTRA.`;
       } else if (role === 'ADMIN') {
         title = 'SPECTRA — Institutional Overview 🏛️';
-        body = 'Good morning, Administrator! Institutional operations, department allocations, and user directories are active and monitored.';
+        body = `Good morning, ${userName}! Institutional operations, department allocations, and user directories are active and monitored.`;
       }
 
-      await this.ensureChannel();
       await LocalNotifications.schedule({
         notifications: [{
           id: NativeNotificationBridge.DAILY_REMINDER_ID,
@@ -348,11 +349,27 @@ class NativeNotificationBridge {
   }
 
   /**
+   * Immediately triggers the 8:30 AM daily reminder notification now (for verification).
+   */
+  async triggerDailyReminderNow(): Promise<void> {
+    if (!isNative()) return;
+    try {
+      await PeriodBackgroundSync.triggerDailyReminderNow();
+    } catch (err) {
+      console.warn('Trigger daily reminder now notice:', err);
+    }
+  }
+
+  /**
    * Cancels the active daily reminder when logging out
    */
   async cancelDailyReminder(): Promise<void> {
     if (!isNative()) return;
     try {
+      try {
+        await PeriodBackgroundSync.clearUserDetails();
+      } catch {}
+
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       await LocalNotifications.cancel({
         notifications: [{ id: NativeNotificationBridge.DAILY_REMINDER_ID }]
@@ -362,16 +379,6 @@ class NativeNotificationBridge {
       localStorage.removeItem('kalyani_scheduled_reminder_v5_role');
       localStorage.removeItem('kalyani_scheduled_reminder_user');
       localStorage.removeItem('kalyani_scheduled_reminder_role');
-      // Also reset the OEM battery prompt gate so a new user on the same device gets prompted
-      localStorage.removeItem('kalyani_bg_prompted_v5');
-      localStorage.removeItem('kalyani_bg_prompted_v6');
-      localStorage.removeItem('kalyani_bg_prompted_v6_time');
-      localStorage.removeItem('kalyani_bg_prompted_v7');
-      localStorage.removeItem('kalyani_bg_exact_v7_time');
-      localStorage.removeItem('kalyani_bg_battery_v7_time');
-      localStorage.removeItem('kalyani_bg_prompted_v8');
-      localStorage.removeItem('kalyani_bg_exact_v8_time');
-      localStorage.removeItem('kalyani_bg_battery_v8_time');
     } catch {}
   }
 
@@ -713,6 +720,12 @@ class KalyaniNotificationManager {
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (isNative()) {
       await nativeBridge.checkAndPromptBackgroundPermissions();
+    }
+  }
+
+  async triggerDailyReminderNow(): Promise<void> {
+    if (isNative()) {
+      await nativeBridge.triggerDailyReminderNow();
     }
   }
 

@@ -33,6 +33,19 @@ const persistActiveUser = (user: KalyaniUser | null) => {
     } catch {}
     try {
       import('../services/notificationService').then((m) => {
+        const effRole =
+          user.role === 'ADMIN'
+            ? 'ADMIN'
+            : user.role === 'HOD' && user.hodType !== 'AHOD'
+            ? 'HOD'
+            : 'FACULTY';
+        m.notificationService.native.ensureDailyReminder(
+          effRole,
+          user.name,
+          user.uid,
+          user.departmentId || 'CSE'
+        );
+
         // Only re-baseline native state when cloud data is hydrated;
         // otherwise the stale cache would overwrite a real HOD change.
         if (!useAppStore.getState().isCloudHydrated) return;
