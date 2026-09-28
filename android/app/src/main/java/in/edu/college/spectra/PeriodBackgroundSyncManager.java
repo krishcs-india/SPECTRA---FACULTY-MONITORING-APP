@@ -130,6 +130,7 @@ public class PeriodBackgroundSyncManager {
             .remove(KEY_LOGGED_USER_ROLE)
             .remove(KEY_LOGGED_USER_DEPT)
             .remove(KEY_LAST_DAILY_REMINDER_DATE)
+            .remove(KEY_DEPARTMENT_ID)
             .apply();
 
         try {
@@ -147,9 +148,29 @@ public class PeriodBackgroundSyncManager {
                     alarmManager.cancel(pi);
                     pi.cancel();
                 }
+
+                Intent syncIntent = new Intent(context, PeriodSyncReceiver.class);
+                syncIntent.setAction(ACTION_CHECK_PERIODS);
+                PendingIntent syncPi = PendingIntent.getBroadcast(
+                    context,
+                    ALARM_REQUEST_CODE,
+                    syncIntent,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+                );
+                if (syncPi != null) {
+                    alarmManager.cancel(syncPi);
+                    syncPi.cancel();
+                }
             }
+
+            try {
+                androidx.work.WorkManager.getInstance(context).cancelUniqueWork("SpectraPeriodSyncPeriodic");
+                androidx.work.WorkManager.getInstance(context).cancelUniqueWork("SpectraPeriodSyncImmediate");
+                androidx.work.WorkManager.getInstance(context).cancelUniqueWork("SpectraDailyReminder8_30");
+            } catch (Exception ignored) {}
+
         } catch (Exception ignored) {}
-        Log.d(TAG, "Cleared user details and cancelled 8:30 AM alarm.");
+        Log.d(TAG, "Cleared user details and cancelled all background syncs and alarms.");
     }
 
     /**
@@ -490,6 +511,13 @@ public class PeriodBackgroundSyncManager {
     public static void performCheck(Context context) {
         if (context == null) return;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        
+        String userId = prefs.getString(KEY_LOGGED_USER_ID, null);
+        if (userId == null || userId.trim().isEmpty()) {
+            Log.d(TAG, "No logged user, aborting period check.");
+            return;
+        }
+
         String targetDept = prefs.getString(KEY_DEPARTMENT_ID, "CSE");
         if (targetDept == null) targetDept = "CSE";
         targetDept = targetDept.trim().toUpperCase();
