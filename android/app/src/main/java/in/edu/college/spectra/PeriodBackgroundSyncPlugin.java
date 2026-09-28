@@ -112,17 +112,105 @@ public class PeriodBackgroundSyncPlugin extends Plugin {
 
     @PluginMethod
     public void requestExactAlarmPermission(PluginCall call) {
-        PeriodBackgroundSyncManager.requestExactAlarmPermission(getContext().getApplicationContext());
-        JSObject ret = new JSObject();
-        ret.put("requested", true);
-        call.resolve(ret);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            Context context = getContext().getApplicationContext();
+            if (PeriodBackgroundSyncManager.canScheduleExactAlarms(context)) {
+                call.resolve();
+                return;
+            }
+            android.content.SharedPreferences prefs = context.getSharedPreferences(PeriodBackgroundSyncManager.PREFS_NAME, Context.MODE_PRIVATE);
+            if (prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_EXACT_ALARM, false)) {
+                call.resolve();
+                return;
+            }
+            prefs.edit()
+                .putBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_EXACT_ALARM, true)
+                .putBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_PERMANENT, true)
+                .apply();
+
+            android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+            intent.setData(android.net.Uri.parse("package:" + context.getPackageName()));
+            
+            // Wait for user to return
+            startActivityForResult(call, intent, "exactAlarmResult");
+        } else {
+            call.resolve();
+        }
+    }
+
+    @com.getcapacitor.annotation.ActivityCallback
+    private void exactAlarmResult(PluginCall call, androidx.activity.result.ActivityResult result) {
+        call.resolve();
     }
 
     @PluginMethod
     public void requestBatteryOptimizationExemption(PluginCall call) {
-        PeriodBackgroundSyncManager.requestBatteryOptimizationExemption(getContext().getApplicationContext());
-        JSObject ret = new JSObject();
-        ret.put("requested", true);
-        call.resolve(ret);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Context context = getContext().getApplicationContext();
+            if (PeriodBackgroundSyncManager.isBatteryOptimizationIgnored(context)) {
+                call.resolve();
+                return;
+            }
+            android.content.SharedPreferences prefs = context.getSharedPreferences(PeriodBackgroundSyncManager.PREFS_NAME, Context.MODE_PRIVATE);
+            if (prefs.getBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_BATTERY_OPT, false)) {
+                call.resolve();
+                return;
+            }
+            prefs.edit()
+                .putBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_BATTERY_OPT, true)
+                .putBoolean(PeriodBackgroundSyncManager.KEY_PROMPTED_PERMANENT, true)
+                .apply();
+
+            android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(android.net.Uri.parse("package:" + context.getPackageName()));
+            
+            try {
+                startActivityForResult(call, intent, "batteryOptResult");
+            } catch (Exception e) {
+                // Fallback to OEM specific intents if the standard one fails
+                String manufacturer = android.os.Build.MANUFACTURER.toLowerCase();
+                android.content.Intent oemIntent = null;
+                
+                if (manufacturer.contains("samsung")) {
+                    oemIntent = new android.content.Intent();
+                    oemIntent.setComponent(new android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"));
+                } else if (manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")) {
+                    oemIntent = new android.content.Intent();
+                    oemIntent.setComponent(new android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"));
+                } else if (manufacturer.contains("oppo") || manufacturer.contains("realme") || manufacturer.contains("oneplus")) {
+                    oemIntent = new android.content.Intent();
+                    oemIntent.setAction("android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS");
+                    oemIntent.setData(android.net.Uri.parse("package:" + context.getPackageName()));
+                } else if (manufacturer.contains("huawei") || manufacturer.contains("honor")) {
+                    oemIntent = new android.content.Intent();
+                    oemIntent.setComponent(new android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startemup.StartupNormalAppListActivity"));
+                } else if (manufacturer.contains("vivo") || manufacturer.contains("iqoo")) {
+                    oemIntent = new android.content.Intent();
+                    oemIntent.setAction(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                }
+
+                if (oemIntent != null) {
+                    try {
+                        startActivityForResult(call, oemIntent, "batteryOptResult");
+                        return;
+                    } catch (Exception ignored) {}
+                }
+
+                // Final universal fallback
+                android.content.Intent fallback = new android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                try {
+                    startActivityForResult(call, fallback, "batteryOptResult");
+                } catch (Exception ignored2) {
+                    call.resolve();
+                }
+            }
+        } else {
+            call.resolve();
+        }
+    }
+
+    @com.getcapacitor.annotation.ActivityCallback
+    private void batteryOptResult(PluginCall call, androidx.activity.result.ActivityResult result) {
+        call.resolve();
     }
 }

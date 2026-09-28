@@ -100,7 +100,6 @@ class NativeNotificationBridge {
       // Priority 1: Battery Optimization Exemption (most impactful for background reliability)
       if (!status.batteryOptimizationIgnored) {
         await PeriodBackgroundSync.requestBatteryOptimizationExemption();
-        return;
       }
 
       // Priority 2: Exact Alarms (Android 12+ only)
