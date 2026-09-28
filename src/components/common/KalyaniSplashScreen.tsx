@@ -20,15 +20,19 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
       await new Promise((resolve) => setTimeout(resolve, 700));
       if (!isMounted) return;
 
-      // 2. Request notification permission while the splash screen is actively presented.
-      // This ensures the system permission dialog sits directly on top of the SPECTRA branding — zero white screen!
+      // 2. Request ALL permissions (Notifications, Exact Alarm, Battery Optimization) 
+      // while the splash screen is actively presented.
+      // This ensures the system permission dialogs sit directly on top of the SPECTRA branding — zero white screen!
       try {
         await Promise.race([
-          notificationService.requestPermissions(),
-          new Promise((resolve) => setTimeout(resolve, 6000)) // Safety timeout
+          (async () => {
+            await notificationService.requestPermissions();
+            await notificationService.checkAndPromptBackgroundPermissions();
+          })(),
+          new Promise((resolve) => setTimeout(resolve, 15000)) // Safety timeout (increased to handle multiple prompts)
         ]);
       } catch (err) {
-        console.warn('Splash notification permission request notice:', err);
+        console.warn('Splash permission request notice:', err);
       }
 
       if (!isMounted) return;

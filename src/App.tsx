@@ -87,9 +87,8 @@ export const App: React.FC = () => {
   const handleSplashComplete = async () => {
     setShowSplash(false);
 
-    // Prompt background usage permission if not yet granted
+    // Clear any stale period notification from previous sessions
     try {
-      await notificationService.checkAndPromptBackgroundPermissions();
       await notificationService.native.clearPeriodNotification();
 
       if (currentUser) {
