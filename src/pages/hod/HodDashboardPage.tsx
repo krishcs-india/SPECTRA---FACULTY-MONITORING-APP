@@ -8,7 +8,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { getTodayDateString } from '../../utils/dateUtils';
 
-export const HodDashboardPage: React.FC = () => {
+interface HodDashboardPageProps {
+  onNavigate: (path: string) => void;
+}
+
+export const HodDashboardPage: React.FC<HodDashboardPageProps> = ({ onNavigate }) => {
   const { currentUser } = useAuth();
   const departmentId = currentUser?.departmentId || 'CSE';
 
@@ -36,6 +40,12 @@ export const HodDashboardPage: React.FC = () => {
     [getDepartmentAvailability, departmentId, selectedDate, schedules, users, periods]
   );
 
+  const handleStatCardClick = (status: 'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED') => {
+    sessionStorage.setItem('hod_faculty_filter', status);
+    sessionStorage.setItem('hod_faculty_date', selectedDate);
+    onNavigate('/hod/faculty');
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
       <KalyaniPageHeader
@@ -56,7 +66,7 @@ export const HodDashboardPage: React.FC = () => {
       />
 
       {/* Summary KPI Cards */}
-      <TodaySummaryStats overview={overview} onFilterStatus={setStatFilter} />
+      <TodaySummaryStats overview={overview} onFilterStatus={handleStatCardClick} />
 
       {/* Period-Wise Availability Matrix with 1-click drilldowns */}
       <PeriodAvailabilityGrid periodsAvailability={overview.periodAvailability} />

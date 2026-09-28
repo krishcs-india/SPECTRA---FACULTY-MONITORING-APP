@@ -174,7 +174,7 @@ export const AppRouter: React.FC = () => {
       case '/hod/dashboard':
         return (
           <RoleGuard allowedRoles={['HOD', 'ADMIN']} onRedirectToDefault={() => navigateTo(getDefaultPath())}>
-            <HodDashboardPage />
+            <HodDashboardPage onNavigate={navigateTo} />
           </RoleGuard>
         );
       case '/hod/availability':
@@ -264,7 +264,7 @@ export const AppRouter: React.FC = () => {
         if (currentUser.role === 'HOD') {
           return (
             <RoleGuard allowedRoles={['HOD', 'ADMIN']} onRedirectToDefault={() => navigateTo('/hod/dashboard')}>
-              <HodDashboardPage />
+              <HodDashboardPage onNavigate={navigateTo} />
             </RoleGuard>
           );
         }

@@ -31,9 +31,20 @@ export const HodFacultyPage: React.FC = () => {
   const departmentId = currentUser?.departmentId || 'CSE';
   const departmentName = currentUser?.departmentName || 'Department';
 
+  // Read state from navigation (e.g. from Dashboard Cards)
+  const initialStatusFilter = (sessionStorage.getItem('hod_faculty_filter') as 'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED') || null;
+  const initialDate = sessionStorage.getItem('hod_faculty_date') || null;
+
+  // Clear immediately after reading so a standard refresh doesn't keep applying it
+  useEffect(() => {
+    sessionStorage.removeItem('hod_faculty_filter');
+    sessionStorage.removeItem('hod_faculty_date');
+  }, []);
+
   // Make Daily Submission & Substitution Tracker the first / default tab
-  const [activeTab, setActiveTab] = useState<'SUBMISSIONS' | 'DIRECTORY'>('SUBMISSIONS');
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
+  const [activeTab, setActiveTab] = useState<'SUBMISSIONS' | 'DIRECTORY'>(initialStatusFilter ? 'SUBMISSIONS' : 'SUBMISSIONS');
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate || getTodayDateString());
+  const [statusFilterSignal, setStatusFilterSignal] = useState<'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED'>(initialStatusFilter || 'ALL');
 
   // Store bindings
   const users = useAppStore((state) => state.users);
@@ -371,6 +382,7 @@ export const HodFacultyPage: React.FC = () => {
             departmentName={departmentName}
             departmentSubjects={subjects}
             allowManagement={false}
+            statusFilterSignal={statusFilterSignal}
           />
         </div>
       ) : (
