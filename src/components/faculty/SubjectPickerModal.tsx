@@ -91,13 +91,13 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
       <div className="space-y-3.5">
         {/* Quick Tabs Bar - Collapses gracefully during active search to give maximum space */}
         {!isSearchActive && (
-          <div className="flex items-center gap-2 p-1 bg-rose-50/70 dark:bg-[#180E1C] rounded-xl border border-rose-200 dark:border-rose-900/50 animate-in fade-in duration-200">
+          <div className="flex items-stretch gap-2 p-1 bg-rose-50/70 dark:bg-[#180E1C] rounded-xl border border-rose-200 dark:border-rose-900/50 animate-in fade-in duration-200">
             <button
               onClick={() => setActiveTab('OFFICIAL')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 basis-0 w-full py-2 px-2 rounded-lg text-xs transition-all flex items-center justify-center text-center ${
                 activeTab === 'OFFICIAL'
-                  ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300'
+                  ? 'bg-rose-500 text-white shadow-sm font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 font-semibold'
               }`}
             >
               Subject Search ({subjects.length})
@@ -106,10 +106,10 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
             {allowCustomSubjects && (
               <button
                 onClick={() => setActiveTab('CUSTOM')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex-1 basis-0 w-full py-2 px-2 rounded-lg text-xs transition-all flex items-center justify-center text-center ${
                   activeTab === 'CUSTOM'
-                    ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-sm font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300'
+                    ? 'bg-rose-500 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 font-semibold'
                 }`}
               >
                 + Other Academic Duties
@@ -266,7 +266,6 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               placeholder="e.g. Final Year Major Project Review / NBA Meeting"
-              autoFocus
             />
 
             {/* Quick suggestions */}
