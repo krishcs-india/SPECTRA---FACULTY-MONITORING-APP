@@ -20,7 +20,9 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -153,6 +155,10 @@ public class PeriodBackgroundSyncManager {
     /**
      * Arms an exact hardware wakeup alarm for 8:30 AM daily.
      * Uses AlarmClockInfo on Android 12-15 to completely bypass Doze mode.
+     *
+     * When SCHEDULE_EXACT_ALARM is unavailable (Android 14+ can revoke it silently),
+     * a WorkManager job is enqueued with the exact delay to 8:30 AM as a reliable fallback.
+     * WorkManager survives app death, Doze, and battery optimization — setAndAllowWhileIdle does NOT.
      */
     public static void scheduleDailyReminder(Context context) {
         if (context == null) return;
@@ -189,6 +195,8 @@ public class PeriodBackgroundSyncManager {
             }
 
             long triggerAtMillis = target.getTimeInMillis();
+            long delayMs = triggerAtMillis - System.currentTimeMillis();
+            boolean exactScheduled = false;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (alarmManager.canScheduleExactAlarms()) {
@@ -196,24 +204,51 @@ public class PeriodBackgroundSyncManager {
                         AlarmManager.AlarmClockInfo clockInfo = new AlarmManager.AlarmClockInfo(
                             triggerAtMillis, pendingIntent);
                         alarmManager.setAlarmClock(clockInfo, pendingIntent);
+                        exactScheduled = true;
                     } catch (Exception e) {
-                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                        try {
+                            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                            exactScheduled = true;
+                        } catch (Exception ignored) {}
                     }
-                } else {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
                 }
+                // If canScheduleExactAlarms() is false — fall through to WorkManager fallback below
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                exactScheduled = true;
             } else {
                 alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                exactScheduled = true;
+            }
+
+            // WorkManager fallback: when SCHEDULE_EXACT_ALARM is revoked by Android 14+,
+            // enqueue a WorkManager job with the precise delay to 8:30 AM.
+            // WorkManager survives Doze, app death, and battery optimization.
+            // This runs ALONGSIDE AlarmManager (dual redundancy), not instead of it.
+            try {
+                long delaySeconds = Math.max(1, delayMs / 1000L);
+                OneTimeWorkRequest reminderWork = new OneTimeWorkRequest.Builder(
+                    DailyReminderWorker.class)
+                    .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
+                    .build();
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    "SpectraDailyReminder8_30",
+                    ExistingWorkPolicy.REPLACE,
+                    reminderWork
+                );
+                Log.d(TAG, "WorkManager daily reminder fallback enqueued in " + (delaySeconds / 60) + " minutes.");
+            } catch (Exception wme) {
+                Log.w(TAG, "WorkManager daily reminder fallback failed: " + wme.getMessage());
             }
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
-            Log.d(TAG, "Scheduled 8:30 AM daily reminder for " + userId + " at " + sdf.format(new Date(triggerAtMillis)));
+            Log.d(TAG, "Scheduled 8:30 AM daily reminder for " + userId + " at " + sdf.format(new Date(triggerAtMillis))
+                + (exactScheduled ? " [AlarmManager exact]" : " [WorkManager fallback only]"));
         } catch (Exception e) {
             Log.e(TAG, "Failed to schedule 8:30 AM daily reminder", e);
         }
     }
+
 
     /**
      * Builds and delivers the daily morning reminder notification customized for the user's role.

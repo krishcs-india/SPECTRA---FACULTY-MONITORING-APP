@@ -35,6 +35,9 @@ const isNative = () =>
 class NativeNotificationBridge {
   private static readonly DAILY_REMINDER_ID = 42001;
   private channelCreated = false;
+  // Module-level permission cache: only triggers the system dialog ONCE per app session.
+  // Subsequent calls return the cached result without showing any prompt.
+  private permissionGranted: boolean | null = null;
 
   /**
    * Synchronizes the latest known period count and signature to native SharedPreferences.
@@ -65,36 +68,42 @@ class NativeNotificationBridge {
   }
 
   /**
-   * Prompts user for exact alarm and battery optimization exemptions on Android 12-15
-   * ONLY ONCE. Never repeats or annoys the user if already prompted or granted.
+   * Prompts user for exact alarm and battery optimization exemptions on Android 12+
+   * ONLY ONCE EVER. Never repeats or annoys the user.
+   *
+   * Source of truth: native Android SharedPreferences (persists across app reinstalls
+   * and localStorage wipes). localStorage is only a fast-path cache.
    */
   async checkAndPromptBackgroundPermissions(): Promise<void> {
     if (!isNative()) return;
     try {
+      // Fast-path: check localStorage first (avoids the plugin bridge round-trip)
       const PERM_PROMPTED_KEY = 'spectra_bg_perm_prompted_permanent_v1';
-      // If already prompted once in the webview, respect user preference and exit immediately
       if (localStorage.getItem(PERM_PROMPTED_KEY) === 'true') {
         return;
       }
 
+      // Authoritative check: query native SharedPreferences
+      // alreadyPrompted is set by the Java layer and survives localStorage wipes
       const status = await PeriodBackgroundSync.getOptimizationStatus();
 
-      // If already prompted in native preferences, or both active (ON), exit immediately
+      // If native layer confirms already prompted OR both permissions are active, exit
       if (status.alreadyPrompted || (status.exactAlarmAllowed && status.batteryOptimizationIgnored)) {
+        // Restore localStorage cache so we don't hit native bridge again next time
         localStorage.setItem(PERM_PROMPTED_KEY, 'true');
         return;
       }
 
-      // Mark prompted immediately BEFORE launching so it NEVER loops
+      // Mark prompted BEFORE launching so it NEVER loops, in both native AND localStorage
       localStorage.setItem(PERM_PROMPTED_KEY, 'true');
 
-      // Priority 1: Battery Optimization Exemption
+      // Priority 1: Battery Optimization Exemption (most impactful for background reliability)
       if (!status.batteryOptimizationIgnored) {
         await PeriodBackgroundSync.requestBatteryOptimizationExemption();
         return;
       }
 
-      // Priority 2: Exact Alarms (Android 12+)
+      // Priority 2: Exact Alarms (Android 12+ only)
       if (!status.exactAlarmAllowed) {
         await PeriodBackgroundSync.requestExactAlarmPermission();
       }
@@ -151,22 +160,40 @@ class NativeNotificationBridge {
     }
   }
 
-  async requestPermission(): Promise<boolean> {
+  async requestPermission(forceCheck = false): Promise<boolean> {
     if (!isNative()) return false;
+    // Return cached result without re-prompting (prevents repeated system dialogs)
+    if (!forceCheck && this.permissionGranted !== null) return this.permissionGranted;
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       const check = await LocalNotifications.checkPermissions();
-      if (check.display === 'granted') return true;
-      const res = await LocalNotifications.requestPermissions();
-      return res.display === 'granted';
+      if (check.display === 'granted') {
+        this.permissionGranted = true;
+        return true;
+      }
+      // Only show the system dialog if permission has never been granted
+      if (check.display === 'prompt' || check.display === 'prompt-with-rationale') {
+        const res = await LocalNotifications.requestPermissions();
+        this.permissionGranted = res.display === 'granted';
+      } else {
+        // 'denied' — user has explicitly denied; don't ask again
+        this.permissionGranted = false;
+      }
+      return this.permissionGranted;
     } catch (err) {
       console.warn('Native notification permission error:', err);
+      this.permissionGranted = false;
       return false;
     }
   }
 
   async notifyNow(title: string, body: string): Promise<void> {
-    if (!(await this.requestPermission())) return;
+    // Check cached permission without re-prompting
+    if (this.permissionGranted === false) return;
+    if (this.permissionGranted === null) {
+      const granted = await this.requestPermission();
+      if (!granted) return;
+    }
     await this.ensureChannel();
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
@@ -204,10 +231,11 @@ class NativeNotificationBridge {
       } catch (err) {
         console.warn('Direct native notification dispatch fallback notice:', err);
       }
-      // Always ALSO schedule via LocalNotifications with unique id so that
+      // Also schedule via LocalNotifications with unique id so that
       // even if the native fixed-ID card is suppressed, a fresh card appears.
+      // Do NOT call requestPermission() here — permission was already handled at startup.
+      if (this.permissionGranted === false) return;
       try {
-        if (!(await this.requestPermission())) return;
         await this.ensureChannel();
         const { LocalNotifications } = await import('@capacitor/local-notifications');
         await LocalNotifications.schedule({
@@ -230,7 +258,9 @@ class NativeNotificationBridge {
       }
     }
 
-    if (!(await this.requestPermission())) return;
+    // Web fallback — check without re-prompting
+    if (this.permissionGranted === false) return;
+    if (this.permissionGranted === null && !(await this.requestPermission())) return;
     await this.ensureChannel();
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
@@ -266,7 +296,8 @@ class NativeNotificationBridge {
   ): Promise<void> {
     if (!isNative()) return;
     try {
-      await this.requestPermission();
+      // Do NOT call requestPermission() here — it causes a repeated system dialog.
+      // Permission is already handled by the splash screen startup sequence.
       await this.ensureChannel();
 
       // 1. SAVE USER DETAILS TO NATIVE ANDROID ENGINE
@@ -454,7 +485,8 @@ class NativeNotificationBridge {
    */
   async notifyDownloadComplete(fileName: string, fileUri: string): Promise<void> {
     if (!isNative()) return;
-    if (!(await this.requestPermission())) return;
+    // Use cached permission state — do not re-prompt
+    if (this.permissionGranted === false) return;
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       const id = 700000000 + Math.floor(Date.now() % 200000000);

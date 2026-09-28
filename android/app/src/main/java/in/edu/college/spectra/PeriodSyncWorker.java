@@ -42,16 +42,27 @@ public class PeriodSyncWorker extends Worker {
             PeriodBackgroundSyncManager.performCheck(context);
         } catch (Exception e) {
             Log.e(TAG, "Error during PeriodSyncWorker performCheck", e);
-        } finally {
-            try {
-                // Continuous self-chaining: schedule the next WorkManager check in 60s
-                scheduleNextRun(context, SYNC_DELAY_SECONDS);
+        }
 
-                // In parallel, reinforce the AlarmManager hardware wakeup heartbeat in 60s
-                PeriodBackgroundSyncManager.scheduleNextCheck(context, SYNC_DELAY_SECONDS * 1000L);
-            } catch (Exception ex) {
-                Log.e(TAG, "Error scheduling subsequent check from worker", ex);
-            }
+        // Re-arm the 8:30 AM daily reminder alarm on every WorkManager heartbeat.
+        // This guarantees that if Android silently revoked SCHEDULE_EXACT_ALARM (Android 14+),
+        // the alarm is always resurrected within the next WorkManager window.
+        try {
+            PeriodBackgroundSyncManager.scheduleDailyReminder(context);
+            // If the app was opened after 8:30 AM and today's reminder is pending, deliver it now.
+            PeriodBackgroundSyncManager.checkAndDeliverMorningReminderIfNeeded(context);
+        } catch (Exception e) {
+            Log.e(TAG, "Error re-arming daily reminder from worker", e);
+        }
+
+        try {
+            // Continuous self-chaining: schedule the next WorkManager check in 60s
+            scheduleNextRun(context, SYNC_DELAY_SECONDS);
+
+            // In parallel, reinforce the AlarmManager hardware wakeup heartbeat in 60s
+            PeriodBackgroundSyncManager.scheduleNextCheck(context, SYNC_DELAY_SECONDS * 1000L);
+        } catch (Exception ex) {
+            Log.e(TAG, "Error scheduling subsequent check from worker", ex);
         }
 
         return Result.success();
