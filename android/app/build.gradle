@@ -29,10 +29,44 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            // R8 full mode: dead code elimination + identifier minification
+            minifyEnabled true
+            // Resource shrinking: removes unused drawables, layouts, strings, etc.
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            debuggable false
+            // Strip duplicate licence / metadata files that bloat the APK
+            packagingOptions {
+                excludes += [
+                    'META-INF/LICENSE',
+                    'META-INF/LICENSE.txt',
+                    'META-INF/NOTICE',
+                    'META-INF/NOTICE.txt',
+                    'META-INF/*.kotlin_module',
+                    '**/*.kotlin_builtins',
+                    '**/*.kotlin_metadata',
+                    'DebugProbesKt.bin'
+                ]
+            }
+        }
+        debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            shrinkResources false
         }
     }
+
+    // ABI splits: generate a separate APK per CPU architecture instead of one fat APK.
+    // arm64-v8a covers ~95% of all modern Android phones (2018+).
+    // armeabi-v7a covers older 32-bit phones for broad compatibility.
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a", "armeabi-v7a"
+            universalApk true   // also emit one universal APK for easy sideloading
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
