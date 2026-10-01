@@ -49,11 +49,6 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 shadow-sm font-sans">
                     {period.periodName || period.shortName}
                   </span>
-                  {period.startTime && (
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">
-                      {period.startTime} - {period.endTime}
-                    </span>
-                  )}
                 </div>
 
                 <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-500/30 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">

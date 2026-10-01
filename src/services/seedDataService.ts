@@ -54,25 +54,15 @@ export const INITIAL_DEPARTMENTS: Department[] = [
 
 export const createDefaultPeriodsForDepartment = (deptId: string): Period[] => {
   const clean = normalizeDepartmentId(deptId) || 'CSE';
-  const timings = [
-    { start: '08:45', end: '09:35' },
-    { start: '09:35', end: '10:25' },
-    { start: '10:40', end: '11:30' },
-    { start: '11:30', end: '12:20' },
-    { start: '01:10', end: '02:00' },
-    { start: '02:00', end: '02:50' },
-    { start: '03:00', end: '03:50' },
-    { start: '03:50', end: '04:40' },
-  ];
-  return timings.map((t, idx) => {
+  return Array.from({ length: 8 }, (_, idx) => {
     const seq = idx + 1;
     return {
       id: `P_${clean}_${seq}`,
       departmentId: clean,
       name: `Period ${seq}`,
       shortName: `Period ${seq}`,
-      startTime: t.start,
-      endTime: t.end,
+      startTime: '',
+      endTime: '',
       sequence: seq,
       active: true,
     };

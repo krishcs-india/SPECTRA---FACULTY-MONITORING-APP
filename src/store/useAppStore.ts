@@ -32,7 +32,7 @@ import { notificationService } from '../services/notificationService';
  */
 export const buildPeriodSignature = (periods: Period[]): string => {
   return (periods || [])
-    .map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.startTime || ''}_${p.endTime || ''}_${p.sequence}`)
+    .map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.sequence}`)
     .sort()
     .join('|');
 };
@@ -181,6 +181,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       };
     };
 
+    const sanitizePeriods = (periodList: Period[]): Period[] => {
+      return (periodList || []).map((p) => ({
+        ...p,
+        startTime: '',
+        endTime: '',
+      }));
+    };
+
     let hasLoadedPeriodsSession = false;
 
     const persist = () => {
@@ -198,7 +206,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           set({
             users: sanitizeUsers(parsed.users || INITIAL_USERS),
             departments: parsed.departments || INITIAL_DEPARTMENTS,
-            periods: parsed.periods || INITIAL_PERIODS,
+            periods: sanitizePeriods(parsed.periods || INITIAL_PERIODS),
             subjects: parsed.subjects || [],
             schedules: parsed.schedules || {},
             systemSettings: sanitizeSettings(parsed.systemSettings),
@@ -209,7 +217,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           set({
             users: sanitizeUsers(INITIAL_USERS),
             departments: INITIAL_DEPARTMENTS,
-            periods: INITIAL_PERIODS,
+            periods: sanitizePeriods(INITIAL_PERIODS),
             subjects: [],
             schedules: {},
             systemSettings: INITIAL_SETTINGS,
@@ -222,7 +230,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         set({
           users: sanitizeUsers(INITIAL_USERS),
           departments: INITIAL_DEPARTMENTS,
-          periods: INITIAL_PERIODS,
+          periods: sanitizePeriods(INITIAL_PERIODS),
           subjects: [],
           schedules: {},
           systemSettings: INITIAL_SETTINGS,
@@ -240,7 +248,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           set({
             users: sanitizeUsers(parsed.users || INITIAL_USERS),
             departments: parsed.departments || INITIAL_DEPARTMENTS,
-            periods: parsed.periods || INITIAL_PERIODS,
+            periods: sanitizePeriods(parsed.periods || INITIAL_PERIODS),
             subjects: parsed.subjects || [],
             schedules: parsed.schedules || {},
             systemSettings: sanitizeSettings(parsed.systemSettings),
@@ -251,7 +259,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           set({
             users: INITIAL_USERS,
             departments: INITIAL_DEPARTMENTS,
-            periods: INITIAL_PERIODS,
+            periods: sanitizePeriods(INITIAL_PERIODS),
             subjects: [],
             schedules: {},
             systemSettings: INITIAL_SETTINGS,
@@ -328,7 +336,19 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           persist();
         },
         onPeriods: (data) => {
-          const incoming = Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS;
+          const rawIncoming = Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS;
+          const incoming = rawIncoming.map((p) => ({
+            ...p,
+            startTime: '',
+            endTime: '',
+          }));
+
+          // Automatically purge any legacy timings from Cloud Firestore in real time
+          const hadTimings = rawIncoming.some((p) => p.startTime || p.endTime);
+          if (hadTimings) {
+            firestoreService.savePeriodsBatch(incoming);
+          }
+
           const oldPeriods = get().periods;
 
           let userDept = '';
@@ -961,8 +981,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         periodId: period.id,
         periodName: period.name,
         shortName: period.shortName,
-        startTime: period.startTime,
-        endTime: period.endTime,
+        startTime: '',
+        endTime: '',
         sequence: period.sequence,
         freeFacultyCount: freeFaculty.length,
         busyFacultyCount: busyFaculty.length,
@@ -1208,6 +1228,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       sequence: nextSequence,
       name: periodData.name || `Period ${nextSequence}`,
       shortName: periodData.shortName || `Period ${nextSequence}`,
+      startTime: '',
+      endTime: '',
       active: true
     };
     const nextPeriods = [...get().periods.filter((p) => p.id !== id), newPeriod];
@@ -1252,6 +1274,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         updated = {
           ...p,
           ...updates,
+          startTime: '',
+          endTime: '',
           ...(updates.departmentId ? { departmentId: normalizeDepartmentId(updates.departmentId) } : {})
         };
         updatedDept = normalizeDepartmentId(updated.departmentId) || 'CSE';

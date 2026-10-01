@@ -288,7 +288,12 @@ export const firestoreService = {
       return onSnapshot(collection(db, 'periods'), (snapshot) => {
         const periods: Period[] = [];
         snapshot.forEach((docSnap) => {
-          periods.push(docSnap.data() as Period);
+          const raw = docSnap.data() as Period;
+          periods.push({
+            ...raw,
+            startTime: '',
+            endTime: '',
+          });
         });
         periods.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
         onUpdate(periods);
@@ -515,7 +520,12 @@ export const firestoreService = {
   async savePeriod(period: Period): Promise<void> {
     if (!isLiveFirebaseConfigured || !db) return;
     try {
-      await setDoc(doc(db, 'periods', period.id), this.sanitizeForFirestore(period), { merge: true });
+      const sanitized = {
+        ...period,
+        startTime: '',
+        endTime: '',
+      };
+      await setDoc(doc(db, 'periods', period.id), this.sanitizeForFirestore(sanitized), { merge: true });
     } catch (err) {
       console.error('Error saving period to Firestore:', err);
     }
@@ -548,7 +558,12 @@ export const firestoreService = {
     try {
       const batch = writeBatch(db);
       periods.forEach((p) => {
-        batch.set(doc(db, 'periods', p.id), this.sanitizeForFirestore(p), { merge: true });
+        const sanitized = {
+          ...p,
+          startTime: '',
+          endTime: '',
+        };
+        batch.set(doc(db, 'periods', p.id), this.sanitizeForFirestore(sanitized), { merge: true });
       });
       await batch.commit();
     } catch (err) {

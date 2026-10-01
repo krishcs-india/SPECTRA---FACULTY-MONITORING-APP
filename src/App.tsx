@@ -77,7 +77,7 @@ export const App: React.FC = () => {
       if (!hydrated) return;
       const userDept = currentUser.departmentId || 'CSE';
       const deptPeriods = useAppStore.getState().getActivePeriods(userDept);
-      const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.startTime || ''}_${p.endTime || ''}_${p.sequence}`).sort().join('|');
+      const signature = deptPeriods.map((p) => `${p.id}_${p.name}_${p.shortName || ''}_${p.sequence}`).sort().join('|');
       notificationService.syncBackgroundPeriodState(userDept, deptPeriods.length, signature);
     } catch (e) {
       console.warn('Initial period sync notice:', e);
