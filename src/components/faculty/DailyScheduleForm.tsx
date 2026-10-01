@@ -555,13 +555,11 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
               <span className="text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-1.5">
                 <Briefcase className="w-3.5 h-3.5 text-amber-500" /> {onDutyCount} period(s) marked on On Duty (OD).
               </span>
-            ) : assignedCount === 0 ? (
-              <span className="text-emerald-700 dark:text-emerald-300 font-medium">All periods currently marked as Free.</span>
-            ) : (
+            ) : assignedCount > 0 ? (
               <span>
                 {assignedCount} teaching period(s) • {freeCount} free period(s)
               </span>
-            )}
+            ) : null}
           </div>
 
           <div className="w-full sm:w-auto flex justify-end">
