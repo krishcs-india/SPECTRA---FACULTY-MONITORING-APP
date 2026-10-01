@@ -475,9 +475,9 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
             <button
               type="button"
               onClick={() => setLeaveOnDutyMode('LEAVE')}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-rose-500/40"
+              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-sky-400 via-sky-400 to-blue-400 hover:from-sky-300 hover:to-blue-300 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-sky-300/80"
             >
-              <CalendarX className="w-4 h-4 shrink-0 text-white" />
+              <CalendarX className="w-4 h-4 shrink-0 text-slate-950" />
               <span>Leave</span>
             </button>
 
@@ -548,8 +548,8 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Pending unsaved changes — click Save &amp; Submit Schedule.
               </span>
             ) : leaveCount > 0 ? (
-              <span className="text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1.5">
-                <CalendarX className="w-3.5 h-3.5 text-rose-500" /> {leaveCount} period(s) marked on Leave.
+              <span className="text-sky-700 dark:text-sky-300 font-semibold flex items-center gap-1.5">
+                <CalendarX className="w-3.5 h-3.5 text-sky-500" /> {leaveCount} period(s) marked on Leave.
               </span>
             ) : onDutyCount > 0 ? (
               <span className="text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-1.5">

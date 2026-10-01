@@ -293,25 +293,27 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-              {sortedPeriods.map((period, idx) => {
-                const isSelected = selectedPeriodIds.includes(period.id);
-                const periodLabel = period.name || period.shortName || `Period ${period.sequence || idx + 1}`;
-                return (
-                  <button
-                    key={period.id}
-                    type="button"
-                    onClick={() => togglePeriodSelection(period.id)}
-                    className={`h-12 min-h-[48px] px-3 rounded-xl border text-center transition-all apple-hover flex items-center justify-center font-bold text-xs sm:text-sm ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white border-rose-500 shadow-md ring-2 ring-rose-400/40 scale-[1.02]'
-                        : 'bg-white/90 dark:bg-[#180E1C]/90 border-rose-200/80 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
-                    }`}
-                  >
-                    <span className="truncate">{periodLabel}</span>
-                  </button>
-                );
-              })}
+            <div className="p-1.5 -m-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-60 overflow-y-auto overflow-x-hidden p-1.5">
+                {sortedPeriods.map((period, idx) => {
+                  const isSelected = selectedPeriodIds.includes(period.id);
+                  const periodLabel = period.name || period.shortName || `Period ${period.sequence || idx + 1}`;
+                  return (
+                    <button
+                      key={period.id}
+                      type="button"
+                      onClick={() => togglePeriodSelection(period.id)}
+                      className={`h-12 min-h-[48px] px-3 rounded-xl border text-center transition-all apple-hover flex items-center justify-center font-bold text-xs sm:text-sm ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white border-rose-500 shadow-md ring-2 ring-rose-400/50'
+                          : 'bg-white/90 dark:bg-[#180E1C]/90 border-rose-200/80 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
+                      }`}
+                    >
+                      <span className="truncate">{periodLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

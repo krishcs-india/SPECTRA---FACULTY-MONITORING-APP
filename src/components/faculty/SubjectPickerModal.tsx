@@ -173,7 +173,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
             </div>
 
             {/* 1. List of Available / Matching Official Subjects - Confined strictly to its own scroll container */}
-            <div className="max-h-60 sm:max-h-72 overflow-y-auto overflow-x-hidden space-y-1.5 pr-1.5 rounded-xl">
+            <div className="max-h-60 sm:max-h-72 overflow-y-auto overflow-x-hidden space-y-1.5 p-1 rounded-xl">
               {filteredSubjects.length === 0 ? (
                 <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">
                   {cleanSearch

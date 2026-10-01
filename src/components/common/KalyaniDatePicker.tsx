@@ -354,7 +354,7 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
       )}
 
       {/* Interactive Horizontal Date Strip */}
-      <div className="grid grid-cols-7 gap-2 overflow-x-auto pb-1">
+      <div className="grid grid-cols-7 gap-2 overflow-x-auto p-1 pb-1.5">
         {nearbyDates.map((dateStr) => {
           const isSelected = dateStr === selectedDate;
           const parsed = parseISO(dateStr);
@@ -371,7 +371,7 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
                 isExpired
                   ? 'opacity-25 cursor-not-allowed bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600'
                   : isSelected
-                  ? 'bg-gradient-to-br from-pink-500 via-rose-500 to-rose-600 border-2 border-rose-400 text-white shadow-md scale-[1.03]'
+                  ? 'bg-gradient-to-br from-pink-500 via-rose-500 to-rose-600 border-2 border-rose-400 text-white shadow-md ring-2 ring-rose-400/40'
                   : 'kalyani-glass border border-rose-200/70 dark:border-rose-950/60 text-slate-700 dark:text-slate-300 hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-300'
               }`}
               title={isExpired ? 'Dates older than 6 days are purged from records' : undefined}
