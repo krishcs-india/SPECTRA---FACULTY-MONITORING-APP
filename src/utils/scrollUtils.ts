@@ -1,17 +1,12 @@
 /**
  * Universal Scroll & Viewport Alignment Utility
  *
- * Provides smooth, reliable viewport docking for interactive controls (dropdowns, search boxes, pickers)
- * ensuring they smoothly glide to the top of the visible screen or modal container when activated.
- *
- * This guarantees that:
- * 1. Dropdown option lists have maximum downward vertical clearance and are fully visible.
- * 2. Mobile soft keyboards never obscure active search inputs or filter results.
- * 3. Modals and popup dialogs automatically scroll their inner bodies so dropdowns and search bars are pinned at the top.
+ * Provides intelligent, comfortable viewport alignment for interactive controls (dropdowns, search boxes, pickers)
+ * ensuring they have ample vertical room for downward option lists without scrolling "too much top".
  */
 
 export interface ScrollToTopOptions {
-  /** Top offset padding in pixels (defaults to accounting for sticky navbar or modal headers) */
+  /** Top offset padding in pixels (defaults to a comfortable upper position) */
   offset?: number;
   /** Scrolling behavior ('smooth' | 'auto', defaults to 'smooth') */
   behavior?: ScrollBehavior;
@@ -41,21 +36,13 @@ export function getScrollableParent(node: HTMLElement | null): HTMLElement | nul
 }
 
 /**
- * Checks whether an element is near the bottom of the viewport or its scroll container.
- * Useful for determining if dropdown menus should open upward instead of downward.
- */
-export function shouldOpenUpwards(element: HTMLElement | null, requiredHeight = 240): boolean {
-  if (!element) return false;
-  const rect = element.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom;
-  const spaceAbove = rect.top;
-
-  return spaceBelow < requiredHeight && spaceAbove > spaceBelow;
-}
-
-/**
- * Smoothly scrolls an element towards the top of its visible context (either its scrollable modal body
- * or the main browser window below the sticky header).
+ * Intelligently and gently scrolls an element towards a comfortable upper position on the screen
+ * or inside its scrollable modal container ONLY if needed, ensuring the dropdown options
+ * that open downwards have abundant vertical clearance.
+ *
+ * It avoids scrolling "too much top" (leaving a comfortable margin of 120-150px on screen,
+ * or 30-40px inside modals) and avoids scrolling altogether if the element already has ample
+ * downward space.
  */
 export function scrollToTopView(element: HTMLElement | null, options?: ScrollToTopOptions): void {
   if (!element) return;
@@ -64,58 +51,68 @@ export function scrollToTopView(element: HTMLElement | null, options?: ScrollToT
     if (!element || !element.isConnected) return;
 
     const scrollParent = getScrollableParent(element);
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-    const defaultNavOffset = isMobile ? 68 : 82;
     const behavior = options?.behavior || 'smooth';
 
-    // 1. Inside a scrollable container (e.g., inside a Modal body)
+    // 1. Inside a scrollable container (e.g. Modal body)
     if (scrollParent) {
       const parentRect = scrollParent.getBoundingClientRect();
       const elemRect = element.getBoundingClientRect();
-      const currentScrollTop = scrollParent.scrollTop;
-      const modalPadding = options?.offset ?? 14;
+      const spaceBelowInParent = parentRect.bottom - elemRect.bottom;
+      const comfortableModalOffset = options?.offset ?? 28;
 
-      const targetScrollTop = Math.max(0, currentScrollTop + (elemRect.top - parentRect.top) - modalPadding);
+      // If the element already has plenty of space below inside the modal (>= 250px)
+      // and isn't tucked under the header, no scroll is needed!
+      if (elemRect.top >= parentRect.top + comfortableModalOffset && spaceBelowInParent >= 250) {
+        return;
+      }
+
+      // Gently scroll inside the modal to give comfortable downward room
+      const currentScrollTop = scrollParent.scrollTop;
+      const targetScrollTop = Math.max(
+        0,
+        currentScrollTop + (elemRect.top - parentRect.top) - comfortableModalOffset
+      );
 
       scrollParent.scrollTo({
         top: targetScrollTop,
         behavior,
       });
-
-      // Also ensure the modal container itself is visible in the window if pushed offscreen
-      if (parentRect.top < defaultNavOffset || parentRect.bottom > window.innerHeight) {
-        const windowTargetY = Math.max(
-          0,
-          (window.scrollY || window.pageYOffset || 0) + parentRect.top - defaultNavOffset
-        );
-        window.scrollTo({
-          top: windowTargetY,
-          behavior,
-        });
-      }
       return;
     }
 
     // 2. In normal document flow on the main page (Window scrolling)
     const elemRect = element.getBoundingClientRect();
-    const offset = options?.offset ?? defaultNavOffset;
-    const currentScrollY = window.scrollY || window.pageYOffset || 0;
-    const targetY = Math.max(0, currentScrollY + elemRect.top - offset);
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - elemRect.bottom;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    
+    // Balanced, comfortable upper margin: NOT slammed against the navbar (70px),
+    // but resting naturally around 120px-150px down the viewport.
+    const comfortableTopMargin = options?.offset ?? (isMobile ? 110 : 145);
 
-    window.scrollTo({
-      top: targetY,
-      behavior,
-    });
+    // If the element already has enough space below for options (>= 280px)
+    // and is well below the top header, do not scroll!
+    if (elemRect.top >= comfortableTopMargin && spaceBelow >= 280) {
+      return;
+    }
+
+    // Otherwise, gently scroll just enough to position it at the comfortable upper area
+    const currentScrollY = window.scrollY || window.pageYOffset || 0;
+    const targetY = Math.max(0, currentScrollY + elemRect.top - comfortableTopMargin);
+
+    // Only scroll if there's a meaningful difference (avoid micro-jitter)
+    if (Math.abs(targetY - currentScrollY) > 15) {
+      window.scrollTo({
+        top: targetY,
+        behavior,
+      });
+    }
   };
 
   const delay = options?.delay ?? 0;
   if (delay > 0) {
     setTimeout(performScroll, delay);
   } else {
-    // Execute immediately
     performScroll();
-    // Follow-up after short delay to handle mobile virtual keyboard appearance and CSS transitions
-    setTimeout(performScroll, 120);
-    setTimeout(performScroll, 280);
   }
 }

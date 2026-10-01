@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import { scrollToTopView, shouldOpenUpwards } from '../../utils/scrollUtils';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 export interface SelectOption {
   value: string;
@@ -35,7 +35,6 @@ export const KalyaniSelect: React.FC<KalyaniSelectProps> = ({
   autoScrollOnOpen = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
@@ -53,14 +52,9 @@ export const KalyaniSelect: React.FC<KalyaniSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // When dropdown opens, automatically glide container towards top of screen/modal
+  // When dropdown opens, gently ensure comfortable downward clearance
   useEffect(() => {
     if (isOpen && autoScrollOnOpen && containerRef.current) {
-      // Calculate whether it should open upward if space below is limited
-      const upwards = shouldOpenUpwards(containerRef.current, 260);
-      setOpenUpward(upwards);
-
-      // Smoothly bring the dropdown to the top of the visible screen/modal
       scrollToTopView(containerRef.current);
     }
   }, [isOpen, autoScrollOnOpen]);
@@ -68,7 +62,6 @@ export const KalyaniSelect: React.FC<KalyaniSelectProps> = ({
   const handleToggle = () => {
     if (!isOpen && autoScrollOnOpen && containerRef.current) {
       scrollToTopView(containerRef.current);
-      setOpenUpward(shouldOpenUpwards(containerRef.current, 260));
     }
     setIsOpen(!isOpen);
   };
@@ -104,12 +97,10 @@ export const KalyaniSelect: React.FC<KalyaniSelectProps> = ({
         />
       </button>
 
-      {/* Options Dropdown Menu */}
+      {/* Options Dropdown Menu - Strictly Downward Opening for Perfect UX */}
       {isOpen && (
         <div
-          className={`absolute ${
-            openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-          } inset-x-0 z-50 max-h-64 sm:max-h-72 overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/60 p-1.5 shadow-2xl backdrop-blur-3xl animate-in zoom-in-95 fade-in duration-150 ${dropdownClassName}`}
+          className={`absolute top-full mt-1.5 inset-x-0 z-50 max-h-60 sm:max-h-64 overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/60 p-1.5 shadow-2xl backdrop-blur-3xl animate-in fade-in slide-in-from-top-1.5 duration-150 ${dropdownClassName}`}
         >
           {options.map((opt) => {
             const isSelected = opt.value === value;
