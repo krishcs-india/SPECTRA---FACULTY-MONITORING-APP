@@ -475,7 +475,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
             <button
               type="button"
               onClick={() => setLeaveOnDutyMode('LEAVE')}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-rose-600 to-pink-600 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-rose-400/40"
+              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-rose-500/40"
             >
               <CalendarX className="w-4 h-4 shrink-0 text-white" />
               <span>Leave</span>
@@ -484,18 +484,18 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
             <button
               type="button"
               onClick={() => setLeaveOnDutyMode('ON_DUTY')}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-rose-300/40"
+              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:brightness-105 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-amber-600/30"
             >
-              <Briefcase className="w-4 h-4 shrink-0 text-white" />
+              <Briefcase className="w-4 h-4 shrink-0 text-slate-950" />
               <span>On Duty</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowFullDayFreeConfirm(true)}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-200 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-rose-300 dark:border-rose-800/60"
+              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-emerald-400/40"
             >
-              <Coffee className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+              <Coffee className="w-4 h-4 shrink-0 text-white" />
               <span className="truncate">Full Day Free</span>
             </button>
           </div>
@@ -539,21 +539,21 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       {!submissionBlocked && (
         <div className={`p-4 sm:p-5 rounded-3xl border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-4 ${
           hasUnsavedChanges
-            ? 'border-rose-400 dark:border-rose-500/50 bg-rose-50/90 dark:bg-rose-950/40 shadow-md'
+            ? 'border-amber-400 dark:border-amber-500/50 bg-amber-50/90 dark:bg-amber-950/40 shadow-md'
             : 'bg-white/90 dark:bg-[#180E1C]/90 border-rose-200/80 dark:border-rose-900/30 shadow-sm'
         }`}>
           <div className="text-xs text-slate-600 dark:text-slate-300 w-full sm:w-auto">
             {hasUnsavedChanges ? (
-              <span className="text-rose-800 dark:text-rose-300 font-semibold flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Pending unsaved changes — click Save &amp; Submit Schedule.
+              <span className="text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Pending unsaved changes — click Save &amp; Submit Schedule.
               </span>
             ) : leaveCount > 0 ? (
               <span className="text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1.5">
                 <CalendarX className="w-3.5 h-3.5 text-rose-500" /> {leaveCount} period(s) marked on Leave.
               </span>
             ) : onDutyCount > 0 ? (
-              <span className="text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1.5">
-                <Briefcase className="w-3.5 h-3.5 text-rose-500" /> {onDutyCount} period(s) marked on On Duty (OD).
+              <span className="text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-amber-500" /> {onDutyCount} period(s) marked on On Duty (OD).
               </span>
             ) : assignedCount === 0 ? (
               <span className="text-emerald-700 dark:text-emerald-300 font-medium">All periods currently marked as Free.</span>
