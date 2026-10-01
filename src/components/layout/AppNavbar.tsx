@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { authService } from '../../services/authService';
 import { LogOut, Menu } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { NavbarUserAvatar } from './NavbarUserAvatar';
 
 interface AppNavbarProps {
   onToggleSidebar?: () => void;
@@ -77,9 +78,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ onToggleSidebar, onNavigat
                 </p>
               </div>
 
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 border border-rose-300/40 group-hover:border-rose-400 flex items-center justify-center font-bold text-xs text-white shadow-sm select-none shrink-0 group-hover:scale-105 transition-transform">
-                <span className="leading-none">{currentUser?.name?.charAt(0) || 'U'}</span>
-              </div>
+              <NavbarUserAvatar role={currentUser?.role} name={currentUser?.name} />
             </div>
 
             <button

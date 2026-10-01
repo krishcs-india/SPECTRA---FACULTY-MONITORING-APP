@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
+import { NavbarUserAvatar } from './NavbarUserAvatar';
 import {
   CalendarDays,
   History,
@@ -137,9 +138,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {/* Bottom Department Tag / Footer Badge */}
         <div className="pt-4 border-t border-rose-200/80 dark:border-rose-950/80">
           <div className="p-3 rounded-2xl kalyani-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/40 flex items-center justify-center shrink-0 text-rose-600 dark:text-rose-400 text-xs font-bold select-none">
-              {currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || (role === 'ADMIN' ? 'A' : 'F')}
-            </div>
+            <NavbarUserAvatar role={role} name={currentUser?.name} className="w-8 h-8 sm:w-8 sm:h-8" />
             <div className="overflow-hidden">
               <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate font-marcellus">
                 {role === 'ADMIN'
