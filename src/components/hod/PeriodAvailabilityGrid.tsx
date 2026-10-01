@@ -76,8 +76,8 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   </div>
                 </div>
 
-                {/* Right Column: Teaching & Leave (Moved flush to the end of the line) */}
-                <div className="space-y-2.5 text-left">
+                {/* Right Column: Teaching & Leave (Comfortably offset from the right end) */}
+                <div className="space-y-2.5 text-left pr-3">
                   <div>
                     <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Teaching</p>
                     <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 h-6 flex items-center">
