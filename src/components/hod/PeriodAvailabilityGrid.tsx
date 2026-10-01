@@ -66,7 +66,7 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   </p>
                 </div>
 
-                <div className="text-right">
+                <div>
                   <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Teaching</p>
                   <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
                     {period.busyFacultyCount}{' '}
@@ -81,7 +81,7 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   </p>
                 </div>
 
-                <div className="text-right">
+                <div>
                   <p className="text-[10px] uppercase font-semibold text-rose-700 dark:text-rose-400">Leave</p>
                   <p className="text-sm font-semibold text-rose-600 dark:text-rose-300">
                     {period.leaveFacultyCount || 0}
