@@ -1,4 +1,5 @@
 import React from 'react';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 interface KalyaniInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -6,10 +7,31 @@ interface KalyaniInputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   helperText?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  autoScrollOnFocus?: boolean;
 }
 
 export const KalyaniInput = React.forwardRef<HTMLInputElement, KalyaniInputProps>(
-  ({ label, error, helperText, leftIcon, rightIcon, className = '', ...props }, ref) => {
+  (
+    {
+      label,
+      error,
+      helperText,
+      leftIcon,
+      rightIcon,
+      className = '',
+      autoScrollOnFocus = true,
+      onFocus,
+      ...props
+    },
+    ref
+  ) => {
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      if (autoScrollOnFocus) {
+        scrollToTopView(e.currentTarget);
+      }
+      onFocus?.(e);
+    };
+
     return (
       <div className="w-full">
         {label && (
@@ -27,6 +49,7 @@ export const KalyaniInput = React.forwardRef<HTMLInputElement, KalyaniInputProps
 
           <input
             ref={ref}
+            onFocus={handleFocus}
             className={`w-full bg-white dark:bg-[#180E1C] border text-slate-800 dark:text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm backdrop-blur-md ${
               leftIcon ? 'pl-10' : ''
             } ${rightIcon ? 'pr-10' : ''} ${

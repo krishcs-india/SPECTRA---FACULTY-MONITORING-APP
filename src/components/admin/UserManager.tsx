@@ -12,6 +12,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useAuth } from '../../hooks/useAuth';
 import { excelService } from '../../services/excelService';
 import { Users, Plus, Search, FileSpreadsheet, Download, Edit2, Power, Trash2, CheckCircle2, Shield } from 'lucide-react';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 export const UserManager: React.FC = () => {
   const { currentUser } = useAuth();
@@ -325,6 +326,8 @@ export const UserManager: React.FC = () => {
             <input
               type="text"
               value={searchTerm}
+              onFocus={(e) => scrollToTopView(e.currentTarget)}
+              onClick={(e) => scrollToTopView(e.currentTarget)}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, designation…"
               className="w-full h-11 bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/40 text-slate-800 dark:text-slate-100 text-xs sm:text-sm rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-rose-400"

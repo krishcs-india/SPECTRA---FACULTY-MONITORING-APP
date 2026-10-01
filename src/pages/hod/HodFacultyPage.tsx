@@ -13,6 +13,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { KalyaniUser, UserRole } from '../../types/user';
 import { getTodayDateString } from '../../utils/dateUtils';
 import { excelService } from '../../services/excelService';
+import { scrollToTopView } from '../../utils/scrollUtils';
 import {
   Users,
   Plus,
@@ -396,6 +397,8 @@ export const HodFacultyPage: React.FC = () => {
                   type="text"
                   placeholder="Search staff by name or email…"
                   value={searchTerm}
+                  onFocus={(e) => scrollToTopView(e.currentTarget)}
+                  onClick={(e) => scrollToTopView(e.currentTarget)}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-rose-500 shadow-sm"
                 />

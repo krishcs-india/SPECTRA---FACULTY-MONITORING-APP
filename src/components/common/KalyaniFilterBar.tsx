@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { ScheduleStatus } from '../../types/schedule';
 import { KalyaniSelect, SelectOption } from './KalyaniSelect';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 interface KalyaniFilterBarProps {
   searchTerm: string;
@@ -53,6 +54,8 @@ export const KalyaniFilterBar: React.FC<KalyaniFilterBarProps> = ({
           <input
             type="text"
             value={searchTerm}
+            onFocus={(e) => scrollToTopView(e.currentTarget)}
+            onClick={(e) => scrollToTopView(e.currentTarget)}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
             className="w-full h-11 bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 text-slate-800 dark:text-slate-100 text-sm rounded-2xl pl-10 pr-9 py-2.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm backdrop-blur-md"

@@ -8,6 +8,7 @@ import {
   X,
   ChevronDown
 } from 'lucide-react';
+import { scrollToTopView } from '../../utils/scrollUtils';
 import {
   formatDateDisplay,
   formatDayName,
@@ -74,6 +75,13 @@ export const KalyaniDatePicker: React.FC<KalyaniDatePickerProps> = ({
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isCalendarOpen]);
+
+  // Smoothly scroll date picker to top of viewport when calendar opens
+  useEffect(() => {
+    if (isCalendarOpen && pickerRef.current) {
+      scrollToTopView(pickerRef.current);
+    }
   }, [isCalendarOpen]);
 
   const nearbyDates = getNearbyDates(selectedDate, 7);

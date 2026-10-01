@@ -87,7 +87,7 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
           </div>
 
           {/* Smooth Scrollable Modal Body Inside */}
-          <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain text-slate-800 dark:text-slate-200">
+          <div className="p-5 sm:p-6 overflow-y-auto scroll-smooth flex-1 overscroll-contain text-slate-800 dark:text-slate-200">
             {children}
           </div>
 

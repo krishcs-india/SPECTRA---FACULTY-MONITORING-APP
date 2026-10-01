@@ -10,6 +10,7 @@ import { ExcelSubjectImportModal } from './ExcelSubjectImportModal';
 import { useSubjects } from '../../hooks/useSubjects';
 import { BookOpen, Plus, Search, FileSpreadsheet, Edit2, Trash2, Power, CheckCircle2, Download, X, CheckSquare } from 'lucide-react';
 import { excelService } from '../../services/excelService';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 interface SubjectMasterManagerProps {
   departmentId: string;
@@ -266,6 +267,8 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
           <input
             type="text"
             value={searchTerm}
+            onFocus={(e) => scrollToTopView(e.currentTarget)}
+            onClick={(e) => scrollToTopView(e.currentTarget)}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search subjects by code or title…"
             className="w-full h-11 bg-white dark:bg-[#180E1C] border border-rose-200 dark:border-rose-900/50 text-slate-800 dark:text-slate-100 text-sm rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-rose-500 shadow-sm"

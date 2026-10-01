@@ -3,6 +3,7 @@ import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniButton } from '../common/KalyaniButton';
 import { Period } from '../../types/period';
 import { formatDateDisplay } from '../../utils/dateUtils';
+import { scrollToTopView } from '../../utils/scrollUtils';
 import {
   CalendarX,
   Briefcase,
@@ -198,11 +199,14 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
     }
   }, [isOpen, sortedPeriods]);
 
-  // Focus search input when picker view opens
+  // Focus search input and scroll to top of modal when picker view opens
   useEffect(() => {
     if (isPickerOpen) {
       setTimeout(() => {
         searchInputRef.current?.focus();
+        if (searchInputRef.current) {
+          scrollToTopView(searchInputRef.current);
+        }
       }, 100);
     }
   }, [isPickerOpen]);
@@ -328,6 +332,8 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               ref={searchInputRef}
               type="text"
               value={searchQuery}
+              onFocus={(e) => scrollToTopView(e.currentTarget)}
+              onClick={(e) => scrollToTopView(e.currentTarget)}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 isLeave
@@ -616,9 +622,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                 setValidationError(null);
               }}
               onFocus={(e) => {
-                setTimeout(() => {
-                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 150);
+                scrollToTopView(e.currentTarget);
+              }}
+              onClick={(e) => {
+                scrollToTopView(e.currentTarget);
               }}
               placeholder={
                 (!isLeave && onDutyCategory === 'Other Duty') || (isLeave && leavePreset === 'Other Leave Reason')

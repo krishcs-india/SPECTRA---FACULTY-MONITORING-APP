@@ -5,6 +5,7 @@ import { KalyaniButton } from '../common/KalyaniButton';
 import { Subject } from '../../types/subject';
 import { PeriodEntry } from '../../types/schedule';
 import { Search, PlusCircle, CheckCircle2, Sparkles, Coffee, AlertCircle } from 'lucide-react';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 interface SubjectPickerModalProps {
   isOpen: boolean;
@@ -146,7 +147,11 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               <input
                 type="text"
                 value={search}
-                onFocus={() => setIsSearchFocused(true)}
+                onFocus={(e) => {
+                  setIsSearchFocused(true);
+                  scrollToTopView(e.currentTarget);
+                }}
+                onClick={(e) => scrollToTopView(e.currentTarget)}
                 onBlur={() => {
                   setTimeout(() => setIsSearchFocused(false), 200);
                 }}
