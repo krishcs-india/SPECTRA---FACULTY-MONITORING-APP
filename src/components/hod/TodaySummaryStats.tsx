@@ -1,17 +1,24 @@
 import React from 'react';
 import { KalyaniStatCard } from '../common/KalyaniStatCard';
 import { DayAvailabilityOverview, ScheduleStatus } from '../../types/schedule';
+import { FilterStatus } from '../common/KalyaniFilterBar';
 import { Users, CheckCircle2, Coffee, AlertCircle, Briefcase, CalendarX } from 'lucide-react';
 
 interface TodaySummaryStatsProps {
   overview: DayAvailabilityOverview;
-  onFilterStatus?: (status: 'ALL' | ScheduleStatus) => void;
+  onFilterStatus?: (status: FilterStatus) => void;
 }
 
 export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
   overview,
   onFilterStatus,
 }) => {
+  const totalSubmitted =
+    overview.submittedCount +
+    overview.fullDayFreeCount +
+    (overview.onDutyCount || 0) +
+    (overview.leaveCount || 0);
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 items-stretch">
       {/* Total Faculty */}
@@ -24,11 +31,11 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         onClick={() => onFilterStatus && onFilterStatus('ALL')}
       />
 
-      {/* Submitted (Teaching) */}
+      {/* Submitted (All who submitted: Teaching, Free, OD, Leave) */}
       <KalyaniStatCard
-        title="Teaching"
-        value={overview.submittedCount}
-        subtitle="Assigned classes"
+        title="Submitted"
+        value={totalSubmitted}
+        subtitle={`${overview.submissionPercentage}% completed`}
         variant="emerald"
         icon={<CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 dark:text-emerald-400" />}
         onClick={() => onFilterStatus && onFilterStatus('SUBMITTED')}

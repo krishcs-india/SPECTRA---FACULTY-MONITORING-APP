@@ -4,6 +4,7 @@ import { KalyaniDatePicker } from '../../components/common/KalyaniDatePicker';
 import { TodaySummaryStats } from '../../components/hod/TodaySummaryStats';
 import { PeriodAvailabilityGrid } from '../../components/hod/PeriodAvailabilityGrid';
 import { FacultyStatusList } from '../../components/hod/FacultyStatusList';
+import { FilterStatus } from '../../components/common/KalyaniFilterBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { getTodayDateString } from '../../utils/dateUtils';
@@ -17,7 +18,7 @@ export const HodDashboardPage: React.FC<HodDashboardPageProps> = ({ onNavigate }
   const departmentId = currentUser?.departmentId || 'CSE';
 
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
-  const [statFilter, setStatFilter] = useState<'ALL' | import('../../types/schedule').ScheduleStatus>('ALL');
+  const [statFilter, setStatFilter] = useState<FilterStatus>('ALL');
 
   const getDepartmentAvailability = useAppStore((state) => state.getDepartmentAvailability);
   const schedules = useAppStore((state) => state.schedules);
@@ -40,7 +41,7 @@ export const HodDashboardPage: React.FC<HodDashboardPageProps> = ({ onNavigate }
     [getDepartmentAvailability, departmentId, selectedDate, schedules, users, periods]
   );
 
-  const handleStatCardClick = (status: 'ALL' | import('../../types/schedule').ScheduleStatus) => {
+  const handleStatCardClick = (status: FilterStatus) => {
     sessionStorage.setItem('hod_faculty_filter', status);
     sessionStorage.setItem('hod_faculty_date', selectedDate);
     onNavigate('/hod/faculty');

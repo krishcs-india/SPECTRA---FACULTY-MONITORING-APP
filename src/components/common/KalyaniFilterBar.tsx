@@ -4,11 +4,13 @@ import { ScheduleStatus } from '../../types/schedule';
 import { KalyaniSelect, SelectOption } from './KalyaniSelect';
 import { scrollToTopView } from '../../utils/scrollUtils';
 
+export type FilterStatus = 'ALL' | 'SUBMITTED' | 'TEACHING' | ScheduleStatus;
+
 interface KalyaniFilterBarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  statusFilter: 'ALL' | ScheduleStatus;
-  onStatusFilterChange: (status: 'ALL' | ScheduleStatus) => void;
+  statusFilter: FilterStatus;
+  onStatusFilterChange: (status: FilterStatus) => void;
   selectedPeriodId?: string;
   onPeriodChange?: (periodId: string) => void;
   periods?: { id: string; shortName: string; name: string }[];
@@ -27,9 +29,10 @@ export const KalyaniFilterBar: React.FC<KalyaniFilterBarProps> = ({
   searchPlaceholder = 'Search faculty, subjects, designations…',
   extraActions,
 }) => {
-  const statusTabs: { id: 'ALL' | ScheduleStatus; label: string; countBadge?: string }[] = [
+  const statusTabs: { id: FilterStatus; label: string; countBadge?: string }[] = [
     { id: 'ALL', label: 'All Faculty' },
-    { id: 'SUBMITTED', label: 'Teaching' },
+    { id: 'SUBMITTED', label: 'Submitted' },
+    { id: 'TEACHING', label: 'Teaching' },
     { id: 'FULL_DAY_FREE', label: 'Full Day Free' },
     { id: 'ON_DUTY', label: 'On Duty' },
     { id: 'LEAVE', label: 'On Leave' },

@@ -27,13 +27,15 @@ import {
   Power
 } from 'lucide-react';
 
+import { FilterStatus } from '../../components/common/KalyaniFilterBar';
+
 export const HodFacultyPage: React.FC = () => {
   const { currentUser } = useAuth();
   const departmentId = currentUser?.departmentId || 'CSE';
   const departmentName = currentUser?.departmentName || 'Department';
 
   // Read state from navigation (e.g. from Dashboard Cards)
-  const initialStatusFilter = (sessionStorage.getItem('hod_faculty_filter') as 'ALL' | import('../../types/schedule').ScheduleStatus) || null;
+  const initialStatusFilter = (sessionStorage.getItem('hod_faculty_filter') as FilterStatus) || null;
   const initialDate = sessionStorage.getItem('hod_faculty_date') || null;
 
   // Clear immediately after reading so a standard refresh doesn't keep applying it
@@ -45,7 +47,7 @@ export const HodFacultyPage: React.FC = () => {
   // Make Daily Submission & Substitution Tracker the first / default tab
   const [activeTab, setActiveTab] = useState<'SUBMISSIONS' | 'DIRECTORY'>(initialStatusFilter ? 'SUBMISSIONS' : 'SUBMISSIONS');
   const [selectedDate, setSelectedDate] = useState<string>(initialDate || getTodayDateString());
-  const [statusFilterSignal, setStatusFilterSignal] = useState<'ALL' | import('../../types/schedule').ScheduleStatus>(initialStatusFilter || 'ALL');
+  const [statusFilterSignal, setStatusFilterSignal] = useState<FilterStatus>(initialStatusFilter || 'ALL');
 
   // Store bindings
   const users = useAppStore((state) => state.users);

@@ -8,13 +8,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { subDays, format } from 'date-fns';
 import { isDateExpiredBeyondRetention, getMinRetentionDateString } from '../../utils/dateUtils';
+import { FilterStatus } from '../../components/common/KalyaniFilterBar';
 
 export const HodHistoryPage: React.FC = () => {
   const { currentUser } = useAuth();
   const departmentId = currentUser?.departmentId || 'CSE';
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState<string>(yesterday);
-  const [statFilter, setStatFilter] = useState<'ALL' | import('../../types/schedule').ScheduleStatus>('ALL');
+  const [statFilter, setStatFilter] = useState<FilterStatus>('ALL');
 
   // Ensure selectedDate never exceeds the 6-day retention threshold
   const handleDateChange = (newDate: string) => {

@@ -5,7 +5,7 @@ import { Subject } from '../../types/subject';
 import { KalyaniUser } from '../../types/user';
 import { KalyaniTable } from '../common/KalyaniTable';
 import { KalyaniBadge } from '../common/KalyaniBadge';
-import { KalyaniFilterBar } from '../common/KalyaniFilterBar';
+import { KalyaniFilterBar, FilterStatus } from '../common/KalyaniFilterBar';
 import { KalyaniButton } from '../common/KalyaniButton';
 import { KalyaniConfirmDialog } from '../common/KalyaniConfirmDialog';
 import { FacultyDetailModal } from './FacultyDetailModal';
@@ -21,7 +21,7 @@ interface FacultyStatusListProps {
   departmentName?: string;
   departmentSubjects?: Subject[];
   /** When changed by the parent (e.g. stat-card clicks), syncs the status filter */
-  statusFilterSignal?: 'ALL' | ScheduleStatus;
+  statusFilterSignal?: FilterStatus;
   /**
    * When false, hides faculty deactivate/delete actions — view-only mode
    * used on the Live Dashboard & History pages. Management stays in the
@@ -43,7 +43,7 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
   const deleteUser = useAppStore((state) => state.deleteUser);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | ScheduleStatus>('ALL');
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('ALL');
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [facultyToToggle, setFacultyToToggle] = useState<KalyaniUser | null>(null);
@@ -120,8 +120,19 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
       }
     }
 
-    // 2. Status filter (All, Submitted, Full Day Free, Not Submitted)
-    if (statusFilter !== 'ALL' && f.status !== statusFilter) {
+    // 2. Status filter
+    // "SUBMITTED" includes all who submitted their daily response (teaching, full day free, on duty, on leave)
+    if (statusFilter === 'SUBMITTED') {
+      if (f.status === 'NOT_SUBMITTED') {
+        return false;
+      }
+    } else if (statusFilter === 'TEACHING') {
+      const hasTeachingSubject = Boolean(
+        f.schedule?.periods &&
+        Object.values(f.schedule.periods).some((p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM'))
+      ) || f.status === 'SUBMITTED';
+      if (!hasTeachingSubject) return false;
+    } else if (statusFilter !== 'ALL' && f.status !== statusFilter) {
       return false;
     }
 
