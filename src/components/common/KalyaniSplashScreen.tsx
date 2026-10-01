@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
+import krishCsLogo from '../../assets/krish-cs-logo.png';
 
 interface KalyaniSplashScreenProps {
   onComplete: () => void;
@@ -83,12 +84,15 @@ export const KalyaniSplashScreen: React.FC<KalyaniSplashScreenProps> = ({ onComp
         {/* Official Krish CS Luxury Emblem */}
         <div className="relative my-2 group">
           <div className="absolute -inset-4 bg-gradient-to-r from-pink-300/40 to-rose-400/40 rounded-3xl blur-2xl opacity-80 animate-pulse-slow" />
-          <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-white border-2 border-rose-200 shadow-[0_10px_35px_rgba(244,63,94,0.15)] p-1.5 flex items-center justify-center overflow-hidden">
+          <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-white border-2 border-rose-200 shadow-[0_10px_35px_rgba(244,63,94,0.15)] p-2 flex items-center justify-center overflow-hidden">
             <img
-              src="/assets/app-icon-spectra-logo.png"
-              alt="SPECTRA Logo"
+              src={krishCsLogo}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/assets/krish-cs-logo.png';
+              }}
+              alt="Krish CS Logo"
               draggable={false}
-              className="w-full h-full object-cover rounded-2xl select-none"
+              className="w-full h-full object-contain rounded-2xl select-none"
             />
           </div>
         </div>
