@@ -103,8 +103,6 @@ export const FacultyHistoryPage: React.FC = () => {
                                 name: `Period ${num}`,
                                 shortName: `P${num}`,
                                 sequence: num,
-                                startTime: '',
-                                endTime: '',
                                 active: true,
                                 departmentId: departmentId,
                               };

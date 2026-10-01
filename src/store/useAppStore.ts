@@ -182,11 +182,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     };
 
     const sanitizePeriods = (periodList: Period[]): Period[] => {
-      return (periodList || []).map((p) => ({
-        ...p,
-        startTime: '',
-        endTime: '',
-      }));
+      return periodList || [];
     };
 
     let hasLoadedPeriodsSession = false;
@@ -336,18 +332,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           persist();
         },
         onPeriods: (data) => {
-          const rawIncoming = Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS;
-          const incoming = rawIncoming.map((p) => ({
-            ...p,
-            startTime: '',
-            endTime: '',
-          }));
-
-          // Automatically purge any legacy timings from Cloud Firestore in real time
-          const hadTimings = rawIncoming.some((p) => p.startTime || p.endTime);
-          if (hadTimings) {
-            firestoreService.savePeriodsBatch(incoming);
-          }
+          const incoming = Array.isArray(data) && data.length > 0 ? (data as Period[]) : INITIAL_PERIODS;
 
           const oldPeriods = get().periods;
 
@@ -981,8 +966,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         periodId: period.id,
         periodName: period.name,
         shortName: period.shortName,
-        startTime: '',
-        endTime: '',
         sequence: period.sequence,
         freeFacultyCount: freeFaculty.length,
         busyFacultyCount: busyFaculty.length,
@@ -1228,8 +1211,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       sequence: nextSequence,
       name: periodData.name || `Period ${nextSequence}`,
       shortName: periodData.shortName || `Period ${nextSequence}`,
-      startTime: '',
-      endTime: '',
       active: true
     };
     const nextPeriods = [...get().periods.filter((p) => p.id !== id), newPeriod];
@@ -1274,8 +1255,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         updated = {
           ...p,
           ...updates,
-          startTime: '',
-          endTime: '',
           ...(updates.departmentId ? { departmentId: normalizeDepartmentId(updates.departmentId) } : {})
         };
         updatedDept = normalizeDepartmentId(updated.departmentId) || 'CSE';

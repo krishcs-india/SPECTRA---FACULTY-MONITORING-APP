@@ -61,8 +61,6 @@ export const createDefaultPeriodsForDepartment = (deptId: string): Period[] => {
       departmentId: clean,
       name: `Period ${seq}`,
       shortName: `Period ${seq}`,
-      startTime: '',
-      endTime: '',
       sequence: seq,
       active: true,
     };

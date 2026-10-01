@@ -41,8 +41,6 @@ export interface PeriodAvailabilitySummary {
   periodId: string;
   periodName: string;
   shortName: string;
-  startTime?: string;
-  endTime?: string;
   sequence: number;
   freeFacultyCount: number;
   busyFacultyCount: number;

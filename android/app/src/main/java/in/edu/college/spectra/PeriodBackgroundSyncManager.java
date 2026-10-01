@@ -605,18 +605,6 @@ public class PeriodBackgroundSyncManager {
                         shortName = shortObj.optString("stringValue", "");
                     }
 
-                    String startTime = "";
-                    JSONObject startObj = fields.optJSONObject("startTime");
-                    if (startObj != null && startObj.has("stringValue")) {
-                        startTime = startObj.optString("stringValue", "");
-                    }
-
-                    String endTime = "";
-                    JSONObject endObj = fields.optJSONObject("endTime");
-                    if (endObj != null && endObj.has("stringValue")) {
-                        endTime = endObj.optString("stringValue", "");
-                    }
-
                     String seq = "";
                     JSONObject seqObj = fields.optJSONObject("sequence");
                     if (seqObj != null) {
@@ -632,10 +620,8 @@ public class PeriodBackgroundSyncManager {
                         seq = String.valueOf(i + 1);
                     }
 
-                    // Format matches TypeScript EXACTLY: id_name_shortName_startTime_endTime_sequence
-                    // (expanded from id_name_sequence so timing/rename edits are detected —
-                    // previously 2nd HOD change with same count+name was invisible)
-                    periodItems.add(pId + "_" + pName + "_" + shortName + "_" + startTime + "_" + endTime + "_" + seq);
+                    // Format matches TypeScript EXACTLY: id_name_shortName_sequence
+                    periodItems.add(pId + "_" + pName + "_" + shortName + "_" + seq);
                 }
             }
 

@@ -10,7 +10,7 @@ interface KalyaniFilterBarProps {
   onStatusFilterChange: (status: 'ALL' | ScheduleStatus) => void;
   selectedPeriodId?: string;
   onPeriodChange?: (periodId: string) => void;
-  periods?: { id: string; shortName: string; name: string; startTime?: string; endTime?: string }[];
+  periods?: { id: string; shortName: string; name: string }[];
   searchPlaceholder?: string;
   extraActions?: React.ReactNode;
 }

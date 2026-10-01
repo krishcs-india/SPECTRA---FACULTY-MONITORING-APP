@@ -50,8 +50,6 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
           name: `Period ${num}`,
           shortName: `P${num}`,
           sequence: num,
-          startTime: '',
-          endTime: '',
           active: true,
           departmentId: '',
         };

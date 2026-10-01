@@ -41,9 +41,6 @@ export function getStatusBadgeInfo(status: ScheduleStatus) {
   }
 }
 
-export function formatPeriodTiming(startTime: string, endTime: string): string {
-  return `${startTime} – ${endTime}`;
-}
 
 export function truncateText(text: string, maxLength: number = 30): string {
   if (!text) return '';

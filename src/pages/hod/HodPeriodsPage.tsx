@@ -64,8 +64,6 @@ export const HodPeriodsPage: React.FC = () => {
       addPeriod({
         name: cleanName,
         shortName: cleanName,
-        startTime: '',
-        endTime: '',
         sequence: activePeriods.reduce((max, p) => Math.max(max, p.sequence), 0) + 1,
         active: true,
         departmentId: departmentId,

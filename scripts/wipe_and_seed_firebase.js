@@ -82,28 +82,15 @@ async function wipeAndSeed() {
   }
 
   // 4. Seed Standard 8 Periods for CSE, AIDS, and GLOBAL
-  const basePeriods = [
-    { num: 1, start: '08:45', end: '09:35' },
-    { num: 2, start: '09:35', end: '10:25' },
-    { num: 3, start: '10:40', end: '11:30' },
-    { num: 4, start: '11:30', end: '12:20' },
-    { num: 5, start: '01:10', end: '02:00' },
-    { num: 6, start: '02:00', end: '02:50' },
-    { num: 7, start: '03:00', end: '03:50' },
-    { num: 8, start: '03:50', end: '04:40' },
-  ];
-
   for (const deptId of ['CSE', 'AIDS', 'GLOBAL']) {
-    for (const bp of basePeriods) {
-      const pid = `P_${deptId}_${bp.num}`;
+    for (let num = 1; num <= 8; num++) {
+      const pid = `P_${deptId}_${num}`;
       const periodDoc = {
         id: pid,
         departmentId: deptId,
-        name: `Period ${bp.num}`,
-        shortName: `Period ${bp.num}`,
-        startTime: bp.start,
-        endTime: bp.end,
-        sequence: bp.num,
+        name: `Period ${num}`,
+        shortName: `Period ${num}`,
+        sequence: num,
         active: true
       };
       await setDoc(doc(db, 'periods', pid), periodDoc);
