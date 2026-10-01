@@ -19,7 +19,7 @@ export const KalyaniInput = React.forwardRef<HTMLInputElement, KalyaniInputProps
       leftIcon,
       rightIcon,
       className = '',
-      autoScrollOnFocus = true,
+      autoScrollOnFocus = false,
       onFocus,
       ...props
     },

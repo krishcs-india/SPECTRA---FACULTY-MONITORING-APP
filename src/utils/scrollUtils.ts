@@ -15,13 +15,32 @@ export interface ScrollToTopOptions {
 }
 
 /**
+ * Checks if an element is contained within an active modal dialog.
+ */
+export function isInsideModal(element: HTMLElement | null): boolean {
+  if (!element) return false;
+  return Boolean(
+    element.closest('[role="dialog"]') ||
+    element.closest('.kalyani-modal-card') ||
+    element.closest('[data-modal="true"]')
+  );
+}
+
+/**
  * Traverses up the DOM tree to locate the nearest scrollable ancestor container (e.g. KalyaniModal body).
+ * Confines search strictly within the modal if the element is inside a modal.
  */
 export function getScrollableParent(node: HTMLElement | null): HTMLElement | null {
   if (!node) return null;
+  const modalDialog = node.closest('[role="dialog"]') || node.closest('[data-modal="true"]');
   let parent = node.parentElement;
 
   while (parent && parent !== document.body && parent !== document.documentElement) {
+    // If inside a modal dialog, NEVER look beyond the modal dialog boundary!
+    if (modalDialog && !modalDialog.contains(parent)) {
+      break;
+    }
+
     const style = window.getComputedStyle(parent);
     const overflowY = style.overflowY;
     const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight + 4;
@@ -41,7 +60,7 @@ export function getScrollableParent(node: HTMLElement | null): HTMLElement | nul
  * that open downwards have abundant vertical clearance.
  *
  * It avoids scrolling "too much top" (leaving a comfortable margin of 120-150px on screen,
- * or 30-40px inside modals) and avoids scrolling altogether if the element already has ample
+ * or 24-32px inside modals) and avoids scrolling altogether if the element already has ample
  * downward space.
  */
 export function scrollToTopView(element: HTMLElement | null, options?: ScrollToTopOptions): void {
@@ -50,37 +69,47 @@ export function scrollToTopView(element: HTMLElement | null, options?: ScrollToT
   const performScroll = () => {
     if (!element || !element.isConnected) return;
 
+    const inModal = isInsideModal(element);
     const scrollParent = getScrollableParent(element);
     const behavior = options?.behavior || 'smooth';
 
-    // 1. Inside a scrollable container (e.g. Modal body)
+    // 1. Inside a scrollable container (e.g. Modal body or scrollable panel)
     if (scrollParent) {
       const parentRect = scrollParent.getBoundingClientRect();
       const elemRect = element.getBoundingClientRect();
       const spaceBelowInParent = parentRect.bottom - elemRect.bottom;
-      const comfortableModalOffset = options?.offset ?? 28;
+      const comfortableModalOffset = options?.offset ?? 24;
 
-      // If the element already has plenty of space below inside the modal (>= 250px)
+      // If the element already has plenty of space below inside the scrollable container (>= 220px)
       // and isn't tucked under the header, no scroll is needed!
-      if (elemRect.top >= parentRect.top + comfortableModalOffset && spaceBelowInParent >= 250) {
+      if (elemRect.top >= parentRect.top + comfortableModalOffset && spaceBelowInParent >= 220) {
         return;
       }
 
-      // Gently scroll inside the modal to give comfortable downward room
+      // Gently scroll inside the container to give comfortable downward room
       const currentScrollTop = scrollParent.scrollTop;
       const targetScrollTop = Math.max(
         0,
         currentScrollTop + (elemRect.top - parentRect.top) - comfortableModalOffset
       );
 
-      scrollParent.scrollTo({
-        top: targetScrollTop,
-        behavior,
-      });
+      // Only scroll if difference is meaningful
+      if (Math.abs(targetScrollTop - currentScrollTop) > 10) {
+        scrollParent.scrollTo({
+          top: targetScrollTop,
+          behavior,
+        });
+      }
       return;
     }
 
-    // 2. In normal document flow on the main page (Window scrolling)
+    // 2. If element is inside a modal and the modal content fits without scrolling:
+    // NEVER scroll the main window behind the modal!
+    if (inModal) {
+      return;
+    }
+
+    // 3. In normal document flow on the main page (Window scrolling)
     const elemRect = element.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const spaceBelow = viewportHeight - elemRect.bottom;
