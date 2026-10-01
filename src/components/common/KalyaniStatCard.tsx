@@ -30,11 +30,11 @@ export const KalyaniStatCard: React.FC<KalyaniStatCardProps> = ({
 
   const valueGlowStyles = {
     default: 'text-slate-900 dark:text-slate-100',
-    gold: 'text-gold-gradient',
-    emerald: 'text-emerald-600 dark:text-emerald-300',
-    teal: 'text-teal-600 dark:text-teal-300',
-    ruby: 'text-rose-600 dark:text-rose-300',
-    amber: 'text-amber-600 dark:text-amber-300',
+    gold: 'text-rose-600 dark:text-rose-400',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    teal: 'text-teal-600 dark:text-teal-400',
+    ruby: 'text-rose-600 dark:text-rose-400',
+    amber: 'text-amber-600 dark:text-amber-400',
     slate: 'text-slate-600 dark:text-slate-300',
   };
 
@@ -42,29 +42,38 @@ export const KalyaniStatCard: React.FC<KalyaniStatCardProps> = ({
     <KalyaniCard
       onClick={onClick}
       variant="glass"
-      className="apple-hover group"
-      bodyClassName="p-5 flex items-center justify-between"
+      className="apple-hover group h-full"
+      bodyClassName="p-3.5 sm:p-4.5 flex flex-col justify-between h-full"
     >
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 font-sans">
+      {/* 1. Header Row: Uniform Fixed Height Title for Perfect Linear Consistency */}
+      <div className="h-8 sm:h-9 flex items-center">
+        <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 font-sans leading-tight line-clamp-2">
           {title}
         </p>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className={`text-2xl lg:text-3xl font-bold font-sans tracking-tight ${valueGlowStyles[variant]}`}>
-            {value}
-          </span>
+      </div>
+
+      {/* 2. Middle Row: Value & Icon Perfectly Aligned at Identical Vertical Position */}
+      <div className="flex items-center justify-between gap-2 my-2">
+        <span
+          className={`text-2xl sm:text-3xl font-bold font-sans tracking-tight ${valueGlowStyles[variant]}`}
+        >
+          {value}
+        </span>
+
+        <div
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 shrink-0 ${iconGlowStyles[variant]}`}
+        >
+          {icon}
         </div>
+      </div>
+
+      {/* 3. Footer Row: Subtitle with Fixed Uniform Height */}
+      <div className="h-7 sm:h-8 flex items-start">
         {subtitle && (
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
+          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-sans leading-tight line-clamp-2">
             {subtitle}
           </p>
         )}
-      </div>
-
-      <div
-        className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 shrink-0 ${iconGlowStyles[variant]}`}
-      >
-        {icon}
       </div>
     </KalyaniCard>
   );

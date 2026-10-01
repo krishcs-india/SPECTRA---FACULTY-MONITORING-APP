@@ -13,14 +13,14 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
   onFilterStatus,
 }) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 items-stretch">
       {/* Total Faculty */}
       <KalyaniStatCard
         title="Total Faculty"
         value={overview.totalFaculty}
         subtitle={`${overview.submissionPercentage}% responded`}
         variant="gold"
-        icon={<Users className="w-6 h-6 text-rose-500" />}
+        icon={<Users className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500" />}
         onClick={() => onFilterStatus && onFilterStatus('ALL')}
       />
 
@@ -30,7 +30,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         value={overview.submittedCount}
         subtitle="Assigned classes"
         variant="emerald"
-        icon={<CheckCircle2 className="w-6 h-6 text-emerald-400" />}
+        icon={<CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 dark:text-emerald-400" />}
         onClick={() => onFilterStatus && onFilterStatus('SUBMITTED')}
       />
 
@@ -40,7 +40,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         value={overview.fullDayFreeCount}
         subtitle="100% available"
         variant="teal"
-        icon={<Coffee className="w-6 h-6 text-teal-400" />}
+        icon={<Coffee className="w-5 h-5 sm:w-6 sm:h-6 text-teal-500 dark:text-teal-400" />}
         onClick={() => onFilterStatus && onFilterStatus('FULL_DAY_FREE')}
       />
 
@@ -50,7 +50,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         value={overview.onDutyCount || 0}
         subtitle="Exam / External duty"
         variant="amber"
-        icon={<Briefcase className="w-6 h-6 text-amber-500" />}
+        icon={<Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500 dark:text-amber-400" />}
         onClick={() => onFilterStatus && onFilterStatus('ON_DUTY')}
       />
 
@@ -60,7 +60,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         value={overview.leaveCount || 0}
         subtitle="Full / Half / Period"
         variant="ruby"
-        icon={<CalendarX className="w-6 h-6 text-rose-500" />}
+        icon={<CalendarX className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-400" />}
         onClick={() => onFilterStatus && onFilterStatus('LEAVE')}
       />
 
@@ -70,7 +70,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         value={overview.notSubmittedCount}
         subtitle="Pending submission"
         variant="slate"
-        icon={<AlertCircle className="w-6 h-6 text-slate-400" />}
+        icon={<AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500 dark:text-slate-400" />}
         onClick={() => onFilterStatus && onFilterStatus('NOT_SUBMITTED')}
       />
     </div>

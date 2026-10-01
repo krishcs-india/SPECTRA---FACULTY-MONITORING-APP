@@ -58,7 +58,7 @@ export const KalyaniCard: React.FC<KalyaniCardProps> = ({
         </div>
       )}
 
-      <div className={`p-6 ${bodyClassName}`}>{children}</div>
+      <div className={bodyClassName || 'p-6'}>{children}</div>
     </div>
   );
 };
