@@ -57,34 +57,36 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
               </div>
 
               {/* Middle: Count Badges */}
-              <div className="mt-4 pt-3 border-t border-rose-200/80 dark:border-rose-950/60 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Available</p>
-                  <p className="text-base font-bold text-teal-600 dark:text-teal-300">
-                    {period.freeFacultyCount}{' '}
-                    <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Free</span>
-                  </p>
-                </div>
+              <div className="mt-4 pt-3 border-t border-rose-200/80 dark:border-rose-950/60 flex items-start justify-between text-xs">
+                {/* Left Column: Available & On Duty */}
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Available</p>
+                    <p className="text-base font-bold text-teal-600 dark:text-teal-300 h-6 flex items-center">
+                      {period.freeFacultyCount}{' '}
+                      <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400 ml-1">Free</span>
+                    </p>
+                  </div>
 
-                <div className="flex justify-end">
-                  <div className="w-20 text-left">
-                    <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Teaching</p>
-                    <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
-                      {period.busyFacultyCount}{' '}
-                      <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Busy</span>
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-amber-700 dark:text-amber-400">On Duty</p>
+                    <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+                      {period.onDutyFacultyCount || 0}
                     </p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-[10px] uppercase font-semibold text-amber-700 dark:text-amber-400">On Duty</p>
-                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
-                    {period.onDutyFacultyCount || 0}
-                  </p>
-                </div>
+                {/* Right Column: Teaching & Leave (Moved flush to the end of the line) */}
+                <div className="space-y-2.5 text-left">
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Teaching</p>
+                    <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 h-6 flex items-center">
+                      {period.busyFacultyCount}{' '}
+                      <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400 ml-1">Busy</span>
+                    </p>
+                  </div>
 
-                <div className="flex justify-end">
-                  <div className="w-20 text-left">
+                  <div>
                     <p className="text-[10px] uppercase font-semibold text-rose-700 dark:text-rose-400">Leave</p>
                     <p className="text-sm font-semibold text-rose-600 dark:text-rose-300">
                       {period.leaveFacultyCount || 0}
