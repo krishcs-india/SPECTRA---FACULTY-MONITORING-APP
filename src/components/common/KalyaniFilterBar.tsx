@@ -28,8 +28,10 @@ export const KalyaniFilterBar: React.FC<KalyaniFilterBarProps> = ({
 }) => {
   const statusTabs: { id: 'ALL' | ScheduleStatus; label: string; countBadge?: string }[] = [
     { id: 'ALL', label: 'All Faculty' },
-    { id: 'SUBMITTED', label: 'Submitted' },
+    { id: 'SUBMITTED', label: 'Teaching' },
     { id: 'FULL_DAY_FREE', label: 'Full Day Free' },
+    { id: 'ON_DUTY', label: 'On Duty' },
+    { id: 'LEAVE', label: 'On Leave' },
     { id: 'NOT_SUBMITTED', label: 'Not Submitted' },
   ];
 

@@ -31,8 +31,14 @@ export const KalyaniBadge: React.FC<KalyaniBadgeProps> = ({
     } else if (status === 'FULL_DAY_FREE') {
       resolvedVariant = 'teal';
       resolvedText = resolvedText || 'Full Day Free';
-    } else {
+    } else if (status === 'ON_DUTY') {
+      resolvedVariant = 'amber';
+      resolvedText = resolvedText || 'On Duty';
+    } else if (status === 'LEAVE') {
       resolvedVariant = 'ruby';
+      resolvedText = resolvedText || 'On Leave';
+    } else {
+      resolvedVariant = 'slate';
       resolvedText = resolvedText || 'Not Submitted';
     }
   } else if (entryType) {
@@ -45,6 +51,12 @@ export const KalyaniBadge: React.FC<KalyaniBadgeProps> = ({
     } else if (entryType === 'CUSTOM') {
       resolvedVariant = 'amber';
       resolvedText = resolvedText || 'Custom';
+    } else if (entryType === 'ON_DUTY') {
+      resolvedVariant = 'amber';
+      resolvedText = resolvedText || 'ON DUTY';
+    } else if (entryType === 'LEAVE') {
+      resolvedVariant = 'ruby';
+      resolvedText = resolvedText || 'LEAVE';
     }
   }
 

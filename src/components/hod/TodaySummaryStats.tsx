@@ -1,11 +1,11 @@
 import React from 'react';
 import { KalyaniStatCard } from '../common/KalyaniStatCard';
-import { DayAvailabilityOverview } from '../../types/schedule';
-import { Users, CheckCircle2, Coffee, AlertCircle, TrendingUp } from 'lucide-react';
+import { DayAvailabilityOverview, ScheduleStatus } from '../../types/schedule';
+import { Users, CheckCircle2, Coffee, AlertCircle, Briefcase, CalendarX } from 'lucide-react';
 
 interface TodaySummaryStatsProps {
   overview: DayAvailabilityOverview;
-  onFilterStatus?: (status: 'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED') => void;
+  onFilterStatus?: (status: 'ALL' | ScheduleStatus) => void;
 }
 
 export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
@@ -13,7 +13,7 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
   onFilterStatus,
 }) => {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
       {/* Total Faculty */}
       <KalyaniStatCard
         title="Total Faculty"
@@ -24,11 +24,11 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
         onClick={() => onFilterStatus && onFilterStatus('ALL')}
       />
 
-      {/* Submitted */}
+      {/* Submitted (Teaching) */}
       <KalyaniStatCard
-        title="Submitted"
+        title="Teaching"
         value={overview.submittedCount}
-        subtitle="Entered teaching periods"
+        subtitle="Assigned classes"
         variant="emerald"
         icon={<CheckCircle2 className="w-6 h-6 text-emerald-400" />}
         onClick={() => onFilterStatus && onFilterStatus('SUBMITTED')}
@@ -38,19 +38,39 @@ export const TodaySummaryStats: React.FC<TodaySummaryStatsProps> = ({
       <KalyaniStatCard
         title="Full Day Free"
         value={overview.fullDayFreeCount}
-        subtitle="100% available all periods"
+        subtitle="100% available"
         variant="teal"
         icon={<Coffee className="w-6 h-6 text-teal-400" />}
         onClick={() => onFilterStatus && onFilterStatus('FULL_DAY_FREE')}
+      />
+
+      {/* On Duty (OD) */}
+      <KalyaniStatCard
+        title="On Duty (OD)"
+        value={overview.onDutyCount || 0}
+        subtitle="Exam / External duty"
+        variant="amber"
+        icon={<Briefcase className="w-6 h-6 text-amber-500" />}
+        onClick={() => onFilterStatus && onFilterStatus('ON_DUTY')}
+      />
+
+      {/* On Leave */}
+      <KalyaniStatCard
+        title="On Leave"
+        value={overview.leaveCount || 0}
+        subtitle="Full / Half / Period"
+        variant="ruby"
+        icon={<CalendarX className="w-6 h-6 text-rose-500" />}
+        onClick={() => onFilterStatus && onFilterStatus('LEAVE')}
       />
 
       {/* Not Submitted */}
       <KalyaniStatCard
         title="Not Submitted"
         value={overview.notSubmittedCount}
-        subtitle="Unresponsive / Pending"
-        variant="ruby"
-        icon={<AlertCircle className="w-6 h-6 text-rose-400" />}
+        subtitle="Pending submission"
+        variant="slate"
+        icon={<AlertCircle className="w-6 h-6 text-slate-400" />}
         onClick={() => onFilterStatus && onFilterStatus('NOT_SUBMITTED')}
       />
     </div>

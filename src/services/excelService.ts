@@ -173,20 +173,38 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
       const isHeader = R === 0;
       const cellValueStr = cell.v !== undefined && cell.v !== null ? String(cell.v).trim() : '';
       const isFree = !isHeader && (cellValueStr === 'FREE' || cellValueStr.startsWith('FREE') || cellValueStr === 'Full Day Free');
+      const isLeave = !isHeader && (cellValueStr.startsWith('LEAVE') || cellValueStr === 'On Leave');
+      const isOnDuty = !isHeader && (cellValueStr.startsWith('OD') || cellValueStr === 'On Duty');
 
       cell.s = {
         font: {
           name: 'Times New Roman',
           sz: isHeader ? 12 : 11,
-          bold: isHeader || isFree,
-          color: { rgb: isHeader ? '000000' : isFree ? '854D0E' : '1A1A1A' }
+          bold: isHeader || isFree || isLeave || isOnDuty,
+          color: {
+            rgb: isHeader
+              ? '000000'
+              : isLeave
+              ? '9F1239'
+              : isOnDuty
+              ? '92400E'
+              : isFree
+              ? '0D9488'
+              : '1A1A1A'
+          }
         },
         fill: isHeader ? {
           patternType: 'solid',
           fgColor: { rgb: 'F5E6BD' } // Subtle gold/cream header tint
+        } : isLeave ? {
+          patternType: 'solid',
+          fgColor: { rgb: 'FFE4E6' } // Soft rose highlight for LEAVE slots
+        } : isOnDuty ? {
+          patternType: 'solid',
+          fgColor: { rgb: 'FEF3C7' } // Soft amber highlight for ON DUTY slots
         } : isFree ? {
           patternType: 'solid',
-          fgColor: { rgb: 'FEF3C7' } // Light golden yellow highlight for FREE period slots
+          fgColor: { rgb: 'CCFBF1' } // Soft teal highlight for FREE period slots
         } : undefined,
         border: {
           top: { style: 'thin', color: { rgb: isHeader ? 'BA9225' : 'D4AF37' } },
@@ -196,7 +214,7 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
         },
         alignment: {
           vertical: 'center',
-          horizontal: isHeader || isFree ? 'center' : (typeof cell.v === 'number' ? 'center' : 'left'),
+          horizontal: isHeader || isFree || isLeave || isOnDuty ? 'center' : (typeof cell.v === 'number' ? 'center' : 'left'),
           wrapText: false
         }
       };
@@ -567,7 +585,15 @@ export const excelService = {
       const row: Record<string, any> = {
         "Faculty Name": sanitize(f.facultyName || 'Unknown Faculty'),
         "Designation": sanitize(f.facultyDesignation || 'Faculty'),
-        "Status": f.status === 'SUBMITTED' ? 'Submitted' : f.status === 'FULL_DAY_FREE' ? 'Full Day Free' : 'Not Submitted',
+        "Status": f.status === 'SUBMITTED'
+          ? 'Submitted'
+          : f.status === 'FULL_DAY_FREE'
+          ? 'Full Day Free'
+          : f.status === 'ON_DUTY'
+          ? 'On Duty'
+          : f.status === 'LEAVE'
+          ? 'On Leave'
+          : 'Not Submitted',
         "Submitted At": f.submittedAt ? formatTimeDisplay(f.submittedAt) : 'N/A',
         "Assigned Periods": f.assignedPeriodsCount || 0
       };
@@ -580,9 +606,20 @@ export const excelService = {
         } else if (f.status === 'FULL_DAY_FREE') {
           row[colTitle] = 'FREE (Full Day)';
         } else {
-          const entry = f.schedule.periods ? f.schedule.periods[p.periodId] : undefined;
+          const entry = (f.schedule.periods ? f.schedule.periods[p.periodId] : undefined) ||
+            (typeof p.sequence === 'number' && f.schedule.periods
+              ? Object.entries(f.schedule.periods).find(([k]) => {
+                  const match = k.match(/\d+/);
+                  return match ? parseInt(match[0], 10) === p.sequence : false;
+                })?.[1]
+              : undefined);
           if (!entry || entry.type === 'FREE') {
             row[colTitle] = 'FREE';
+          } else if (entry.type === 'ON_DUTY') {
+            const odDetail = [entry.onDutyCategory, entry.onDutyReason].filter(Boolean).join(' - ');
+            row[colTitle] = sanitize(`OD: ${odDetail || 'On Duty'}`);
+          } else if (entry.type === 'LEAVE') {
+            row[colTitle] = sanitize(`LEAVE: ${entry.leaveReason || 'On Leave'}`);
           } else if (entry.type === 'SUBJECT') {
             row[colTitle] = sanitize(`${entry.subjectCode || ''} ${entry.subjectName || ''}`.trim() || 'Assigned Subject');
           } else {

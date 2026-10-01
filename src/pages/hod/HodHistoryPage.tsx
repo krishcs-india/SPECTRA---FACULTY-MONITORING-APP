@@ -14,7 +14,7 @@ export const HodHistoryPage: React.FC = () => {
   const departmentId = currentUser?.departmentId || 'CSE';
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState<string>(yesterday);
-  const [statFilter, setStatFilter] = useState<'ALL' | 'SUBMITTED' | 'FULL_DAY_FREE' | 'NOT_SUBMITTED'>('ALL');
+  const [statFilter, setStatFilter] = useState<'ALL' | import('../../types/schedule').ScheduleStatus>('ALL');
 
   // Ensure selectedDate never exceeds the 6-day retention threshold
   const handleDateChange = (newDate: string) => {

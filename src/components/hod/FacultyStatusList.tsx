@@ -97,6 +97,20 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
           if (p.type === 'FREE') {
             return term === 'free' || term === 'available';
           }
+          if (p.type === 'ON_DUTY') {
+            return (
+              term === 'od' ||
+              term === 'on duty' ||
+              Boolean(p.onDutyCategory && p.onDutyCategory.toLowerCase().includes(term)) ||
+              Boolean(p.onDutyReason && p.onDutyReason.toLowerCase().includes(term))
+            );
+          }
+          if (p.type === 'LEAVE') {
+            return (
+              term === 'leave' ||
+              Boolean(p.leaveReason && p.leaveReason.toLowerCase().includes(term))
+            );
+          }
           return false;
         })
       );
@@ -117,7 +131,14 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
       if (f.status === 'FULL_DAY_FREE') {
         return true;
       }
-      const entry = f.schedule?.periods?.[selectedPeriodId];
+      const entry = f.schedule?.periods?.[selectedPeriodId] ||
+        (typeof activePeriods.find(p => p.id === selectedPeriodId)?.sequence === 'number' && f.schedule?.periods
+          ? Object.entries(f.schedule.periods).find(([k]) => {
+              const seq = activePeriods.find(p => p.id === selectedPeriodId)?.sequence;
+              const match = k.match(/\d+/);
+              return match ? parseInt(match[0], 10) === seq : false;
+            })?.[1]
+          : undefined);
       if (entry && entry.type !== 'FREE') {
         return false;
       }
@@ -198,11 +219,31 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
       accessor: (row: any) => (
         <span className="text-xs font-semibold">
           {row.status === 'SUBMITTED' ? (
-            <span className="text-rose-600 dark:text-rose-400 font-semibold">{row.assignedPeriodsCount} Periods</span>
+            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+              {row.assignedPeriodsCount} Class(es)
+              {row.onDutyPeriodsCount > 0 && (
+                <span className="text-amber-600 dark:text-amber-400 ml-1 text-[11px] font-normal">
+                  • {row.onDutyPeriodsCount} OD
+                </span>
+              )}
+              {row.leavePeriodsCount > 0 && (
+                <span className="text-rose-600 dark:text-rose-400 ml-1 text-[11px] font-normal">
+                  • {row.leavePeriodsCount} Leave
+                </span>
+              )}
+            </span>
           ) : row.status === 'FULL_DAY_FREE' ? (
             <span className="text-teal-600 dark:text-teal-400 font-semibold">0 (Full Free)</span>
+          ) : row.status === 'ON_DUTY' ? (
+            <span className="text-amber-600 dark:text-amber-400 font-semibold">
+              {row.onDutyPeriodsCount > 0 ? `${row.onDutyPeriodsCount} Period(s) OD` : 'On Duty'}
+            </span>
+          ) : row.status === 'LEAVE' ? (
+            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+              {row.leavePeriodsCount > 0 ? `${row.leavePeriodsCount} Period(s) Leave` : 'On Leave'}
+            </span>
           ) : (
-            <span className="text-rose-500 font-semibold">Pending</span>
+            <span className="text-slate-400 font-semibold">Pending</span>
           )}
         </span>
       ),

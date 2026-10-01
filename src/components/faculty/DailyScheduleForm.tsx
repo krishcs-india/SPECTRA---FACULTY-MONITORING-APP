@@ -22,9 +22,12 @@ import {
   Lock,
   Calendar,
   AlertTriangle,
-  X
+  X,
+  CalendarX,
+  Briefcase
 } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
+import { LeaveOnDutyModal } from './LeaveOnDutyModal';
 
 interface DailyScheduleFormProps {
   date: string;
@@ -47,6 +50,8 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   );
   const submitSchedule = useAppStore((state) => state.submitSchedule);
   const submitFullDayFree = useAppStore((state) => state.submitFullDayFree);
+  const submitLeave = useAppStore((state) => state.submitLeave);
+  const submitOnDuty = useAppStore((state) => state.submitOnDuty);
 
   // Directly subscribe to reactive schedule in store (supporting both UID key and email matching)
   const existingSchedule = useAppStore((state) => {
@@ -66,6 +71,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   // Local editable periods state
   const [periodsState, setPeriodsState] = useState<Record<string, PeriodEntry>>({});
   const [selectedPeriodForPicker, setSelectedPeriodForPicker] = useState<Period | null>(null);
+  const [leaveOnDutyMode, setLeaveOnDutyMode] = useState<'LEAVE' | 'ON_DUTY' | null>(null);
   const [showFullDayFreeConfirm, setShowFullDayFreeConfirm] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState<string | null>(null);
@@ -176,6 +182,12 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       if (curr.type === 'CUSTOM') {
         return curr.customText !== prev.customText;
       }
+      if (curr.type === 'LEAVE') {
+        return curr.leaveReason !== prev.leaveReason || curr.leaveType !== prev.leaveType;
+      }
+      if (curr.type === 'ON_DUTY') {
+        return curr.onDutyCategory !== prev.onDutyCategory || curr.onDutyReason !== prev.onDutyReason;
+      }
       return false;
     });
   }, [periodsState, existingSchedule, activePeriods, isPast]);
@@ -192,7 +204,10 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  const assignedCount = countAssignedPeriods(periodsState);
+  const assignedCount = Object.values(periodsState).filter((p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')).length;
+  const onDutyCount = Object.values(periodsState).filter((p) => p && p.type === 'ON_DUTY').length;
+  const leaveCount = Object.values(periodsState).filter((p) => p && p.type === 'LEAVE').length;
+  const freeCount = activePeriods.length - assignedCount - onDutyCount - leaveCount;
   const currentStatus: ScheduleStatus = existingSchedule?.status || 'NOT_SUBMITTED';
 
   const handleSelectSubject = (periodId: string, subject: Subject) => {
@@ -265,10 +280,14 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       prevPeriodCountRef.current = activePeriods.length;
       setPeriodsState(sanitizedPeriods);
 
-      const isAllFree = assignedCount === 0;
+      const isAllFree = assignedCount === 0 && onDutyCount === 0 && leaveCount === 0;
       setSubmitSuccessMsg(
         isAllFree
           ? 'Full day marked as Free! All periods are set to available for substitution.'
+          : leaveCount > 0 && assignedCount === 0 && onDutyCount === 0
+          ? `Leave schedule recorded successfully (${leaveCount} period(s)).`
+          : onDutyCount > 0 && assignedCount === 0 && leaveCount === 0
+          ? `On Duty schedule recorded successfully (${onDutyCount} period(s)).`
           : 'Your schedule has been successfully synchronized and saved!'
       );
       try {
@@ -484,22 +503,49 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
               <span className="text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Pending unsaved changes — click Update &amp; Save Schedule.
               </span>
+            ) : leaveCount > 0 ? (
+              <span className="text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1.5">
+                <CalendarX className="w-3.5 h-3.5 text-rose-500" /> {leaveCount} period(s) marked on Leave.
+              </span>
+            ) : onDutyCount > 0 ? (
+              <span className="text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-amber-500" /> {onDutyCount} period(s) marked on On Duty (OD).
+              </span>
             ) : assignedCount === 0 ? (
               <span className="text-emerald-700 dark:text-emerald-300 font-medium">All periods currently marked as Free.</span>
             ) : (
               <span>
-                {assignedCount} period(s) assigned • {activePeriods.length - assignedCount} free period(s)
+                {assignedCount} teaching period(s) • {freeCount} free period(s)
               </span>
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            <KalyaniButton
+              variant="ruby"
+              size="md"
+              leftIcon={<CalendarX className="w-4 h-4" />}
+              onClick={() => setLeaveOnDutyMode('LEAVE')}
+              className="h-11 min-h-[44px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold shadow-sm"
+            >
+              Leave
+            </KalyaniButton>
+
+            <button
+              type="button"
+              onClick={() => setLeaveOnDutyMode('ON_DUTY')}
+              className="h-11 min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover flex-1 sm:flex-initial border border-amber-600/30"
+            >
+              <Briefcase className="w-4 h-4 text-slate-950 shrink-0" />
+              <span>On Duty</span>
+            </button>
+
             <KalyaniButton
               variant="teal"
               size="md"
               leftIcon={<Coffee className="w-4 h-4" />}
               onClick={() => setShowFullDayFreeConfirm(true)}
-              className="h-12 min-h-[48px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold shadow-sm"
+              className="h-11 min-h-[44px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold shadow-sm"
             >
               Full Day Free
             </KalyaniButton>
@@ -510,11 +556,11 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
               leftIcon={<Save className="w-4 h-4" />}
               onClick={handleSubmitSchedule}
               isLoading={isSubmitting}
-              className={`h-12 min-h-[48px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold ${
+              className={`h-11 min-h-[44px] flex items-center justify-center flex-1 sm:flex-initial text-xs sm:text-sm font-bold ${
                 hasUnsavedChanges ? 'ring-2 ring-rose-400/50 shadow-md' : ''
               }`}
             >
-              {hasUnsavedChanges || existingSchedule ? 'Update & Save Schedule' : 'Save & Submit Schedule'}
+              {hasUnsavedChanges || existingSchedule ? 'Update & Save' : 'Save & Submit'}
             </KalyaniButton>
           </div>
         </div>
@@ -532,6 +578,63 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
           onSelectSubject={(sub) => handleSelectSubject(selectedPeriodForPicker.id, sub)}
           onSelectCustom={(txt) => handleSelectCustom(selectedPeriodForPicker.id, txt)}
           onSelectFree={() => handleSelectFree(selectedPeriodForPicker.id)}
+        />
+      )}
+
+      {/* Leave and On Duty Unified Pop-up */}
+      {leaveOnDutyMode && (
+        <LeaveOnDutyModal
+          isOpen={Boolean(leaveOnDutyMode)}
+          onClose={() => setLeaveOnDutyMode(null)}
+          mode={leaveOnDutyMode}
+          activePeriods={activePeriods}
+          date={date}
+          onSaveLeave={(scope, reason, halfDaySlot, selectedIds) => {
+            const res = submitLeave(facultyId, date, scope, reason, halfDaySlot, selectedIds, periodsState);
+            if (res.success) {
+              setHodChangedNotification(null);
+              setIsDismissedMismatched(true);
+              userTouchedRef.current = false;
+              const savedPeriods = useAppStore.getState().getSchedule(facultyId, date)?.periods;
+              if (savedPeriods) setPeriodsState(savedPeriods);
+              setSubmitSuccessMsg(
+                `Leave declared successfully (${scope === 'FULL_DAY' ? 'Full Day Leave' : scope === 'HALF_DAY' ? 'Half Day Leave' : 'Period-Wise Leave'}).`
+              );
+              try {
+                confetti({
+                  particleCount: 50,
+                  spread: 50,
+                  origin: { y: 0.85 },
+                  colors: ['#BE123C', '#FB7185', '#F43F5E']
+                });
+              } catch {}
+            } else {
+              setSubmitError(res.error || 'Failed to submit leave.');
+            }
+          }}
+          onSaveOnDuty={(scope, category, reason, halfDaySlot, selectedIds) => {
+            const res = submitOnDuty(facultyId, date, scope, category, reason, halfDaySlot, selectedIds, periodsState);
+            if (res.success) {
+              setHodChangedNotification(null);
+              setIsDismissedMismatched(true);
+              userTouchedRef.current = false;
+              const savedPeriods = useAppStore.getState().getSchedule(facultyId, date)?.periods;
+              if (savedPeriods) setPeriodsState(savedPeriods);
+              setSubmitSuccessMsg(
+                `On Duty recorded successfully: ${category} (${scope === 'FULL_DAY' ? 'Full Day' : scope === 'HALF_DAY' ? 'Half Day' : 'Period-Wise'}).`
+              );
+              try {
+                confetti({
+                  particleCount: 50,
+                  spread: 50,
+                  origin: { y: 0.85 },
+                  colors: ['#F59E0B', '#D97706', '#FBBF24']
+                });
+              } catch {}
+            } else {
+              setSubmitError(res.error || 'Failed to submit On Duty.');
+            }
+          }}
         />
       )}
 

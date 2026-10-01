@@ -3,7 +3,7 @@ import { PeriodAvailabilitySummary } from '../../types/schedule';
 import { KalyaniCard } from '../common/KalyaniCard';
 import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniBadge } from '../common/KalyaniBadge';
-import { Coffee, BookOpen, UserCheck, AlertCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { Coffee, BookOpen, UserCheck, AlertCircle, ChevronRight, Sparkles, Briefcase, CalendarX } from 'lucide-react';
 
 interface PeriodAvailabilityGridProps {
   periodsAvailability: PeriodAvailabilitySummary[];
@@ -28,7 +28,7 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
             Live Period-Wise Availability Matrix
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
-            Click any period to inspect free faculty available for duty or substitution
+            Click any period to inspect free faculty, teaching staff, and on duty / leave details
           </p>
         </div>
       </div>
@@ -49,6 +49,11 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 shadow-sm font-sans">
                     {period.periodName || period.shortName}
                   </span>
+                  {period.startTime && (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">
+                      {period.startTime} - {period.endTime}
+                    </span>
+                  )}
                 </div>
 
                 <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-500/30 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">
@@ -57,20 +62,34 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
               </div>
 
               {/* Middle: Count Badges */}
-              <div className="mt-4 pt-3 border-t border-rose-200/80 dark:border-rose-950/60 flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-rose-200/80 dark:border-rose-950/60 grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 font-sans">Available</p>
-                  <p className="text-lg font-bold text-teal-600 dark:text-teal-300 font-sans">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Available</p>
+                  <p className="text-base font-bold text-teal-600 dark:text-teal-300">
                     {period.freeFacultyCount}{' '}
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Free</span>
+                    <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Free</span>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 font-sans">Assigned</p>
-                  <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 font-sans">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Teaching</p>
+                  <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
                     {period.busyFacultyCount}{' '}
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Busy</span>
+                    <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Busy</span>
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase font-semibold text-amber-700 dark:text-amber-400">On Duty</p>
+                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+                    {period.onDutyFacultyCount || 0}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-[10px] uppercase font-semibold text-rose-700 dark:text-rose-400">Leave</p>
+                  <p className="text-sm font-semibold text-rose-600 dark:text-rose-300">
+                    {period.leaveFacultyCount || 0}
                   </p>
                 </div>
               </div>
@@ -92,35 +111,35 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
           onClose={() => setSelectedPeriodId(null)}
           maxWidth="lg"
           title={`${activePeriodModal.periodName} Availability`}
-          subtitle="Faculty availability breakdown for this period"
+          subtitle="Detailed faculty breakdown across free, teaching, on duty, and leave"
         >
           <div className="space-y-6">
             {/* Free Faculty Section */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-300 flex items-center gap-1.5">
-                  <Coffee className="w-4 h-4 text-teal-400" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-300 flex items-center gap-1.5 font-marcellus">
+                  <Coffee className="w-4 h-4 text-teal-500" />
                   Available Free Faculty ({activePeriodModal.freeFaculty.length})
                 </h4>
-                <span className="text-[10px] text-teal-400/80">Confirmed available</span>
+                <span className="text-[10px] text-teal-600 dark:text-teal-400/80">Available for substitution</span>
               </div>
 
               {activePeriodModal.freeFaculty.length === 0 ? (
-                <div className="p-4 rounded-xl bg-teal-950/20 border border-teal-500/20 text-xs text-slate-400 text-center">
-                  No faculty available in this period.
+                <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-500/20 text-xs text-slate-500 dark:text-slate-400 text-center">
+                  No faculty free in this period.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {activePeriodModal.freeFaculty.map((f) => (
                     <div
                       key={f.facultyId}
-                      className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 flex items-center justify-between"
+                      className="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-300/80 dark:border-teal-500/30 flex items-center justify-between"
                     >
                       <div>
-                        <p className="font-marcellus text-base text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
-                        <p className="text-[10px] text-teal-300 mt-0.5 font-marcellus">{f.facultyDesignation}</p>
+                        <p className="font-marcellus text-sm text-slate-900 dark:text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
+                        <p className="text-[10px] text-teal-700 dark:text-teal-300 mt-0.5">{f.facultyDesignation}</p>
                       </div>
-                      <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                      <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-400/40">
                         FREE
                       </span>
                     </div>
@@ -129,18 +148,18 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
               )}
             </div>
 
-            {/* Busy / Assigned Faculty Section */}
+            {/* Teaching / Assigned Faculty Section */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 flex items-center gap-1.5 font-marcellus">
                   <BookOpen className="w-4 h-4 text-rose-500" />
-                  Teaching / Assigned Faculty ({activePeriodModal.busyFaculty.length})
+                  Teaching Faculty ({activePeriodModal.busyFaculty.length})
                 </h4>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-marcellus">Occupied with classes/duties</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-marcellus">Conducting regular classes</span>
               </div>
 
               {activePeriodModal.busyFaculty.length === 0 ? (
-                <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-[#180E1C]/60 border border-rose-200 dark:border-rose-900/40 text-xs text-slate-500 dark:text-slate-400 text-center font-marcellus">
+                <div className="p-3 rounded-xl bg-rose-50/50 dark:bg-[#180E1C]/60 border border-rose-200 dark:border-rose-900/40 text-xs text-slate-500 dark:text-slate-400 text-center font-marcellus">
                   No faculty teaching in this period.
                 </div>
               ) : (
@@ -148,16 +167,90 @@ export const PeriodAvailabilityGrid: React.FC<PeriodAvailabilityGridProps> = ({
                   {activePeriodModal.busyFaculty.map((f) => (
                     <div
                       key={f.facultyId}
-                      className="p-3.5 rounded-2xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/40 shadow-sm flex items-center justify-between gap-3"
+                      className="p-3 rounded-2xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/40 shadow-sm flex items-center justify-between gap-3"
                     >
                       <div>
-                        <p className="font-marcellus text-base text-slate-800 dark:text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-marcellus">{f.facultyDesignation}</p>
+                        <p className="font-marcellus text-sm text-slate-800 dark:text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-marcellus">{f.facultyDesignation}</p>
                       </div>
 
                       <div className="text-right max-w-[60%] sm:max-w-[70%]">
-                        <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-200 shadow-sm font-sans whitespace-normal break-words leading-relaxed inline-block text-right">
+                        <span className="px-3 py-1 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-200 shadow-sm whitespace-normal break-words leading-relaxed inline-block text-right">
                           {f.activity}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* On Duty (OD) Faculty Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5 font-marcellus">
+                  <Briefcase className="w-4 h-4 text-amber-500" />
+                  On Duty Staff ({activePeriodModal.onDutyFaculty?.length || 0})
+                </h4>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400/80">Official assignments</span>
+              </div>
+
+              {(!activePeriodModal.onDutyFaculty || activePeriodModal.onDutyFaculty.length === 0) ? (
+                <div className="p-3 rounded-xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/20 text-xs text-slate-500 dark:text-slate-400 text-center">
+                  No faculty on duty in this period.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {activePeriodModal.onDutyFaculty.map((f) => (
+                    <div
+                      key={f.facultyId}
+                      className="p-3 rounded-2xl bg-amber-50/70 dark:bg-[#24170d] border border-amber-300 dark:border-amber-500/40 shadow-sm flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <p className="font-marcellus text-sm text-slate-900 dark:text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-marcellus">{f.facultyDesignation}</p>
+                      </div>
+
+                      <div className="text-right max-w-[60%] sm:max-w-[70%]">
+                        <span className="px-3 py-1 text-xs font-bold rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-800 dark:text-amber-200 shadow-sm whitespace-normal break-words leading-relaxed inline-block text-right">
+                          OD: {f.category}{f.reason && f.reason !== f.category ? ` (${f.reason})` : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Leave Faculty Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 flex items-center gap-1.5 font-marcellus">
+                  <CalendarX className="w-4 h-4 text-rose-500" />
+                  On Leave Staff ({activePeriodModal.leaveFaculty?.length || 0})
+                </h4>
+                <span className="text-[10px] text-rose-600 dark:text-rose-400/80">Leave declared</span>
+              </div>
+
+              {(!activePeriodModal.leaveFaculty || activePeriodModal.leaveFaculty.length === 0) ? (
+                <div className="p-3 rounded-xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 text-xs text-slate-500 dark:text-slate-400 text-center">
+                  No faculty on leave in this period.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {activePeriodModal.leaveFaculty.map((f) => (
+                    <div
+                      key={f.facultyId}
+                      className="p-3 rounded-2xl bg-rose-50/70 dark:bg-[#280d1a] border border-rose-300 dark:border-rose-500/40 shadow-sm flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <p className="font-marcellus text-sm text-slate-900 dark:text-slate-100 font-semibold leading-tight">{f.facultyName}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-marcellus">{f.facultyDesignation}</p>
+                      </div>
+
+                      <div className="text-right max-w-[60%] sm:max-w-[70%]">
+                        <span className="px-3 py-1 text-xs font-bold rounded-xl bg-rose-500/20 border border-rose-400/50 text-rose-800 dark:text-rose-200 shadow-sm whitespace-normal break-words leading-relaxed inline-block text-right">
+                          LEAVE: {f.reason}
                         </span>
                       </div>
                     </div>

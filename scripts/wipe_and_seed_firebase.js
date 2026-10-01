@@ -81,22 +81,35 @@ async function wipeAndSeed() {
     console.log(`✅ Department '${dept.code}' created in Firestore.`);
   }
 
-  // 4. Seed Standard 8 Periods
-  const standardPeriods = [
-    { id: 'P01', departmentId: 'GLOBAL', name: 'Period 1', shortName: 'Period 1', startTime: '08:45', endTime: '09:35', sequence: 1, active: true },
-    { id: 'P02', departmentId: 'GLOBAL', name: 'Period 2', shortName: 'Period 2', startTime: '09:35', endTime: '10:25', sequence: 2, active: true },
-    { id: 'P03', departmentId: 'GLOBAL', name: 'Period 3', shortName: 'Period 3', startTime: '10:40', endTime: '11:30', sequence: 3, active: true },
-    { id: 'P04', departmentId: 'GLOBAL', name: 'Period 4', shortName: 'Period 4', startTime: '11:30', endTime: '12:20', sequence: 4, active: true },
-    { id: 'P05', departmentId: 'GLOBAL', name: 'Period 5', shortName: 'Period 5', startTime: '01:10', endTime: '02:00', sequence: 5, active: true },
-    { id: 'P06', departmentId: 'GLOBAL', name: 'Period 6', shortName: 'Period 6', startTime: '02:00', endTime: '02:50', sequence: 6, active: true },
-    { id: 'P07', departmentId: 'GLOBAL', name: 'Period 7', shortName: 'Period 7', startTime: '03:00', endTime: '03:50', sequence: 7, active: true },
-    { id: 'P08', departmentId: 'GLOBAL', name: 'Period 8', shortName: 'Period 8', startTime: '03:50', endTime: '04:40', sequence: 8, active: true },
+  // 4. Seed Standard 8 Periods for CSE, AIDS, and GLOBAL
+  const basePeriods = [
+    { num: 1, start: '08:45', end: '09:35' },
+    { num: 2, start: '09:35', end: '10:25' },
+    { num: 3, start: '10:40', end: '11:30' },
+    { num: 4, start: '11:30', end: '12:20' },
+    { num: 5, start: '01:10', end: '02:00' },
+    { num: 6, start: '02:00', end: '02:50' },
+    { num: 7, start: '03:00', end: '03:50' },
+    { num: 8, start: '03:50', end: '04:40' },
   ];
 
-  for (const period of standardPeriods) {
-    await setDoc(doc(db, 'periods', period.id), period);
+  for (const deptId of ['CSE', 'AIDS', 'GLOBAL']) {
+    for (const bp of basePeriods) {
+      const pid = `P_${deptId}_${bp.num}`;
+      const periodDoc = {
+        id: pid,
+        departmentId: deptId,
+        name: `Period ${bp.num}`,
+        shortName: `Period ${bp.num}`,
+        startTime: bp.start,
+        endTime: bp.end,
+        sequence: bp.num,
+        active: true
+      };
+      await setDoc(doc(db, 'periods', pid), periodDoc);
+    }
   }
-  console.log(`✅ Standard 8 periods created in Firestore.`);
+  console.log(`✅ Standard 8 periods created for CSE, AIDS, and GLOBAL in Firestore.`);
 
   // 5. Seed System Settings
   const settings = {

@@ -309,6 +309,12 @@ class NativeNotificationBridge {
           role: role || 'FACULTY',
           departmentId: departmentId || 'CSE'
         });
+        
+        // If we are on Android, the native PeriodBackgroundSyncPlugin handles scheduling the alarm natively.
+        // We skip Capacitor LocalNotifications here to avoid duplicate 8:30 AM alarms.
+        if (Capacitor.getPlatform() === 'android') {
+          return;
+        }
       } catch (nativeErr) {
         console.warn('Native saveUserDetails notice:', nativeErr);
       }

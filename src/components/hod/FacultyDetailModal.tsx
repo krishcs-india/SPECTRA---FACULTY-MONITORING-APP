@@ -3,7 +3,7 @@ import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniBadge } from '../common/KalyaniBadge';
 import { Period } from '../../types/period';
 import { FacultySchedule, ScheduleStatus } from '../../types/schedule';
-import { BookOpen, Coffee, Sparkles, Calendar, Mail, User } from 'lucide-react';
+import { BookOpen, Coffee, Sparkles, Calendar, Mail, User, Briefcase, CalendarX } from 'lucide-react';
 import { formatDateDisplay } from '../../utils/dateUtils';
 
 interface FacultyDetailModalProps {
@@ -101,6 +101,22 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
           </div>
         )}
 
+        {/* On Duty Notice */}
+        {status === 'ON_DUTY' && (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs text-center flex items-center justify-center gap-2">
+            <Briefcase className="w-4 h-4 text-amber-500" />
+            <span>Faculty is officially marked ON DUTY (OD) today.</span>
+          </div>
+        )}
+
+        {/* Leave Notice */}
+        {status === 'LEAVE' && (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-200 text-xs text-center flex items-center justify-center gap-2">
+            <CalendarX className="w-4 h-4 text-rose-500" />
+            <span>Faculty is officially marked ON LEAVE today.</span>
+          </div>
+        )}
+
         {/* Detailed Period Grid */}
         <div className="space-y-2">
           <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 font-marcellus">
@@ -125,24 +141,6 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                 );
               }
 
-              if (status === 'FULL_DAY_FREE') {
-                return (
-                  <div
-                    key={period.id}
-                    className="p-3.5 rounded-2xl border border-teal-200 dark:border-teal-500/20 bg-teal-50/60 dark:bg-teal-950/30 flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-teal-100 dark:bg-teal-900/50 border border-teal-200 dark:border-teal-500/30 text-teal-800 dark:text-teal-300 whitespace-nowrap">
-                        {period.name || period.shortName}
-                      </span>
-                    </div>
-                    <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30">
-                      FREE (Full Day)
-                    </span>
-                  </div>
-                );
-              }
-
               const entry = schedule.periods?.[period.id] ||
                 (typeof period.sequence === 'number'
                   ? Object.entries(schedule.periods || {}).find(([k]) => {
@@ -152,6 +150,8 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                   : undefined);
               const isFree = !entry || entry.type === 'FREE';
               const isSubject = entry?.type === 'SUBJECT';
+              const isLeaveEntry = entry?.type === 'LEAVE';
+              const isOnDutyEntry = entry?.type === 'ON_DUTY';
 
               return (
                 <div
@@ -159,6 +159,10 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                   className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
                     isFree
                       ? 'border-teal-200 dark:border-teal-500/25 bg-teal-50/40 dark:bg-teal-950/20'
+                      : isLeaveEntry
+                      ? 'border-rose-300 dark:border-rose-500/40 bg-rose-50/70 dark:bg-[#280d1a]'
+                      : isOnDutyEntry
+                      ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50/70 dark:bg-[#26180a]'
                       : isSubject
                       ? 'border-rose-200 dark:border-rose-900/40 bg-white dark:bg-[#201026] shadow-sm'
                       : 'border-amber-200 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/30'
@@ -174,6 +178,16 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                     {isFree && (
                       <span className="px-2.5 py-1 text-xs font-bold rounded-xl bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30">
                         FREE
+                      </span>
+                    )}
+                    {isLeaveEntry && (
+                      <span className="px-3 py-1.5 text-xs font-bold rounded-xl bg-rose-500/20 border border-rose-400/50 text-rose-800 dark:text-rose-200 shadow-sm whitespace-normal break-words leading-relaxed text-right max-w-full">
+                        LEAVE: {entry?.leaveReason || 'On Leave'}
+                      </span>
+                    )}
+                    {isOnDutyEntry && (
+                      <span className="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-800 dark:text-amber-200 shadow-sm whitespace-normal break-words leading-relaxed text-right max-w-full">
+                        OD: {entry?.onDutyCategory || 'On Duty'}{entry?.onDutyReason && entry?.onDutyReason !== entry?.onDutyCategory ? ` (${entry.onDutyReason})` : ''}
                       </span>
                     )}
                     {isSubject && entry && (

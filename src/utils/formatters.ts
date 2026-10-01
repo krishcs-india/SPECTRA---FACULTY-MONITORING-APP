@@ -16,13 +16,27 @@ export function getStatusBadgeInfo(status: ScheduleStatus) {
         bgClass: 'bg-teal-950/80 border-teal-500/40 text-teal-300',
         dotClass: 'bg-teal-400',
       };
+    case 'ON_DUTY':
+      return {
+        label: 'On Duty',
+        variant: 'amber' as const,
+        bgClass: 'bg-amber-950/80 border-amber-500/40 text-amber-300',
+        dotClass: 'bg-amber-400',
+      };
+    case 'LEAVE':
+      return {
+        label: 'On Leave',
+        variant: 'ruby' as const,
+        bgClass: 'bg-rose-950/80 border-rose-500/40 text-rose-300',
+        dotClass: 'bg-rose-400',
+      };
     case 'NOT_SUBMITTED':
     default:
       return {
         label: 'Not Submitted',
-        variant: 'ruby' as const,
-        bgClass: 'bg-rose-950/80 border-rose-500/40 text-rose-300',
-        dotClass: 'bg-rose-400 animate-pulse',
+        variant: 'slate' as const,
+        bgClass: 'bg-slate-900/80 border-slate-700/40 text-slate-400',
+        dotClass: 'bg-slate-500',
       };
   }
 }

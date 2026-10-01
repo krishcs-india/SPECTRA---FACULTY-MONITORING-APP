@@ -3,7 +3,7 @@ import { KalyaniUser, UserRole, HodType } from '../types/user';
 import { Department } from '../types/department';
 import { Period } from '../types/period';
 import { Subject } from '../types/subject';
-import { FacultySchedule, PeriodEntry, DayAvailabilityOverview, PeriodAvailabilitySummary } from '../types/schedule';
+import { FacultySchedule, PeriodEntry, ScheduleStatus, DayAvailabilityOverview, PeriodAvailabilitySummary } from '../types/schedule';
 import { SystemSettings } from '../types/configuration';
 import {
   INITIAL_USERS,
@@ -57,6 +57,25 @@ interface AppStoreState {
   getSchedule: (facultyId: string, date: string) => FacultySchedule | null;
   submitSchedule: (facultyId: string, date: string, periods: Record<string, PeriodEntry>) => { success: boolean; error?: string };
   submitFullDayFree: (facultyId: string, date: string) => { success: boolean; error?: string };
+  submitLeave: (
+    facultyId: string,
+    date: string,
+    scope: 'FULL_DAY' | 'HALF_DAY' | 'PERIOD_WISE',
+    reason: string,
+    halfDaySlot?: 'FN' | 'AN',
+    selectedPeriodIds?: string[],
+    basePeriods?: Record<string, PeriodEntry>
+  ) => { success: boolean; error?: string };
+  submitOnDuty: (
+    facultyId: string,
+    date: string,
+    scope: 'FULL_DAY' | 'HALF_DAY' | 'PERIOD_WISE',
+    category: string,
+    reason: string,
+    halfDaySlot?: 'FN' | 'AN',
+    selectedPeriodIds?: string[],
+    basePeriods?: Record<string, PeriodEntry>
+  ) => { success: boolean; error?: string };
   getDepartmentAvailability: (departmentId: string, date: string) => DayAvailabilityOverview;
   getFacultyHistory: (facultyId: string) => FacultySchedule[];
 
@@ -98,7 +117,7 @@ interface AppStoreState {
   purgeDatabaseToCleanSlate: () => void;
 }
 
-const STORAGE_KEY = 'kalyani_system_storage_v4';
+const STORAGE_KEY = 'kalyani_system_storage_v5_unified';
 
 let storeInitStarted = false;
 
@@ -464,7 +483,19 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const hasAssignedPeriods = Object.values(periods).some(
       (p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')
     );
-    const calculatedStatus: FacultySchedule['status'] = hasAssignedPeriods ? 'SUBMITTED' : 'FULL_DAY_FREE';
+    const hasLeave = Object.values(periods).some((p) => p && p.type === 'LEAVE');
+    const hasOnDuty = Object.values(periods).some((p) => p && p.type === 'ON_DUTY');
+
+    let calculatedStatus: FacultySchedule['status'] = 'SUBMITTED';
+    if (!hasAssignedPeriods && !hasLeave && !hasOnDuty) {
+      calculatedStatus = 'FULL_DAY_FREE';
+    } else if (!hasAssignedPeriods && hasLeave && !hasOnDuty) {
+      calculatedStatus = 'LEAVE';
+    } else if (!hasAssignedPeriods && hasOnDuty && !hasLeave) {
+      calculatedStatus = 'ON_DUTY';
+    } else {
+      calculatedStatus = 'SUBMITTED';
+    }
 
     const key = `${facultyId}_${date}`;
     const now = new Date().toISOString();
@@ -540,6 +571,237 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
     return { success: true };
   },
+  submitLeave: (
+    facultyId: string,
+    date: string,
+    scope: 'FULL_DAY' | 'HALF_DAY' | 'PERIOD_WISE',
+    reason: string,
+    halfDaySlot: 'FN' | 'AN' = 'FN',
+    selectedPeriodIds: string[] = [],
+    basePeriods?: Record<string, PeriodEntry>
+  ) => {
+    const state = get();
+    const faculty = state.users.find((u) => u.uid === facultyId);
+    if (!faculty) {
+      return { success: false, error: 'Faculty record not found' };
+    }
+
+    if (isDateExpiredBeyondRetention(date)) {
+      return { success: false, error: 'Schedules older than 6 days are expired and cannot be modified.' };
+    }
+
+    const activePeriods = state.getActivePeriods(faculty.departmentId);
+    const sortedPeriods = [...activePeriods].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    const totalCount = sortedPeriods.length;
+    const halfCount = Math.ceil(totalCount / 2); // e.g. 7 periods -> 4 periods, 8 periods -> 4 periods
+
+    const existingKey = `${facultyId}_${date}`;
+    const existingSched = state.schedules[existingKey];
+    const prevPeriods = basePeriods || existingSched?.periods || {};
+    const newPeriods: Record<string, PeriodEntry> = {};
+
+    if (scope === 'FULL_DAY') {
+      sortedPeriods.forEach((p) => {
+        newPeriods[p.id] = {
+          type: 'LEAVE',
+          leaveType: 'FULL_DAY',
+          leaveReason: reason,
+        };
+      });
+    } else if (scope === 'HALF_DAY') {
+      const isForenoon = halfDaySlot === 'FN';
+      const leavePeriodIds = new Set(
+        isForenoon
+          ? sortedPeriods.slice(0, halfCount).map((p) => p.id)
+          : sortedPeriods.slice(Math.max(0, totalCount - halfCount)).map((p) => p.id)
+      );
+
+      sortedPeriods.forEach((p) => {
+        if (leavePeriodIds.has(p.id)) {
+          newPeriods[p.id] = {
+            type: 'LEAVE',
+            leaveType: 'HALF_DAY',
+            leaveReason: reason,
+          };
+        } else {
+          const prev = prevPeriods[p.id];
+          newPeriods[p.id] = prev && prev.type !== 'LEAVE' ? prev : { type: 'FREE' };
+        }
+      });
+    } else {
+      // PERIOD_WISE
+      const selectedSet = new Set(selectedPeriodIds);
+      sortedPeriods.forEach((p) => {
+        if (selectedSet.has(p.id)) {
+          newPeriods[p.id] = {
+            type: 'LEAVE',
+            leaveType: 'PERIOD_WISE',
+            leaveReason: reason,
+          };
+        } else {
+          const prev = prevPeriods[p.id];
+          newPeriods[p.id] = prev && prev.type !== 'LEAVE' ? prev : { type: 'FREE' };
+        }
+      });
+    }
+
+    const assignedCount = Object.values(newPeriods).filter((p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')).length;
+    const leaveCount = Object.values(newPeriods).filter((p) => p && p.type === 'LEAVE').length;
+    const odCount = Object.values(newPeriods).filter((p) => p && p.type === 'ON_DUTY').length;
+
+    let computedStatus: ScheduleStatus = 'LEAVE';
+    if (assignedCount > 0) {
+      computedStatus = 'SUBMITTED';
+    } else if (leaveCount > 0) {
+      computedStatus = 'LEAVE';
+    } else if (odCount > 0) {
+      computedStatus = 'ON_DUTY';
+    } else {
+      computedStatus = 'FULL_DAY_FREE';
+    }
+
+    const now = new Date().toISOString();
+    const newSchedule: FacultySchedule = {
+      id: existingKey,
+      facultyId,
+      facultyName: faculty.name,
+      facultyDesignation: faculty.designation,
+      facultyEmail: faculty.email,
+      departmentId: faculty.departmentId,
+      date,
+      status: computedStatus,
+      periods: newPeriods,
+      submittedAt: now,
+      updatedAt: now,
+    };
+
+    const nextSchedules = { ...state.schedules, [existingKey]: newSchedule };
+    set({ schedules: nextSchedules });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), schedules: nextSchedules }));
+    } catch {}
+
+    firestoreService.saveSchedule(newSchedule);
+    return { success: true };
+  },
+
+  submitOnDuty: (
+    facultyId: string,
+    date: string,
+    scope: 'FULL_DAY' | 'HALF_DAY' | 'PERIOD_WISE',
+    category: string,
+    reason: string,
+    halfDaySlot: 'FN' | 'AN' = 'FN',
+    selectedPeriodIds: string[] = [],
+    basePeriods?: Record<string, PeriodEntry>
+  ) => {
+    const state = get();
+    const faculty = state.users.find((u) => u.uid === facultyId);
+    if (!faculty) {
+      return { success: false, error: 'Faculty record not found' };
+    }
+
+    if (isDateExpiredBeyondRetention(date)) {
+      return { success: false, error: 'Schedules older than 6 days are expired and cannot be modified.' };
+    }
+
+    const activePeriods = state.getActivePeriods(faculty.departmentId);
+    const sortedPeriods = [...activePeriods].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    const totalCount = sortedPeriods.length;
+    const halfCount = Math.ceil(totalCount / 2);
+
+    const existingKey = `${facultyId}_${date}`;
+    const existingSched = state.schedules[existingKey];
+    const prevPeriods = basePeriods || existingSched?.periods || {};
+    const newPeriods: Record<string, PeriodEntry> = {};
+
+    if (scope === 'FULL_DAY') {
+      sortedPeriods.forEach((p) => {
+        newPeriods[p.id] = {
+          type: 'ON_DUTY',
+          onDutyType: 'FULL_DAY',
+          onDutyCategory: category,
+          onDutyReason: reason,
+        };
+      });
+    } else if (scope === 'HALF_DAY') {
+      const isForenoon = halfDaySlot === 'FN';
+      const odPeriodIds = new Set(
+        isForenoon
+          ? sortedPeriods.slice(0, halfCount).map((p) => p.id)
+          : sortedPeriods.slice(Math.max(0, totalCount - halfCount)).map((p) => p.id)
+      );
+
+      sortedPeriods.forEach((p) => {
+        if (odPeriodIds.has(p.id)) {
+          newPeriods[p.id] = {
+            type: 'ON_DUTY',
+            onDutyType: 'HALF_DAY',
+            onDutyCategory: category,
+            onDutyReason: reason,
+          };
+        } else {
+          const prev = prevPeriods[p.id];
+          newPeriods[p.id] = prev && prev.type !== 'ON_DUTY' ? prev : { type: 'FREE' };
+        }
+      });
+    } else {
+      // PERIOD_WISE
+      const selectedSet = new Set(selectedPeriodIds);
+      sortedPeriods.forEach((p) => {
+        if (selectedSet.has(p.id)) {
+          newPeriods[p.id] = {
+            type: 'ON_DUTY',
+            onDutyType: 'PERIOD_WISE',
+            onDutyCategory: category,
+            onDutyReason: reason,
+          };
+        } else {
+          const prev = prevPeriods[p.id];
+          newPeriods[p.id] = prev && prev.type !== 'ON_DUTY' ? prev : { type: 'FREE' };
+        }
+      });
+    }
+
+    const assignedCount = Object.values(newPeriods).filter((p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')).length;
+    const leaveCount = Object.values(newPeriods).filter((p) => p && p.type === 'LEAVE').length;
+    const odCount = Object.values(newPeriods).filter((p) => p && p.type === 'ON_DUTY').length;
+
+    let computedStatus: ScheduleStatus = 'ON_DUTY';
+    if (assignedCount > 0) {
+      computedStatus = 'SUBMITTED';
+    } else if (odCount > 0) {
+      computedStatus = 'ON_DUTY';
+    } else if (leaveCount > 0) {
+      computedStatus = 'LEAVE';
+    } else {
+      computedStatus = 'FULL_DAY_FREE';
+    }
+
+    const now = new Date().toISOString();
+    const newSchedule: FacultySchedule = {
+      id: existingKey,
+      facultyId,
+      facultyName: faculty.name,
+      facultyDesignation: faculty.designation,
+      facultyEmail: faculty.email,
+      departmentId: faculty.departmentId,
+      date,
+      status: computedStatus,
+      periods: newPeriods,
+      submittedAt: now,
+      updatedAt: now,
+    };
+
+    const nextSchedules = { ...state.schedules, [existingKey]: newSchedule };
+    set({ schedules: nextSchedules });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), schedules: nextSchedules }));
+    } catch {}
+
+    firestoreService.saveSchedule(newSchedule);
+    return { success: true };
+  },
 
   getDepartmentAvailability: (departmentId: string, date: string): DayAvailabilityOverview => {
     const state = get();
@@ -551,10 +813,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       const isMainHod = (u.role === 'HOD' || (u.designation || '').toLowerCase().includes('head of department')) && u.hodType !== 'AHOD';
       return !isMainHod;
     });
-    const activePeriods = state.getActivePeriods(cleanDept);
 
+    const activePeriods = state.getActivePeriods(cleanDept);
     let submittedCount = 0;
     let fullDayFreeCount = 0;
+    let onDutyCount = 0;
+    let leaveCount = 0;
     let notSubmittedCount = 0;
 
     const facultyStatuses = deptFaculty.map((faculty) => {
@@ -569,23 +833,32 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
       let status: FacultySchedule['status'] = 'NOT_SUBMITTED';
       let assignedCount = 0;
+      let onDutyPeriodsCount = 0;
+      let leavePeriodsCount = 0;
 
       if (schedule) {
-        const periodsAssigned = Object.values(schedule.periods || {}).filter(
-          (p) => p && p.type !== 'FREE'
-        ).length;
+        const pList = Object.values(schedule.periods || {});
+        assignedCount = pList.filter((p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')).length;
+        onDutyPeriodsCount = pList.filter((p) => p && p.type === 'ON_DUTY').length;
+        leavePeriodsCount = pList.filter((p) => p && p.type === 'LEAVE').length;
 
-        // If explicitly FULL_DAY_FREE or submitted with 0 assigned periods -> strictly FULL_DAY_FREE
-        if (schedule.status === 'FULL_DAY_FREE' || (schedule.status === 'SUBMITTED' && periodsAssigned === 0)) {
+        if (schedule.status === 'FULL_DAY_FREE' || (assignedCount === 0 && onDutyPeriodsCount === 0 && leavePeriodsCount === 0)) {
           status = 'FULL_DAY_FREE';
           fullDayFreeCount++;
-          assignedCount = 0;
+        } else if (assignedCount > 0) {
+          status = 'SUBMITTED';
+          submittedCount++;
+        } else if (schedule.status === 'ON_DUTY' || onDutyPeriodsCount > 0) {
+          status = 'ON_DUTY';
+          onDutyCount++;
+        } else if (schedule.status === 'LEAVE' || leavePeriodsCount > 0) {
+          status = 'LEAVE';
+          leaveCount++;
         } else if (schedule.status === 'SUBMITTED') {
           status = 'SUBMITTED';
           submittedCount++;
-          assignedCount = periodsAssigned;
         } else {
-          status = schedule.status;
+          status = 'NOT_SUBMITTED';
           notSubmittedCount++;
         }
       } else {
@@ -600,6 +873,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         status,
         submittedAt: schedule?.submittedAt,
         assignedPeriodsCount: assignedCount,
+        onDutyPeriodsCount,
+        leavePeriodsCount,
         schedule
       };
     });
@@ -608,6 +883,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const periodAvailability: PeriodAvailabilitySummary[] = activePeriods.map((period) => {
       const freeFaculty: PeriodAvailabilitySummary['freeFaculty'] = [];
       const busyFaculty: PeriodAvailabilitySummary['busyFaculty'] = [];
+      const onDutyFaculty: PeriodAvailabilitySummary['onDutyFaculty'] = [];
+      const leaveFaculty: PeriodAvailabilitySummary['leaveFaculty'] = [];
 
       deptFaculty.forEach((faculty) => {
         const key = `${faculty.uid}_${date}`;
@@ -633,13 +910,34 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           return;
         }
 
-        const entry = schedule.periods?.[period.id];
+        const entry = schedule.periods?.[period.id] ||
+          (typeof period.sequence === 'number'
+            ? Object.entries(schedule.periods || {}).find(([k]) => {
+                const match = k.match(/\d+/);
+                return match ? parseInt(match[0], 10) === period.sequence : false;
+              })?.[1]
+            : undefined);
         if (!entry || entry.type === 'FREE') {
           freeFaculty.push({
             facultyId: faculty.uid,
             facultyName: faculty.name,
             facultyDesignation: faculty.designation,
             email: faculty.email
+          });
+        } else if (entry.type === 'ON_DUTY') {
+          onDutyFaculty.push({
+            facultyId: faculty.uid,
+            facultyName: faculty.name,
+            facultyDesignation: faculty.designation,
+            category: entry.onDutyCategory || 'On Duty',
+            reason: entry.onDutyReason || ''
+          });
+        } else if (entry.type === 'LEAVE') {
+          leaveFaculty.push({
+            facultyId: faculty.uid,
+            facultyName: faculty.name,
+            facultyDesignation: faculty.designation,
+            reason: entry.leaveReason || 'Leave'
           });
         } else {
           let activity = 'Assigned';
@@ -668,13 +966,17 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         sequence: period.sequence,
         freeFacultyCount: freeFaculty.length,
         busyFacultyCount: busyFaculty.length,
+        onDutyFacultyCount: onDutyFaculty.length,
+        leaveFacultyCount: leaveFaculty.length,
         freeFaculty,
-        busyFaculty
+        busyFaculty,
+        onDutyFaculty,
+        leaveFaculty
       };
     });
 
     const total = deptFaculty.length;
-    const answered = submittedCount + fullDayFreeCount;
+    const answered = submittedCount + fullDayFreeCount + onDutyCount + leaveCount;
     const submissionPercentage = total > 0 ? Math.round((answered / total) * 100) : 0;
 
     return {
@@ -682,6 +984,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       totalFaculty: total,
       submittedCount,
       fullDayFreeCount,
+      onDutyCount,
+      leaveCount,
       notSubmittedCount,
       submissionPercentage,
       facultyStatuses,
@@ -854,11 +1158,18 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   getActivePeriods: (departmentId?: string) => {
     const all = get().periods;
     const cleanDept = normalizeDepartmentId(departmentId) || 'CSE';
-    const deptPeriods = all.filter(
+    // Match department-specific periods first, or fallback to GLOBAL periods
+    const specificDeptPeriods = all.filter(
       (p) => normalizeDepartmentId(p.departmentId) === cleanDept && p.active !== false
     );
-    if (deptPeriods.length > 0) {
-      return deptPeriods.sort((a, b) => a.sequence - b.sequence);
+    if (specificDeptPeriods.length > 0) {
+      return specificDeptPeriods.sort((a, b) => a.sequence - b.sequence);
+    }
+    const globalPeriods = all.filter(
+      (p) => normalizeDepartmentId(p.departmentId) === 'GLOBAL' && p.active !== false
+    );
+    if (globalPeriods.length > 0) {
+      return globalPeriods.sort((a, b) => a.sequence - b.sequence);
     }
     return createDefaultPeriodsForDepartment(cleanDept);
   },
@@ -866,11 +1177,17 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   getAllDepartmentPeriods: (departmentId?: string) => {
     const all = get().periods;
     const cleanDept = normalizeDepartmentId(departmentId) || 'CSE';
-    const deptPeriods = all.filter(
+    const specificDeptPeriods = all.filter(
       (p) => normalizeDepartmentId(p.departmentId) === cleanDept
     );
-    if (deptPeriods.length > 0) {
-      return deptPeriods.sort((a, b) => a.sequence - b.sequence);
+    if (specificDeptPeriods.length > 0) {
+      return specificDeptPeriods.sort((a, b) => a.sequence - b.sequence);
+    }
+    const globalPeriods = all.filter(
+      (p) => normalizeDepartmentId(p.departmentId) === 'GLOBAL'
+    );
+    if (globalPeriods.length > 0) {
+      return globalPeriods.sort((a, b) => a.sequence - b.sequence);
     }
     return createDefaultPeriodsForDepartment(cleanDept);
   },

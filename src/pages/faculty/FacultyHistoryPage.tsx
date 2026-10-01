@@ -42,6 +42,8 @@ export const FacultyHistoryPage: React.FC = () => {
             const assignedCount = Object.values(record.periods || {}).filter(
               (p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')
             ).length;
+            const odCount = Object.values(record.periods || {}).filter((p) => p && p.type === 'ON_DUTY').length;
+            const leaveCount = Object.values(record.periods || {}).filter((p) => p && p.type === 'LEAVE').length;
 
             return (
               <KalyaniCard
@@ -65,6 +67,10 @@ export const FacultyHistoryPage: React.FC = () => {
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {record.status === 'FULL_DAY_FREE'
                           ? 'Declared full day free'
+                          : record.status === 'LEAVE'
+                          ? `On Leave (${leaveCount > 0 ? `${leaveCount} period(s)` : 'Full Day'}) • Submitted at ${formatTimeDisplay(record.submittedAt)}`
+                          : record.status === 'ON_DUTY'
+                          ? `On Duty (${odCount > 0 ? `${odCount} period(s)` : 'Full Day'}) • Submitted at ${formatTimeDisplay(record.submittedAt)}`
                           : `${assignedCount} teaching period(s) assigned • Submitted at ${formatTimeDisplay(record.submittedAt)}`}
                       </p>
                     </div>
@@ -120,6 +126,8 @@ export const FacultyHistoryPage: React.FC = () => {
                               : undefined);
                           const isFree = !entry || entry.type === 'FREE';
                           const isSubject = entry?.type === 'SUBJECT';
+                          const isLeave = entry?.type === 'LEAVE';
+                          const isOnDuty = entry?.type === 'ON_DUTY';
 
                           return (
                             <div
@@ -127,6 +135,10 @@ export const FacultyHistoryPage: React.FC = () => {
                               className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
                                 isFree
                                   ? 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-500/20 text-teal-800 dark:text-teal-200'
+                                  : isLeave
+                                  ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700/50 text-rose-800 dark:text-rose-200'
+                                  : isOnDuty
+                                  ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-600/40 text-amber-800 dark:text-amber-200'
                                   : isSubject
                                   ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800/40 text-rose-800 dark:text-rose-200'
                                   : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-200'
@@ -135,11 +147,13 @@ export const FacultyHistoryPage: React.FC = () => {
                               <div className="flex items-center justify-between font-bold">
                                 <span>{period.name || period.shortName}</span>
                                 <span className="text-[10px] uppercase font-semibold">
-                                  {isFree ? 'FREE' : isSubject ? 'Assigned' : 'Other'}
+                                  {isFree ? 'FREE' : isLeave ? 'LEAVE' : isOnDuty ? 'ON DUTY' : isSubject ? 'Assigned' : 'Other'}
                                 </span>
                               </div>
                               <p className="mt-1 font-medium text-slate-800 dark:text-slate-100 break-words whitespace-normal leading-snug text-[11px]">
                                 {isFree && 'Available'}
+                                {isLeave && (entry?.leaveReason ? `Leave: ${entry.leaveReason}` : 'On Leave')}
+                                {isOnDuty && `OD: ${entry?.onDutyCategory ? `[${entry.onDutyCategory}] ` : ''}${entry?.onDutyReason || ''}`}
                                 {isSubject && `${entry?.subjectCode ? `${entry.subjectCode} — ` : ''}${entry?.subjectName || ''}`}
                                 {entry?.type === 'CUSTOM' && `Other: ${entry?.customText}`}
                               </p>
