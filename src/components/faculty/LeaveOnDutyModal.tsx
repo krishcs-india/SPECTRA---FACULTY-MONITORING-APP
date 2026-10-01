@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniButton } from '../common/KalyaniButton';
+import { KalyaniSelect } from '../common/KalyaniSelect';
 import { Period } from '../../types/period';
 import { formatDateDisplay } from '../../utils/dateUtils';
 import {
@@ -8,12 +9,10 @@ import {
   Briefcase,
   Clock,
   CheckCircle2,
-  Calendar,
   AlertCircle,
   Sun,
   Sunset,
   Layers,
-  Sparkles
 } from 'lucide-react';
 
 interface LeaveOnDutyModalProps {
@@ -38,7 +37,7 @@ interface LeaveOnDutyModalProps {
 }
 
 const ON_DUTY_CATEGORIES = [
-  'Exam Duty (Anna University / Autonomous)',
+  'Exam Duty',
   'Placement Drive / Training',
   'Cultural Event / Symposium',
   'Coding Event / Hackathon',
@@ -69,8 +68,6 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
     [activePeriods]
   );
   const totalPeriods = sortedPeriods.length;
-  // Calculate half day strictly: 7 -> 4 periods, 8 -> 4 periods
-  const halfCount = Math.ceil(totalPeriods / 2);
 
   // Tab State: 'QUICK' (Full Day / Half Day) vs 'PERIOD_WISE'
   const [activeTab, setActiveTab] = useState<'QUICK' | 'PERIOD_WISE'>('QUICK');
@@ -132,8 +129,8 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
       onClose();
     } else {
       // Reason validation for On Duty
-      let finalCategory = onDutyCategory;
-      let finalReason = customReason.trim();
+      const finalCategory = onDutyCategory;
+      const finalReason = customReason.trim();
 
       if (onDutyCategory === 'Other Duty' && !finalReason) {
         setValidationError('Please specify the duty details for "Other Duty".');
@@ -153,13 +150,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
       maxWidth="xl"
       title={
         <div className="flex items-center gap-2.5">
-          <div
-            className={`p-2 rounded-xl border ${
-              isLeave
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-500'
-                : 'bg-amber-500/10 border-amber-500/30 text-amber-500'
-            }`}
-          >
+          <div className="p-2 rounded-xl border bg-rose-500/10 border-rose-500/30 text-rose-500">
             {isLeave ? <CalendarX className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />}
           </div>
           <div>
@@ -181,9 +172,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
             onClick={() => setActiveTab('QUICK')}
             className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
               activeTab === 'QUICK'
-                ? isLeave
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
@@ -196,9 +185,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
             onClick={() => setActiveTab('PERIOD_WISE')}
             className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
               activeTab === 'PERIOD_WISE'
-                ? isLeave
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
@@ -215,11 +202,9 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               <button
                 type="button"
                 onClick={() => setQuickScope('FULL_DAY')}
-                className={`p-4 rounded-2xl border text-left transition-all apple-hover flex flex-col justify-between min-h-[105px] ${
+                className={`p-4 rounded-2xl border text-left transition-all apple-hover flex flex-col justify-between min-h-[90px] ${
                   quickScope === 'FULL_DAY'
-                    ? isLeave
-                      ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-500/60 shadow-sm ring-1 ring-rose-400'
-                      : 'bg-amber-50 dark:bg-amber-950/50 border-amber-400 dark:border-amber-500/60 shadow-sm ring-1 ring-amber-400'
+                    ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-500/60 shadow-sm ring-1 ring-rose-400'
                     : 'bg-white/80 dark:bg-[#180E1C]/80 border-rose-200/70 dark:border-rose-900/30 hover:border-rose-300'
                 }`}
               >
@@ -228,13 +213,11 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                     Full Day {isLeave ? 'Leave' : 'On Duty'}
                   </span>
                   {quickScope === 'FULL_DAY' && (
-                    <CheckCircle2
-                      className={`w-4 h-4 ${isLeave ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500'}`}
-                    />
+                    <CheckCircle2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                   )}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-sans">
-                  Applies to all <span className="font-bold text-slate-800 dark:text-slate-200">{totalPeriods} periods</span> today.
+                  Applies to the entire day's schedule.
                 </p>
               </button>
 
@@ -242,11 +225,9 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               <button
                 type="button"
                 onClick={() => setQuickScope('HALF_DAY')}
-                className={`p-4 rounded-2xl border text-left transition-all apple-hover flex flex-col justify-between min-h-[105px] ${
+                className={`p-4 rounded-2xl border text-left transition-all apple-hover flex flex-col justify-between min-h-[90px] ${
                   quickScope === 'HALF_DAY'
-                    ? isLeave
-                      ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-500/60 shadow-sm ring-1 ring-rose-400'
-                      : 'bg-amber-50 dark:bg-amber-950/50 border-amber-400 dark:border-amber-500/60 shadow-sm ring-1 ring-amber-400'
+                    ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-500/60 shadow-sm ring-1 ring-rose-400'
                     : 'bg-white/80 dark:bg-[#180E1C]/80 border-rose-200/70 dark:border-rose-900/30 hover:border-rose-300'
                 }`}
               >
@@ -255,52 +236,46 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                     Half Day {isLeave ? 'Leave' : 'On Duty'}
                   </span>
                   {quickScope === 'HALF_DAY' && (
-                    <CheckCircle2
-                      className={`w-4 h-4 ${isLeave ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500'}`}
-                    />
+                    <CheckCircle2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                   )}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-sans">
-                  Calculated automatically: <span className="font-bold text-slate-800 dark:text-slate-200">{halfCount} periods</span> (out of {totalPeriods}).
+                  Select Forenoon or Afternoon session.
                 </p>
               </button>
             </div>
 
-            {/* Half Day FN / AN Slot Picker */}
+            {/* Half Day Session Picker - Strictly Forenoon or Afternoon alone */}
             {quickScope === 'HALF_DAY' && (
-              <div className="p-3.5 rounded-2xl bg-rose-50/40 dark:bg-[#180E1C]/60 border border-rose-200 dark:border-rose-900/40 space-y-2 animate-in fade-in">
+              <div className="p-3.5 rounded-2xl bg-rose-50/40 dark:bg-[#180E1C]/60 border border-rose-200 dark:border-rose-900/40 space-y-2.5 animate-in fade-in">
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                  Select Session for Half Day:
+                  Select Session:
                 </span>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setHalfDaySlot('FN')}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-2 transition-colors ${
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex items-center justify-center gap-2 transition-all apple-hover ${
                       halfDaySlot === 'FN'
-                        ? isLeave
-                          ? 'bg-rose-500/20 border-rose-400 text-rose-800 dark:text-rose-200'
-                          : 'bg-amber-500/20 border-amber-400 text-amber-800 dark:text-amber-200'
-                        : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
+                        : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-300'
                     }`}
                   >
-                    <Sun className="w-3.5 h-3.5" />
-                    <span>Forenoon (FN: Periods 1–{halfCount})</span>
+                    <Sun className="w-4 h-4 shrink-0" />
+                    <span>Forenoon</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setHalfDaySlot('AN')}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-2 transition-colors ${
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex items-center justify-center gap-2 transition-all apple-hover ${
                       halfDaySlot === 'AN'
-                        ? isLeave
-                          ? 'bg-rose-500/20 border-rose-400 text-rose-800 dark:text-rose-200'
-                          : 'bg-amber-500/20 border-amber-400 text-amber-800 dark:text-amber-200'
-                        : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
+                        : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-300'
                     }`}
                   >
-                    <Sunset className="w-3.5 h-3.5" />
-                    <span>Afternoon (AN: {totalPeriods - halfCount + 1}–{totalPeriods})</span>
+                    <Sunset className="w-4 h-4 shrink-0" />
+                    <span>Afternoon</span>
                   </button>
                 </div>
               </div>
@@ -308,51 +283,32 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
           </div>
         )}
 
-        {/* Tab 2: Period Wise Selection */}
+        {/* Tab 2: Period Wise Selection - No Timings, No Checkmarks, Pure Pink on Selection */}
         {activeTab === 'PERIOD_WISE' && (
           <div className="space-y-2.5 animate-in fade-in duration-150">
             <div className="flex items-center justify-between text-xs px-1 text-slate-600 dark:text-slate-400">
-              <span>Select the lively periods configured by HOD:</span>
+              <span>Select periods configured by HOD:</span>
               <span className="font-semibold text-rose-600 dark:text-rose-400">
                 {selectedPeriodIds.length} period(s) selected
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-              {sortedPeriods.map((period) => {
+              {sortedPeriods.map((period, idx) => {
                 const isSelected = selectedPeriodIds.includes(period.id);
+                const periodLabel = period.name || period.shortName || `Period ${period.sequence || idx + 1}`;
                 return (
                   <button
                     key={period.id}
                     type="button"
                     onClick={() => togglePeriodSelection(period.id)}
-                    className={`p-3 rounded-xl border text-left transition-all apple-hover flex flex-col justify-between ${
+                    className={`h-12 min-h-[48px] px-3 rounded-xl border text-center transition-all apple-hover flex items-center justify-center font-bold text-xs sm:text-sm ${
                       isSelected
-                        ? isLeave
-                          ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-400 dark:border-rose-500 text-rose-900 dark:text-rose-100 shadow-sm ring-1 ring-rose-400'
-                          : 'bg-amber-50 dark:bg-amber-950/60 border-amber-400 dark:border-amber-500 text-amber-900 dark:text-amber-100 shadow-sm ring-1 ring-amber-400'
-                        : 'bg-white/90 dark:bg-[#180E1C]/90 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                        ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white border-rose-500 shadow-md ring-2 ring-rose-400/40 scale-[1.02]'
+                        : 'bg-white/90 dark:bg-[#180E1C]/90 border-rose-200/80 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs">{period.name || period.shortName}</span>
-                      <div
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          isSelected
-                            ? isLeave
-                              ? 'bg-rose-600 border-rose-600 text-white'
-                              : 'bg-amber-500 border-amber-500 text-slate-950 font-bold'
-                            : 'border-slate-300 dark:border-slate-700'
-                        }`}
-                      >
-                        {isSelected && <span className="text-[10px]">✓</span>}
-                      </div>
-                    </div>
-                    {period.startTime && (
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                        {period.startTime} - {period.endTime}
-                      </span>
-                    )}
+                    <span className="truncate">{periodLabel}</span>
                   </button>
                 );
               })}
@@ -366,23 +322,21 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
             {isLeave ? 'Reason for Leave (Required)' : 'On Duty Classification & Reason (Required)'}
           </label>
 
-          {/* On Duty Dropdown */}
+          {/* On Duty Dropdown with curved KalyaniSelect & Pink Theme */}
           {!isLeave ? (
-            <div className="space-y-2">
-              <select
+            <div className="space-y-3">
+              <KalyaniSelect
+                label="On Duty Classification"
+                options={ON_DUTY_CATEGORIES.map((cat) => ({
+                  value: cat,
+                  label: cat,
+                }))}
                 value={onDutyCategory}
-                onChange={(e) => {
-                  setOnDutyCategory(e.target.value);
+                onChange={(val) => {
+                  setOnDutyCategory(val);
                   setValidationError(null);
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#201026] border border-amber-300 dark:border-amber-500/40 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                {ON_DUTY_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat} className="bg-white dark:bg-[#180E1C] text-slate-900 dark:text-slate-100">
-                    {cat}
-                  </option>
-                ))}
-              </select>
+              />
 
               <input
                 type="text"
@@ -393,10 +347,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                 }}
                 placeholder={
                   onDutyCategory === 'Other Duty'
-                    ? 'Enter specific duty details / hall / purpose...'
-                    : 'Optional specific notes (e.g. Hall No. 302, FN Session)...'
+                    ? 'Enter specific duty details / hall / purpose (Required)...'
+                    : 'Optional duty notes / details...'
                 }
-                className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-sm transition-all"
               />
             </div>
           ) : (
@@ -411,10 +365,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                       setLeavePreset(preset);
                       setValidationError(null);
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors border ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all apple-hover border ${
                       leavePreset === preset
-                        ? 'bg-rose-500/20 border-rose-400 text-rose-800 dark:text-rose-200 shadow-sm'
-                        : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                        : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-300'
                     }`}
                   >
                     {preset}
@@ -430,7 +384,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                   setValidationError(null);
                 }}
                 placeholder="Brief reason note (e.g. Health checkup, Out of station)..."
-                className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-sm transition-all"
               />
             </div>
           )}
@@ -456,7 +410,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
           </KalyaniButton>
 
           <KalyaniButton
-            variant={isLeave ? 'ruby' : 'gold'}
+            variant="gold"
             size="md"
             onClick={handleSave}
             className="text-xs font-bold px-6 shadow-sm"
