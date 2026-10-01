@@ -6,8 +6,8 @@ export function getStatusBadgeInfo(status: ScheduleStatus) {
       return {
         label: 'Submitted',
         variant: 'emerald' as const,
-        bgClass: 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300',
-        dotClass: 'bg-emerald-400',
+        bgClass: 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300',
+        dotClass: 'bg-emerald-500 dark:bg-emerald-400',
       };
     case 'FULL_DAY_FREE':
       return {

@@ -310,7 +310,7 @@ export const FacultyStatusList: React.FC<FacultyStatusListProps> = ({
     <div className="space-y-4">
       {actionSuccessMsg && (
         <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in shadow-sm">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span>{actionSuccessMsg}</span>
         </div>
       )}
