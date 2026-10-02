@@ -507,7 +507,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-1">
           <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 font-serif leading-tight">
             <span>Period Wise Allocation</span>
-            <span className="block text-[11px] font-normal text-rose-600/90 dark:text-rose-400/90 whitespace-nowrap mt-0.5">
+            <span className="block text-[11px] whitespace-nowrap mt-0.5">
               ({activePeriods.length} Active Periods)
             </span>
           </h4>

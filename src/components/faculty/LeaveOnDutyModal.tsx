@@ -523,9 +523,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
       ) : (
         /* View 2: Main Modal Form */
         <div
-          className={`space-y-4 sm:space-y-5 animate-in fade-in duration-150 transition-all duration-200 ${
-            isNotesFocused ? 'pb-72 sm:pb-28' : 'pb-2'
-          }`}
+          className="space-y-4 sm:space-y-5 animate-in fade-in duration-150 transition-all duration-200 pb-2"
         >
           {/* Navigation Tabs (Quick Scope vs Period Wise) */}
           <div className="flex p-1 rounded-2xl bg-rose-50/60 dark:bg-[#180E1C] border border-rose-200/80 dark:border-rose-900/40">
@@ -537,7 +535,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               }}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'QUICK'
-                  ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-md'
+                  ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-md'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
@@ -553,7 +551,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               }}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'PERIOD_WISE'
-                  ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-md'
+                  ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white shadow-md'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
@@ -777,11 +775,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                             <span className="text-[10px] text-white/90 font-medium block truncate">
                               Replaces {hasExistingOD ? 'OD' : hasExistingLeave ? 'Leave' : 'Class'}
                             </span>
-                          ) : (
-                            <span className="text-[10px] text-white/80 font-normal block truncate">
-                              Selected
-                            </span>
-                          )
+                          ) : null
                         ) : hasExistingOD ? (
                           <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold block truncate">
                             OD: {existingEntry.onDutyCategory || 'On Duty'}
