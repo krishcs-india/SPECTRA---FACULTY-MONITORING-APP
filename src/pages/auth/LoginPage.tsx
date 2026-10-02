@@ -107,11 +107,11 @@ export const LoginPage: React.FC = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-5 p-3.5 rounded-2xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2.5 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs flex items-start gap-2.5 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-bold">Access Denied</p>
-                <p className="text-[11px] text-rose-300/90 mt-0.5">{error}</p>
+                <p className="font-bold text-rose-900 dark:text-rose-100">Access Denied</p>
+                <p className="text-[11px] text-rose-700/90 dark:text-rose-300/90 mt-0.5">{error}</p>
               </div>
             </div>
           )}
