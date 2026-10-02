@@ -633,9 +633,6 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                         <Sun className="w-4 h-4 shrink-0" />
                         <span>Forenoon</span>
                       </div>
-                      <span className={`text-[11px] ${halfDaySlot === 'FN' ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
-                        (Periods 1–{fnCount})
-                      </span>
                     </button>
 
                     <button
@@ -651,9 +648,6 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                         <Sunset className="w-4 h-4 shrink-0" />
                         <span>Afternoon</span>
                       </div>
-                      <span className={`text-[11px] ${halfDaySlot === 'AN' ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
-                        (Periods {fnCount + 1}–{totalPeriods})
-                      </span>
                     </button>
                   </div>
                 </div>
