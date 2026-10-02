@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniButton } from '../common/KalyaniButton';
 import { Period } from '../../types/period';
+import { PeriodEntry } from '../../types/schedule';
 import { formatDateDisplay } from '../../utils/dateUtils';
 import { scrollToTopView } from '../../utils/scrollUtils';
 import {
@@ -36,6 +37,7 @@ interface LeaveOnDutyModalProps {
   mode: 'LEAVE' | 'ON_DUTY';
   activePeriods: Period[];
   date: string;
+  currentPeriods?: Record<string, PeriodEntry>;
   onSaveLeave: (
     scope: 'FULL_DAY' | 'HALF_DAY' | 'PERIOD_WISE',
     reason: string,
@@ -148,12 +150,31 @@ const LEAVE_ITEMS: ClassificationItem[] = [
   },
 ];
 
+const LEAVE_SUGGESTIONS = [
+  'Doctor Visit / Medical',
+  'Health Checkup',
+  'Out of Station',
+  'Family Function',
+  'Personal Work',
+  'Family Emergency',
+];
+
+const ON_DUTY_SUGGESTIONS = [
+  'Anna University Exam Duty',
+  'Central Valuation Camp',
+  'Campus Placement Drive',
+  'Department Symposium',
+  'FDP Workshop / Training',
+  'NAAC / NBA Work',
+];
+
 export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
   isOpen,
   onClose,
   mode,
   activePeriods,
   date,
+  currentPeriods,
   onSaveLeave,
   onSaveOnDuty,
 }) => {
@@ -183,21 +204,87 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Focus & mobile smooth scroll refs for notes / reason section
+  const [isNotesFocused, setIsNotesFocused] = useState(false);
+  const reasonSectionRef = useRef<HTMLDivElement>(null);
+  const customReasonInputRef = useRef<HTMLInputElement>(null);
+
+  const handleNotesFocus = () => {
+    setIsNotesFocused(true);
+    if (reasonSectionRef.current) {
+      scrollToTopView(reasonSectionRef.current, {
+        offset: 12,
+        force: true,
+        behavior: 'smooth',
+      });
+      // Handle mobile soft keyboard transition timing
+      setTimeout(() => {
+        if (reasonSectionRef.current) {
+          scrollToTopView(reasonSectionRef.current, {
+            offset: 12,
+            force: true,
+            behavior: 'smooth',
+          });
+        }
+      }, 180);
+      setTimeout(() => {
+        if (reasonSectionRef.current) {
+          scrollToTopView(reasonSectionRef.current, {
+            offset: 12,
+            force: true,
+            behavior: 'smooth',
+          });
+        }
+      }, 360);
+    }
+  };
+
+  const handleDoneNotes = () => {
+    customReasonInputRef.current?.blur();
+    setIsNotesFocused(false);
+  };
+
+  const handleSelectSuggestion = (sug: string) => {
+    setCustomReason(sug);
+    setValidationError(null);
+  };
+
+  // Period Helpers for Session-wise quick multi-select (Floor value for odd periods)
+  const fnCount = Math.floor(sortedPeriods.length / 2);
+  const fnPeriodIds = useMemo(() => {
+    return sortedPeriods.slice(0, fnCount).map((p) => p.id);
+  }, [sortedPeriods, fnCount]);
+
+  const anPeriodIds = useMemo(() => {
+    return sortedPeriods.slice(fnCount).map((p) => p.id);
+  }, [sortedPeriods, fnCount]);
+
+  const isAllSelected = sortedPeriods.length > 0 && selectedPeriodIds.length === sortedPeriods.length;
+  const isFnSelected =
+    fnPeriodIds.length > 0 &&
+    fnPeriodIds.length === selectedPeriodIds.length &&
+    fnPeriodIds.every((id) => selectedPeriodIds.includes(id));
+  const isAnSelected =
+    anPeriodIds.length > 0 &&
+    anPeriodIds.length === selectedPeriodIds.length &&
+    anPeriodIds.every((id) => selectedPeriodIds.includes(id));
+
   // Reset or initialize when modal opens
   useEffect(() => {
     if (isOpen) {
       setActiveTab('QUICK');
       setQuickScope('FULL_DAY');
       setHalfDaySlot('FN');
-      setSelectedPeriodIds(sortedPeriods.slice(0, 1).map((p) => p.id));
+      setSelectedPeriodIds([]);
       setValidationError(null);
       setCustomReason('');
       setOnDutyCategory(ON_DUTY_ITEMS[0].value);
       setLeavePreset(LEAVE_ITEMS[0].value);
       setIsPickerOpen(false);
       setSearchQuery('');
+      setIsNotesFocused(false);
     }
-  }, [isOpen, sortedPeriods]);
+  }, [isOpen]);
 
   // Focus search input and scroll to top of modal when picker view opens
   useEffect(() => {
@@ -205,7 +292,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
       setTimeout(() => {
         searchInputRef.current?.focus();
         if (searchInputRef.current) {
-          scrollToTopView(searchInputRef.current);
+          scrollToTopView(searchInputRef.current, { force: true, offset: 12 });
         }
       }, 100);
     }
@@ -375,6 +462,12 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                       }
                       setValidationError(null);
                       setIsPickerOpen(false);
+                      if (opt.value === 'Other Leave Reason' || opt.value === 'Other Duty') {
+                        setTimeout(() => {
+                          customReasonInputRef.current?.focus();
+                          handleNotesFocus();
+                        }, 200);
+                      }
                     }}
                     className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-150 flex items-center justify-between gap-3 ${
                       isSelected
@@ -429,12 +522,19 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
         </div>
       ) : (
         /* View 2: Main Modal Form */
-        <div className="space-y-5 animate-in fade-in duration-150">
+        <div
+          className={`space-y-4 sm:space-y-5 animate-in fade-in duration-150 transition-all duration-200 ${
+            isNotesFocused ? 'pb-72 sm:pb-28' : 'pb-2'
+          }`}
+        >
           {/* Navigation Tabs (Quick Scope vs Period Wise) */}
           <div className="flex p-1 rounded-2xl bg-rose-50/60 dark:bg-[#180E1C] border border-rose-200/80 dark:border-rose-900/40">
             <button
               type="button"
-              onClick={() => setActiveTab('QUICK')}
+              onClick={() => {
+                setActiveTab('QUICK');
+                if (isNotesFocused) handleDoneNotes();
+              }}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'QUICK'
                   ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-md'
@@ -447,7 +547,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
 
             <button
               type="button"
-              onClick={() => setActiveTab('PERIOD_WISE')}
+              onClick={() => {
+                setActiveTab('PERIOD_WISE');
+                if (isNotesFocused) handleDoneNotes();
+              }}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'PERIOD_WISE'
                   ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold shadow-md'
@@ -520,27 +623,37 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setHalfDaySlot('FN')}
-                      className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex items-center justify-center gap-2 transition-all apple-hover ${
+                      className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all apple-hover ${
                         halfDaySlot === 'FN'
                           ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
                           : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-300'
                       }`}
                     >
-                      <Sun className="w-4 h-4 shrink-0" />
-                      <span>Forenoon</span>
+                      <div className="flex items-center gap-1.5">
+                        <Sun className="w-4 h-4 shrink-0" />
+                        <span>Forenoon</span>
+                      </div>
+                      <span className={`text-[11px] ${halfDaySlot === 'FN' ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                        (Periods 1–{fnCount})
+                      </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setHalfDaySlot('AN')}
-                      className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex items-center justify-center gap-2 transition-all apple-hover ${
+                      className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all apple-hover ${
                         halfDaySlot === 'AN'
                           ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
                           : 'bg-white dark:bg-[#201026] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-300'
                       }`}
                     >
-                      <Sunset className="w-4 h-4 shrink-0" />
-                      <span>Afternoon</span>
+                      <div className="flex items-center gap-1.5">
+                        <Sunset className="w-4 h-4 shrink-0" />
+                        <span>Afternoon</span>
+                      </div>
+                      <span className={`text-[11px] ${halfDaySlot === 'AN' ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                        (Periods {fnCount + 1}–{totalPeriods})
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -548,51 +661,185 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
             </div>
           )}
 
-          {/* Tab 2: Period Wise Selection - No Timings, No Checkmarks, Pure Pink on Selection */}
+          {/* Tab 2: Period Wise Selection - No nested scroll trap, smart session shortcuts */}
           {activeTab === 'PERIOD_WISE' && (
-            <div className="space-y-2.5 animate-in fade-in duration-150">
+            <div className="space-y-3 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs px-1 text-slate-600 dark:text-slate-400">
-                <span>Select periods configured by HOD:</span>
-                <span className="font-semibold text-rose-600 dark:text-rose-400">
-                  {selectedPeriodIds.length} period(s) selected
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  Select Period(s):
+                </span>
+                <span className="font-bold text-rose-600 dark:text-rose-400">
+                  {selectedPeriodIds.length} of {totalPeriods} selected
                 </span>
               </div>
 
-              <div className="p-1.5 -m-1.5">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-60 overflow-y-auto overflow-x-hidden p-1.5">
-                  {sortedPeriods.map((period, idx) => {
-                    const isSelected = selectedPeriodIds.includes(period.id);
-                    const periodLabel = period.name || period.shortName || `Period ${period.sequence || idx + 1}`;
-                    return (
-                      <button
-                        key={period.id}
-                        type="button"
-                        onClick={() => togglePeriodSelection(period.id)}
-                        className={`h-12 min-h-[48px] px-3 rounded-xl border text-center transition-all apple-hover flex items-center justify-center font-bold text-xs sm:text-sm ${
-                          isSelected
-                            ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white border-rose-500 shadow-md ring-2 ring-rose-400/50'
-                            : 'bg-white/90 dark:bg-[#180E1C]/90 border-rose-200/80 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
-                        }`}
-                      >
-                        <span className="truncate">{periodLabel}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Quick Multi-Select Filter Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPeriodIds(sortedPeriods.map((p) => p.id));
+                    setValidationError(null);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                    isAllSelected
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
+                      : 'bg-white dark:bg-[#180E1C] border-rose-200 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
+                  }`}
+                >
+                  All ({totalPeriods})
+                </button>
+
+                {fnPeriodIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPeriodIds(fnPeriodIds);
+                      setValidationError(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                      isFnSelected
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
+                        : 'bg-white dark:bg-[#180E1C] border-rose-200 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
+                    }`}
+                  >
+                    Morning FN ({fnCount})
+                  </button>
+                )}
+
+                {anPeriodIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPeriodIds(anPeriodIds);
+                      setValidationError(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                      isAnSelected
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
+                        : 'bg-white dark:bg-[#180E1C] border-rose-200 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400'
+                    }`}
+                  >
+                    Afternoon AN ({totalPeriods - fnCount})
+                  </button>
+                )}
+
+                {selectedPeriodIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPeriodIds([])}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors ml-auto"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Seamless Period Grid without nested scroll trapping */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-0.5">
+                {sortedPeriods.map((period, idx) => {
+                  const isSelected = selectedPeriodIds.includes(period.id);
+                  const periodLabel = period.name || period.shortName || `Period ${period.sequence || idx + 1}`;
+                  const existingEntry = currentPeriods?.[period.id];
+                  const hasExistingOD = existingEntry?.type === 'ON_DUTY';
+                  const hasExistingLeave = existingEntry?.type === 'LEAVE';
+                  const hasExistingSubject = existingEntry?.type === 'SUBJECT';
+                  const hasExistingCustom = existingEntry?.type === 'CUSTOM';
+
+                  return (
+                    <button
+                      key={period.id}
+                      type="button"
+                      onClick={() => togglePeriodSelection(period.id)}
+                      className={`min-h-[58px] py-2 px-3 rounded-2xl border text-center transition-all duration-150 touch-manipulation active:scale-[0.97] flex flex-col justify-center gap-0.5 font-bold text-xs sm:text-sm ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white border-rose-500 shadow-md ring-2 ring-rose-400/50'
+                          : hasExistingOD
+                          ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/50 text-slate-800 dark:text-slate-200 hover:border-amber-400 shadow-xs'
+                          : hasExistingLeave
+                          ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800/50 text-slate-800 dark:text-slate-200 hover:border-rose-400 shadow-xs'
+                          : 'bg-white dark:bg-[#201026] border-rose-200/80 dark:border-rose-900/40 text-slate-700 dark:text-slate-300 hover:border-rose-400 shadow-xs'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="truncate flex-1 text-left">{periodLabel}</span>
+                        {isSelected ? (
+                          <span className="w-4 h-4 rounded-full bg-white/25 flex items-center justify-center shrink-0 ml-1">
+                            <Check className="w-3 h-3 stroke-[3] text-white" />
+                          </span>
+                        ) : hasExistingOD ? (
+                          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 ml-1" />
+                        ) : hasExistingLeave ? (
+                          <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ml-1" />
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 ml-1" />
+                        )}
+                      </div>
+
+                      {/* Status / Override Tag */}
+                      <div className="w-full text-left truncate">
+                        {isSelected ? (
+                          existingEntry && existingEntry.type !== 'FREE' ? (
+                            <span className="text-[10px] text-white/90 font-medium block truncate">
+                              Replaces {hasExistingOD ? 'OD' : hasExistingLeave ? 'Leave' : 'Class'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-white/80 font-normal block truncate">
+                              Selected
+                            </span>
+                          )
+                        ) : hasExistingOD ? (
+                          <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold block truncate">
+                            OD: {existingEntry.onDutyCategory || 'On Duty'}
+                          </span>
+                        ) : hasExistingLeave ? (
+                          <span className="text-[10px] text-rose-700 dark:text-rose-300 font-semibold block truncate">
+                            Leave: {existingEntry.leaveReason || 'On Leave'}
+                          </span>
+                        ) : hasExistingSubject ? (
+                          <span className="text-[10px] text-teal-700 dark:text-teal-300 font-medium block truncate">
+                            {existingEntry.subjectCode || existingEntry.subjectName}
+                          </span>
+                        ) : hasExistingCustom ? (
+                          <span className="text-[10px] text-purple-700 dark:text-purple-300 font-medium block truncate">
+                            {existingEntry.customText}
+                          </span>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Reason Section - Strictly 'On Duty Classification & Reason' or 'Leave Classification & Reason' */}
-          <div className="p-4 rounded-2xl bg-rose-50/40 dark:bg-[#180E1C]/60 border border-rose-200/80 dark:border-rose-900/40 space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 block font-marcellus">
-              {isLeave ? 'Leave Classification & Reason' : 'On Duty Classification & Reason'}
-            </label>
+          <div
+            ref={reasonSectionRef}
+            className={`p-4 rounded-2xl border transition-all duration-200 space-y-3 ${
+              isNotesFocused
+                ? 'bg-white dark:bg-[#201026] border-rose-400 dark:border-rose-500 shadow-lg ring-2 ring-rose-500/25'
+                : 'bg-rose-50/40 dark:bg-[#180E1C]/60 border-rose-200/80 dark:border-rose-900/40 shadow-xs'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-200 block font-marcellus">
+                {isLeave ? 'Leave Classification & Reason' : 'On Duty Classification & Reason'}
+              </label>
+
+              {isNotesFocused && (
+                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  Typing Notes
+                </span>
+              )}
+            </div>
 
             {/* Classification Trigger Button (Brings the list to the top of the popup when touched) */}
             <button
               type="button"
               onClick={() => {
+                if (isNotesFocused) handleDoneNotes();
                 setSearchQuery('');
                 setIsPickerOpen(true);
               }}
@@ -613,29 +860,85 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               </div>
             </button>
 
-            {/* Extra Reason / Purpose Input (Smooth auto-scroll into view when keyboard opens) */}
-            <input
-              type="text"
-              value={customReason}
-              onChange={(e) => {
-                setCustomReason(e.target.value);
-                setValidationError(null);
-              }}
-              onFocus={(e) => {
-                scrollToTopView(e.currentTarget);
-              }}
-              onClick={(e) => {
-                scrollToTopView(e.currentTarget);
-              }}
-              placeholder={
-                (!isLeave && onDutyCategory === 'Other Duty') || (isLeave && leavePreset === 'Other Leave Reason')
-                  ? 'Enter specific details / purpose (Required)...'
-                  : isLeave
-                  ? 'Optional leave notes / details (e.g. Health checkup, Out of station)...'
-                  : 'Optional duty notes / details...'
-              }
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#201026] border border-rose-200 dark:border-rose-900/50 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-sm transition-all"
-            />
+            {/* Extra Reason / Purpose Input with Smooth Auto-Scroll & Typing Controls */}
+            <div className="space-y-2">
+              <div className="relative flex items-center">
+                <input
+                  ref={customReasonInputRef}
+                  type="text"
+                  value={customReason}
+                  onChange={(e) => {
+                    setCustomReason(e.target.value);
+                    setValidationError(null);
+                  }}
+                  onFocus={handleNotesFocus}
+                  onClick={handleNotesFocus}
+                  placeholder={
+                    (!isLeave && onDutyCategory === 'Other Duty') || (isLeave && leavePreset === 'Other Leave Reason')
+                      ? 'Enter specific details / purpose (Required)...'
+                      : isLeave
+                      ? 'Optional leave notes / details (e.g. Health checkup, Out of station)...'
+                      : 'Optional duty notes / details...'
+                  }
+                  className={`w-full px-3.5 py-3 rounded-xl bg-white dark:bg-[#180E1C] border text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all shadow-sm ${
+                    isNotesFocused
+                      ? 'border-rose-500 ring-2 ring-rose-500/20 pr-20'
+                      : 'border-rose-200 dark:border-rose-900/50 hover:border-rose-400'
+                  }`}
+                />
+
+                {/* Done & Clear Actions inside the input during active focus */}
+                {isNotesFocused && (
+                  <div className="absolute right-2 flex items-center gap-1">
+                    {customReason.length > 0 && (
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setCustomReason('');
+                          customReasonInputRef.current?.focus();
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title="Clear text"
+                      >
+                        ✕
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={handleDoneNotes}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1"
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Done</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Suggestion Chips (Visible during typing/focus for instantaneous 1-tap entry) */}
+              {isNotesFocused && (
+                <div className="pt-1 space-y-1.5 animate-in fade-in duration-150">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Quick suggestions (tap to fill):
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(isLeave ? LEAVE_SUGGESTIONS : ON_DUTY_SUGGESTIONS).map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSelectSuggestion(sug)}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 hover:bg-rose-100 hover:border-rose-300 transition-all font-medium active:scale-95"
+                      >
+                        + {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Validation Error Alert */}

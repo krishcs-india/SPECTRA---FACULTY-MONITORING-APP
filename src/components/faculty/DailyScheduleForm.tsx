@@ -504,9 +504,12 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
 
       {/* Dynamic Period Rows */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 font-serif">
-            Period Wise Allocation ({activePeriods.length} Active Periods)
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-1">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 font-serif leading-tight">
+            <span>Period Wise Allocation</span>
+            <span className="block text-[11px] font-normal text-rose-600/90 dark:text-rose-400/90 whitespace-nowrap mt-0.5">
+              ({activePeriods.length} Active Periods)
+            </span>
           </h4>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
             Click any period to select subject or custom activity
@@ -602,6 +605,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
           mode={leaveOnDutyMode}
           activePeriods={activePeriods}
           date={date}
+          currentPeriods={periodsState}
           onSaveLeave={(scope, reason, halfDaySlot, selectedIds) => {
             const res = submitLeave(facultyId, date, scope, reason, halfDaySlot, selectedIds, periodsState);
             if (res.success) {

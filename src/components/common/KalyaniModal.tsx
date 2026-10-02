@@ -56,7 +56,7 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[9990] flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-hidden select-none"
+      className="fixed inset-0 z-[9990] flex items-start sm:items-center justify-center p-2.5 pt-3 sm:p-6 md:p-8 overflow-hidden select-none"
     >
       {/* Deep Backdrop Blur Overlay covering 100% of viewport including navbar */}
       <div
@@ -68,13 +68,13 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
       {/* Floating Modal Dialog Card Container - safely centered with breathing room from all edges */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${maxWidths[maxWidth]} text-left bg-white/95 dark:bg-[#180E1C]/95 border border-rose-200/90 dark:border-rose-900/60 rounded-3xl shadow-2xl z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2.5rem)] sm:max-h-[calc(100dvh-4rem)] my-auto select-text overflow-hidden`}
+        className={`relative w-full ${maxWidths[maxWidth]} text-left bg-white/95 dark:bg-[#180E1C]/95 border border-rose-200/90 dark:border-rose-900/60 rounded-3xl shadow-2xl z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-4rem)] my-0 sm:my-auto select-text overflow-hidden`}
       >
         {/* Top Rose Gradient Accent Line */}
         <div className="h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent shrink-0" />
 
         {/* Fixed Modal Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-rose-200/80 dark:border-rose-900/40 bg-rose-50/70 dark:bg-[#201026]/90 backdrop-blur-xl shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-rose-200/80 dark:border-rose-900/40 bg-rose-50/70 dark:bg-[#201026]/90 backdrop-blur-xl shrink-0">
           <div>
             {title && (
               <h2 className="text-lg sm:text-2xl font-bold font-marcellus text-rose-950 dark:text-rose-100 flex items-center gap-2">
@@ -97,7 +97,7 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
         </div>
 
         {/* Smooth Scrollable Modal Body Inside */}
-        <div className="p-5 sm:p-6 overflow-y-auto scroll-smooth flex-1 overscroll-contain text-slate-800 dark:text-slate-200">
+        <div className="p-4 sm:p-6 overflow-y-auto scroll-smooth flex-1 overscroll-contain text-slate-800 dark:text-slate-200">
           {children}
         </div>
 

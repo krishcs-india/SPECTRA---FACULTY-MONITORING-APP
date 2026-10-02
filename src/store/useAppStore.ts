@@ -598,7 +598,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const activePeriods = state.getActivePeriods(faculty.departmentId);
     const sortedPeriods = [...activePeriods].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
     const totalCount = sortedPeriods.length;
-    const halfCount = Math.ceil(totalCount / 2); // e.g. 7 periods -> 4 periods, 8 periods -> 4 periods
+    // Floor value for odd total count: e.g. 7 periods -> 3 periods for Forenoon, remaining 4 periods for Afternoon
+    const fnCount = Math.floor(totalCount / 2);
 
     const existingKey = `${facultyId}_${date}`;
     const existingSched = state.schedules[existingKey];
@@ -617,8 +618,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       const isForenoon = halfDaySlot === 'FN';
       const leavePeriodIds = new Set(
         isForenoon
-          ? sortedPeriods.slice(0, halfCount).map((p) => p.id)
-          : sortedPeriods.slice(Math.max(0, totalCount - halfCount)).map((p) => p.id)
+          ? sortedPeriods.slice(0, fnCount).map((p) => p.id)
+          : sortedPeriods.slice(fnCount).map((p) => p.id)
       );
 
       sortedPeriods.forEach((p) => {
@@ -629,12 +630,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
             leaveReason: reason,
           };
         } else {
+          // Preserve any existing assignments, On Duties, or other Leave entries
           const prev = prevPeriods[p.id];
-          newPeriods[p.id] = prev && prev.type !== 'LEAVE' ? prev : { type: 'FREE' };
+          newPeriods[p.id] = prev || { type: 'FREE' };
         }
       });
     } else {
-      // PERIOD_WISE
+      // PERIOD_WISE: Apply new leave to selected periods and PRESERVE other existing on-duties/leaves
       const selectedSet = new Set(selectedPeriodIds);
       sortedPeriods.forEach((p) => {
         if (selectedSet.has(p.id)) {
@@ -644,8 +646,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
             leaveReason: reason,
           };
         } else {
+          // Preserve previous assignments, other on-duty entries, or other leave periods!
           const prev = prevPeriods[p.id];
-          newPeriods[p.id] = prev && prev.type !== 'LEAVE' ? prev : { type: 'FREE' };
+          newPeriods[p.id] = prev || { type: 'FREE' };
         }
       });
     }
@@ -657,10 +660,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     let computedStatus: ScheduleStatus = 'LEAVE';
     if (assignedCount > 0) {
       computedStatus = 'SUBMITTED';
-    } else if (leaveCount > 0) {
+    } else if (leaveCount > 0 && odCount === 0) {
       computedStatus = 'LEAVE';
-    } else if (odCount > 0) {
+    } else if (odCount > 0 && leaveCount === 0) {
       computedStatus = 'ON_DUTY';
+    } else if (leaveCount > 0 && odCount > 0) {
+      computedStatus = 'SUBMITTED';
     } else {
       computedStatus = 'FULL_DAY_FREE';
     }
@@ -713,7 +718,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const activePeriods = state.getActivePeriods(faculty.departmentId);
     const sortedPeriods = [...activePeriods].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
     const totalCount = sortedPeriods.length;
-    const halfCount = Math.ceil(totalCount / 2);
+    // Floor value for odd total count: e.g. 7 periods -> 3 periods for Forenoon, remaining 4 periods for Afternoon
+    const fnCount = Math.floor(totalCount / 2);
 
     const existingKey = `${facultyId}_${date}`;
     const existingSched = state.schedules[existingKey];
@@ -733,8 +739,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       const isForenoon = halfDaySlot === 'FN';
       const odPeriodIds = new Set(
         isForenoon
-          ? sortedPeriods.slice(0, halfCount).map((p) => p.id)
-          : sortedPeriods.slice(Math.max(0, totalCount - halfCount)).map((p) => p.id)
+          ? sortedPeriods.slice(0, fnCount).map((p) => p.id)
+          : sortedPeriods.slice(fnCount).map((p) => p.id)
       );
 
       sortedPeriods.forEach((p) => {
@@ -746,12 +752,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
             onDutyReason: reason,
           };
         } else {
+          // Preserve any existing assignments, Leave, or other On Duty entries
           const prev = prevPeriods[p.id];
-          newPeriods[p.id] = prev && prev.type !== 'ON_DUTY' ? prev : { type: 'FREE' };
+          newPeriods[p.id] = prev || { type: 'FREE' };
         }
       });
     } else {
-      // PERIOD_WISE
+      // PERIOD_WISE: Apply new On Duty to selected periods and PRESERVE other existing on-duties/leaves
       const selectedSet = new Set(selectedPeriodIds);
       sortedPeriods.forEach((p) => {
         if (selectedSet.has(p.id)) {
@@ -762,8 +769,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
             onDutyReason: reason,
           };
         } else {
+          // Preserve previous assignments, other on-duty entries, or other leave periods!
           const prev = prevPeriods[p.id];
-          newPeriods[p.id] = prev && prev.type !== 'ON_DUTY' ? prev : { type: 'FREE' };
+          newPeriods[p.id] = prev || { type: 'FREE' };
         }
       });
     }
@@ -775,10 +783,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     let computedStatus: ScheduleStatus = 'ON_DUTY';
     if (assignedCount > 0) {
       computedStatus = 'SUBMITTED';
-    } else if (odCount > 0) {
+    } else if (odCount > 0 && leaveCount === 0) {
       computedStatus = 'ON_DUTY';
-    } else if (leaveCount > 0) {
+    } else if (leaveCount > 0 && odCount === 0) {
       computedStatus = 'LEAVE';
+    } else if (odCount > 0 && leaveCount > 0) {
+      computedStatus = 'SUBMITTED';
     } else {
       computedStatus = 'FULL_DAY_FREE';
     }

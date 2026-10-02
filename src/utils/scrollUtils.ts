@@ -12,6 +12,8 @@ export interface ScrollToTopOptions {
   behavior?: ScrollBehavior;
   /** Optional delay before initiating scroll in milliseconds */
   delay?: number;
+  /** Force scrolling even if downward space exists (critical for input focus before soft keyboard opens) */
+  force?: boolean;
 }
 
 /**
@@ -59,9 +61,8 @@ export function getScrollableParent(node: HTMLElement | null): HTMLElement | nul
  * or inside its scrollable modal container ONLY if needed, ensuring the dropdown options
  * that open downwards have abundant vertical clearance.
  *
- * It avoids scrolling "too much top" (leaving a comfortable margin of 120-150px on screen,
- * or 24-32px inside modals) and avoids scrolling altogether if the element already has ample
- * downward space.
+ * For input elements or when forced, it unconditionally glides the element into comfortable view
+ * and accommodates virtual keyboard animation on mobile devices.
  */
 export function scrollToTopView(element: HTMLElement | null, options?: ScrollToTopOptions): void {
   if (!element) return;
@@ -72,33 +73,61 @@ export function scrollToTopView(element: HTMLElement | null, options?: ScrollToT
     const inModal = isInsideModal(element);
     const scrollParent = getScrollableParent(element);
     const behavior = options?.behavior || 'smooth';
+    const isInput = element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+    const shouldForce = options?.force || isInput;
 
     // 1. Inside a scrollable container (e.g. Modal body or scrollable panel)
     if (scrollParent) {
       const parentRect = scrollParent.getBoundingClientRect();
       const elemRect = element.getBoundingClientRect();
       const spaceBelowInParent = parentRect.bottom - elemRect.bottom;
-      const comfortableModalOffset = options?.offset ?? 24;
+      const comfortableModalOffset = options?.offset ?? 16;
 
-      // If the element already has plenty of space below inside the scrollable container (>= 220px)
+      // If not forced, and the element already has plenty of space below inside the scrollable container (>= 220px)
       // and isn't tucked under the header, no scroll is needed!
-      if (elemRect.top >= parentRect.top + comfortableModalOffset && spaceBelowInParent >= 220) {
+      if (!shouldForce && elemRect.top >= parentRect.top + comfortableModalOffset && spaceBelowInParent >= 220) {
         return;
       }
 
-      // Gently scroll inside the container to give comfortable downward room
+      // Gently scroll inside the container to align element at the comfortable upper position
       const currentScrollTop = scrollParent.scrollTop;
       const targetScrollTop = Math.max(
         0,
         currentScrollTop + (elemRect.top - parentRect.top) - comfortableModalOffset
       );
 
-      // Only scroll if difference is meaningful
-      if (Math.abs(targetScrollTop - currentScrollTop) > 10) {
-        scrollParent.scrollTo({
-          top: targetScrollTop,
-          behavior,
-        });
+      scrollParent.scrollTo({
+        top: targetScrollTop,
+        behavior,
+      });
+
+      // For inputs or forced scrolls on mobile, adjust after keyboard slides into view
+      if (shouldForce) {
+        setTimeout(() => {
+          if (!element || !element.isConnected || !scrollParent) return;
+          const updatedParent = scrollParent.getBoundingClientRect();
+          const updatedElem = element.getBoundingClientRect();
+          const reTarget = Math.max(
+            0,
+            scrollParent.scrollTop + (updatedElem.top - updatedParent.top) - comfortableModalOffset
+          );
+          if (Math.abs(reTarget - scrollParent.scrollTop) > 4) {
+            scrollParent.scrollTo({ top: reTarget, behavior: 'smooth' });
+          }
+        }, 180);
+
+        setTimeout(() => {
+          if (!element || !element.isConnected || !scrollParent) return;
+          const updatedParent = scrollParent.getBoundingClientRect();
+          const updatedElem = element.getBoundingClientRect();
+          const reTarget = Math.max(
+            0,
+            scrollParent.scrollTop + (updatedElem.top - updatedParent.top) - comfortableModalOffset
+          );
+          if (Math.abs(reTarget - scrollParent.scrollTop) > 4) {
+            scrollParent.scrollTo({ top: reTarget, behavior: 'smooth' });
+          }
+        }, 360);
       }
       return;
     }
@@ -115,13 +144,11 @@ export function scrollToTopView(element: HTMLElement | null, options?: ScrollToT
     const spaceBelow = viewportHeight - elemRect.bottom;
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     
-    // Balanced, comfortable upper margin: NOT slammed against the navbar (70px),
-    // but resting naturally around 120px-150px down the viewport.
+    // Balanced, comfortable upper margin
     const comfortableTopMargin = options?.offset ?? (isMobile ? 110 : 145);
 
-    // If the element already has enough space below for options (>= 280px)
-    // and is well below the top header, do not scroll!
-    if (elemRect.top >= comfortableTopMargin && spaceBelow >= 280) {
+    // If not forced and already has enough space below for options (>= 280px)
+    if (!shouldForce && elemRect.top >= comfortableTopMargin && spaceBelow >= 280) {
       return;
     }
 
@@ -129,12 +156,20 @@ export function scrollToTopView(element: HTMLElement | null, options?: ScrollToT
     const currentScrollY = window.scrollY || window.pageYOffset || 0;
     const targetY = Math.max(0, currentScrollY + elemRect.top - comfortableTopMargin);
 
-    // Only scroll if there's a meaningful difference (avoid micro-jitter)
-    if (Math.abs(targetY - currentScrollY) > 15) {
+    if (Math.abs(targetY - currentScrollY) > 10) {
       window.scrollTo({
         top: targetY,
         behavior,
       });
+    }
+
+    if (shouldForce && isMobile) {
+      setTimeout(() => {
+        if (!element || !element.isConnected) return;
+        const reElem = element.getBoundingClientRect();
+        const reTarget = Math.max(0, (window.scrollY || window.pageYOffset || 0) + reElem.top - comfortableTopMargin);
+        window.scrollTo({ top: reTarget, behavior: 'smooth' });
+      }, 250);
     }
   };
 
