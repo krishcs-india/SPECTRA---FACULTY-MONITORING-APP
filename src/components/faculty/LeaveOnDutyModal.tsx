@@ -786,7 +786,11 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                           </span>
                         ) : hasExistingSubject ? (
                           <span className="text-[10px] text-teal-700 dark:text-teal-300 font-medium block truncate">
-                            {existingEntry.subjectCode || existingEntry.subjectName}
+                            {(() => {
+                              if (!existingEntry.subjectName) return existingEntry.subjectCode;
+                              const match = existingEntry.subjectName.match(/\(([^)]+)\)/);
+                              return match ? match[1] : (existingEntry.subjectCode || existingEntry.subjectName);
+                            })()}
                           </span>
                         ) : hasExistingCustom ? (
                           <span className="text-[10px] text-purple-700 dark:text-purple-300 font-medium block truncate">
@@ -911,7 +915,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                   <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     Quick suggestions (tap to fill):
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {(isLeave ? LEAVE_SUGGESTIONS : ON_DUTY_SUGGESTIONS).map((sug) => (
                       <button
                         key={sug}

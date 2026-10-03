@@ -5,6 +5,7 @@ import { KalyaniButton } from '../common/KalyaniButton';
 import { Subject } from '../../types/subject';
 import { PeriodEntry } from '../../types/schedule';
 import { Search, PlusCircle, CheckCircle2, Sparkles, Coffee, AlertCircle } from 'lucide-react';
+import { scrollToTopView } from '../../utils/scrollUtils';
 
 interface SubjectPickerModalProps {
   isOpen: boolean;
@@ -96,7 +97,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               onClick={() => setActiveTab('OFFICIAL')}
               className={`flex-1 basis-0 w-full py-2 px-2 rounded-lg text-xs transition-all flex items-center justify-center text-center ${
                 activeTab === 'OFFICIAL'
-                  ? 'bg-rose-500 text-white shadow-sm font-bold'
+                  ? 'bg-rose-500 text-white shadow-md font-semibold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 font-semibold'
               }`}
             >
@@ -108,7 +109,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                 onClick={() => setActiveTab('CUSTOM')}
                 className={`flex-1 basis-0 w-full py-2 px-2 rounded-lg text-xs transition-all flex items-center justify-center text-center ${
                   activeTab === 'CUSTOM'
-                    ? 'bg-rose-500 text-white shadow-sm font-bold'
+                    ? 'bg-rose-500 text-white shadow-md font-semibold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 font-semibold'
                 }`}
               >
@@ -146,7 +147,10 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               <input
                 type="text"
                 value={search}
-                onFocus={() => setIsSearchFocused(true)}
+                onFocus={(e) => {
+                  setIsSearchFocused(true);
+                  scrollToTopView(e.currentTarget);
+                }}
                 onBlur={() => {
                   setTimeout(() => setIsSearchFocused(false), 200);
                 }}
@@ -266,6 +270,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               placeholder="e.g. Final Year Major Project Review / NBA Meeting"
+              autoScrollOnFocus={true}
             />
 
             {/* Quick suggestions */}
@@ -273,7 +278,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1.5 tracking-wider">
                 Quick Suggestions:
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {[
                   'Final Year Project Review',
                   'Department Faculty Meeting',
