@@ -45,7 +45,10 @@ export function getScrollableParent(node: HTMLElement | null): HTMLElement | nul
 
     const style = window.getComputedStyle(parent);
     const overflowY = style.overflowY;
-    const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight + 4;
+    // Keep overflow containers even when they currently fit. Opening the mobile
+    // keyboard can reduce their viewport after focus, making them scrollable only
+    // during the delayed alignment pass.
+    const isScrollable = overflowY === 'auto' || overflowY === 'scroll';
 
     if (isScrollable) {
       return parent;
