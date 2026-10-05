@@ -190,7 +190,7 @@ export const FacultyDetailModal: React.FC<FacultyDetailModalProps> = ({
                     )}
                     {isSubject && entry && (
                       <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-200 shadow-sm whitespace-normal break-words leading-relaxed text-right max-w-full">
-                        {entry.subjectCode ? `${entry.subjectCode} — ${entry.subjectName || ''}` : entry.subjectName || 'Subject'}
+                        {entry.subjectCode ? `${entry.subjectCode} - ${entry.subjectName || ''}` : entry.subjectName || 'Subject'}
                       </span>
                     )}
                     {entry?.type === 'CUSTOM' && (

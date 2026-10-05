@@ -957,7 +957,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         } else {
           let activity = 'Assigned';
           if (entry.type === 'SUBJECT') {
-            activity = `${entry.subjectCode || ''} ${entry.subjectName || ''}`.trim();
+            activity = entry.subjectCode
+              ? `${entry.subjectCode} - ${entry.subjectName || ''}`.trim()
+              : entry.subjectName || 'Assigned';
           } else if (entry.type === 'CUSTOM') {
             activity = `Other: ${entry.customText || 'Custom Entry'}`;
           }
