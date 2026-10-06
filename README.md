@@ -231,6 +231,29 @@ npm run dev
 npm run build
 ```
 
+### 5. Deploy the Website for Free with Vercel
+
+The `kalyani-spectra` branch is configured as a Vite single-page application through
+[`vercel.json`](./vercel.json). The website can be deployed directly from GitHub without
+deploying a separate Node.js backend:
+
+1. Sign in to [Vercel](https://vercel.com/) with GitHub.
+2. Select **Add New Project**, then import this repository.
+3. Select the `kalyani-spectra` branch as the production branch.
+4. Keep the detected Vite settings:
+   - Build command: `npm run build`
+   - Output directory: `dist`
+   - Install command: `npm install`
+5. Add the six `VITE_FIREBASE_*` values from `.env.example` under
+   **Project Settings → Environment Variables**.
+6. Deploy the project.
+
+This application uses Firebase Authentication and Cloud Firestore as its backend.
+After the first deployment, add the Vercel domain under **Firebase Console →
+Authentication → Settings → Authorized domains**. Firestore rules remain managed
+through [`firestore.rules`](./firestore.rules). Do not add Firebase Admin SDK
+credentials or service-account JSON files to this frontend repository.
+
 ---
 
 ## 📂 Project Directory Structure
