@@ -148,9 +148,9 @@ function formatWorksheet(ws: any, data: Record<string, any>[]): void {
         }
       }
     }
-    // Generous breathing room: extra padding (+8 chars), minimum width 22, max 70
+    // Keep enough room for complete labels, including long subject names.
     const computedWidth = Math.max(headerVisualLen, maxContentLen) + 8;
-    return { wch: Math.min(Math.max(computedWidth, 22), 70) };
+    return { wch: Math.max(computedWidth, 22) };
   });
 
   ws['!cols'] = colWidths;
@@ -621,7 +621,13 @@ export const excelService = {
           } else if (entry.type === 'LEAVE') {
             row[colTitle] = sanitize(`LEAVE: ${entry.leaveReason || 'On Leave'}`);
           } else if (entry.type === 'SUBJECT') {
-            row[colTitle] = sanitize(`${entry.subjectCode || ''} ${entry.subjectName || ''}`.trim() || 'Assigned Subject');
+            const subjectCode = entry.subjectCode?.trim();
+            const subjectName = entry.subjectName?.trim();
+            row[colTitle] = sanitize(
+              subjectCode
+                ? `${subjectCode} - ${subjectName || 'Assigned Subject'}`
+                : subjectName || 'Assigned Subject'
+            );
           } else {
             row[colTitle] = sanitize(`Other: ${entry.customText || ''}`);
           }
