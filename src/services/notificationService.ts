@@ -204,8 +204,8 @@ class NativeNotificationBridge {
           largeBody: body,
           summaryText: 'SPECTRA',
           channelId: 'spectra_alerts_v5',
-          smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_launcher',
+          smallIcon: 'ic_spectra_notification_small',
+          largeIcon: 'ic_spectra_notification_large',
           iconColor: '#F43F5E'
         }]
       });
@@ -245,8 +245,8 @@ class NativeNotificationBridge {
             largeBody: body,
             summaryText: 'SPECTRA Period Update',
             channelId: 'spectra_alerts_v5',
-            smallIcon: 'ic_spectra_notification',
-            largeIcon: 'ic_launcher',
+            smallIcon: 'ic_spectra_notification_small',
+            largeIcon: 'ic_spectra_notification_large',
             iconColor: '#F43F5E'
           }]
         });
@@ -271,8 +271,8 @@ class NativeNotificationBridge {
           largeBody: body,
           summaryText: 'SPECTRA Period Update',
           channelId: 'spectra_alerts_v5',
-          smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_launcher',
+          smallIcon: 'ic_spectra_notification_small',
+          largeIcon: 'ic_spectra_notification_large',
           iconColor: '#F43F5E'
         }]
       });
@@ -369,8 +369,8 @@ class NativeNotificationBridge {
             on: { hour, minute },
             allowWhileIdle: true
           },
-          smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_launcher',
+          smallIcon: 'ic_spectra_notification_small',
+          largeIcon: 'ic_spectra_notification_large',
           iconColor: '#F43F5E'
         }]
       });
@@ -506,8 +506,8 @@ class NativeNotificationBridge {
           largeBody: 'Your Excel report has been prepared and downloaded successfully. Tap here whenever you are ready to view it!',
           summaryText: 'SPECTRA Export',
           channelId: 'spectra_alerts_v5',
-          smallIcon: 'ic_spectra_notification',
-          largeIcon: 'ic_launcher',
+          smallIcon: 'ic_spectra_notification_small',
+          largeIcon: 'ic_spectra_notification_large',
           iconColor: '#F43F5E'
         }]
       });

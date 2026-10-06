@@ -322,8 +322,9 @@ public class PeriodBackgroundSyncManager {
             Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_spectra_notification)
-                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
+                .setSmallIcon(R.drawable.ic_spectra_notification_small)
+                .setLargeIcon(BitmapFactory.decodeResource(
+                    context.getResources(), R.drawable.ic_spectra_notification_large))
                 .setColor(0xFFF43F5E)
                 .setContentTitle(title)
                 .setContentText(body)
@@ -710,8 +711,9 @@ public class PeriodBackgroundSyncManager {
             Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_spectra_notification)
-                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
+                .setSmallIcon(R.drawable.ic_spectra_notification_small)
+                .setLargeIcon(BitmapFactory.decodeResource(
+                    context.getResources(), R.drawable.ic_spectra_notification_large))
                 .setColor(0xFFF43F5E)
                 .setContentTitle(title)
                 .setContentText(body)
