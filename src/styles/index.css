@@ -96,7 +96,8 @@
     letter-spacing: 0.02em;
   }
 
-  .schedule-section-heading {
+  .schedule-section-heading,
+  .schedule-section-heading * {
     font-family: 'Marcellus', Georgia, serif !important;
     letter-spacing: 0.02em;
   }
