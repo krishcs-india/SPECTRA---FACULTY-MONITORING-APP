@@ -462,7 +462,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       {!submissionBlocked && (
         <div className="p-3.5 sm:p-4 rounded-3xl bg-white/80 dark:bg-[#180E1C]/80 border border-rose-200/80 dark:border-rose-900/40 shadow-sm space-y-2.5">
           <div className="flex items-center justify-between px-1">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 font-serif flex items-center gap-1.5">
+            <h4 className="schedule-section-heading text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-rose-500" />
               Quick Status Shortcuts
             </h4>
@@ -505,7 +505,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       {/* Dynamic Period Rows */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-1">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 font-serif leading-tight">
+          <h4 className="schedule-section-heading text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 leading-tight">
             <span>Period Wise Allocation</span>
             <span className="block text-[11px] whitespace-nowrap mt-0.5">
               ({activePeriods.length} Active Periods)

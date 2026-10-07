@@ -96,6 +96,11 @@
     letter-spacing: 0.02em;
   }
 
+  .schedule-section-heading {
+    font-family: 'Marcellus', Georgia, serif !important;
+    letter-spacing: 0.02em;
+  }
+
   /* Complete elimination of cursive handwriting */
   .font-cursive, .font-cursive *,
   .font-calligraphy, .font-calligraphy *,
