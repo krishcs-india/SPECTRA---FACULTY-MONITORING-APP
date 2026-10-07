@@ -1,0 +1,27 @@
+name: Mirror repository to friend
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  delete:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror all branches, tags, commits, and deletions
+        env:
+          SOURCE_TOKEN: ${{ github.token }}
+          FRIEND_REPO_TOKEN: ${{ secrets.FRIEND_REPO_TOKEN }}
+          FRIEND_REPOSITORY: krishcs-india/SPECTRA---FACULTY-MONITORING-APP
+        run: |
+          set -eu
+          test -n "$FRIEND_REPO_TOKEN"
+          git clone --mirror "https://x-access-token:${SOURCE_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" source.git
+          git -C source.git push --mirror "https://x-access-token:${FRIEND_REPO_TOKEN}@github.com/${FRIEND_REPOSITORY}.git"
