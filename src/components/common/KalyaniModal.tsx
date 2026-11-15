@@ -10,6 +10,8 @@ interface KalyaniModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+  bodyRef?: React.Ref<HTMLDivElement>;
+  contentClassName?: string;
 }
 
 export const KalyaniModal: React.FC<KalyaniModalProps> = ({
@@ -20,6 +22,8 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
   children,
   footer,
   maxWidth = 'md',
+  bodyRef,
+  contentClassName = '',
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -97,7 +101,10 @@ export const KalyaniModal: React.FC<KalyaniModalProps> = ({
         </div>
 
         {/* Smooth Scrollable Modal Body Inside */}
-        <div className="p-4 sm:p-6 overflow-y-auto scroll-smooth flex-1 overscroll-contain text-slate-800 dark:text-slate-200">
+        <div
+          ref={bodyRef}
+          className={`p-4 sm:p-6 overflow-y-auto scroll-smooth flex-1 overscroll-contain text-slate-800 dark:text-slate-200 ${contentClassName}`.trim()}
+        >
           {children}
         </div>
 

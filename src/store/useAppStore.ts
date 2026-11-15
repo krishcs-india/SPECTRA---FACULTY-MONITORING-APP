@@ -121,6 +121,40 @@ const STORAGE_KEY = 'kalyani_system_storage_v5_unified';
 
 let storeInitStarted = false;
 
+export function generateSubjectId(departmentId: string, subjectCode?: string, subjectName?: string): string {
+  const cleanDept = normalizeDepartmentId(departmentId).toLowerCase() || 'cse';
+  const cleanCode = (subjectCode || '').trim().toUpperCase();
+  const cleanName = (subjectName || '').trim();
+
+  // FNV-1a 32-bit hash of the exact code + name pair to guarantee deterministic uniqueness
+  const key = `${cleanCode}:::${cleanName.toLowerCase()}`;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const hashStr = (hash >>> 0).toString(36);
+
+  const safeCode = cleanCode.replace(/[^A-Z0-9]/g, '_').toLowerCase();
+  const safeName = cleanName
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .toLowerCase()
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 50);
+
+  if (safeCode && safeName) {
+    return `sub_${cleanDept}_${safeCode}_${safeName}_${hashStr}`;
+  }
+  if (safeCode) {
+    return `sub_${cleanDept}_${safeCode}_${hashStr}`;
+  }
+  if (safeName) {
+    return `sub_${cleanDept}_${safeName}_${hashStr}`;
+  }
+  return `sub_${cleanDept}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
 export const useAppStore = create<AppStoreState>((set, get) => ({
   users: [],
   departments: [],
@@ -1024,18 +1058,18 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         const sDept = normalizeDepartmentId(s.departmentId);
         return !s.departmentId || s.departmentId === 'GLOBAL' || sDept === cleanDept;
       })
-      .sort((a, b) => (a.subjectCode || '').localeCompare(b.subjectCode || ''));
+      .sort(
+        (a, b) =>
+          (a.subjectCode || '').localeCompare(b.subjectCode || '') ||
+          (a.subjectName || '').localeCompare(b.subjectName || '')
+      );
   },
 
   addSubject: (subjectData) => {
     const cleanDept = normalizeDepartmentId(subjectData.departmentId);
     const cleanCode = (subjectData.subjectCode || '').trim().toUpperCase();
     const cleanName = (subjectData.subjectName || '').trim();
-    const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
-    const safeNameStr = cleanName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().slice(0, 30);
-    const id = safeCodeStr
-      ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}_${safeNameStr}`
-      : `sub_${cleanDept.toLowerCase()}_${safeNameStr || Date.now().toString(36)}`;
+    const id = generateSubjectId(cleanDept, cleanCode, cleanName);
     const now = new Date().toISOString();
     const newSubject: Subject = {
       ...subjectData,
@@ -1049,11 +1083,21 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     };
 
     const currentSubjects = [...get().subjects];
-    const existingIdx = currentSubjects.findIndex((s) => s.id === id);
+    const existingIdx = currentSubjects.findIndex(
+      (s) =>
+        s.id === id ||
+        (normalizeDepartmentId(s.departmentId) === cleanDept &&
+          (s.subjectCode || '').trim().toUpperCase() === cleanCode &&
+          (s.subjectName || '').trim().toLowerCase() === cleanName.toLowerCase())
+    );
+    const finalSubject: Subject = existingIdx >= 0
+      ? { ...currentSubjects[existingIdx], ...newSubject, id: currentSubjects[existingIdx].id }
+      : newSubject;
+
     if (existingIdx >= 0) {
-      currentSubjects[existingIdx] = newSubject;
+      currentSubjects[existingIdx] = finalSubject;
     } else {
-      currentSubjects.push(newSubject);
+      currentSubjects.push(finalSubject);
     }
 
     set({ subjects: currentSubjects });
@@ -1061,8 +1105,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: currentSubjects }));
     } catch {}
 
-    firestoreService.saveSubject(newSubject);
-    return newSubject;
+    firestoreService.saveSubject(finalSubject);
+    return finalSubject;
   },
 
   updateSubject: (id, updates) => {
@@ -1134,11 +1178,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const newSubjects: Subject[] = items.map((it) => {
       const cleanCode = (it.subjectCode || '').trim().toUpperCase();
       const cleanName = (it.subjectName || '').trim();
-      const safeCodeStr = cleanCode.replace(/[^A-Z0-9]/g, '_');
-      const safeNameStr = cleanName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().slice(0, 30);
-      const id = safeCodeStr
-        ? `sub_${cleanDept.toLowerCase()}_${safeCodeStr.toLowerCase()}_${safeNameStr}`
-        : `sub_${cleanDept.toLowerCase()}_${safeNameStr || Date.now().toString(36)}`;
+      const id = generateSubjectId(cleanDept, cleanCode, cleanName);
       return {
         ...it,
         subjectCode: cleanCode,
@@ -1152,13 +1192,24 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     });
 
     const currentSubjects = [...get().subjects];
+    const savedList: Subject[] = [];
     newSubjects.forEach((newSub) => {
-      const existingIdx = currentSubjects.findIndex((s) => s.id === newSub.id);
+      const existingIdx = currentSubjects.findIndex(
+        (s) =>
+          s.id === newSub.id ||
+          (normalizeDepartmentId(s.departmentId) === cleanDept &&
+            (s.subjectCode || '').trim().toUpperCase() === newSub.subjectCode &&
+            (s.subjectName || '').trim().toLowerCase() === newSub.subjectName.toLowerCase())
+      );
+      const finalSub: Subject = existingIdx >= 0
+        ? { ...currentSubjects[existingIdx], ...newSub, id: currentSubjects[existingIdx].id }
+        : newSub;
       if (existingIdx >= 0) {
-        currentSubjects[existingIdx] = newSub;
+        currentSubjects[existingIdx] = finalSub;
       } else {
-        currentSubjects.push(newSub);
+        currentSubjects.push(finalSub);
       }
+      savedList.push(finalSub);
     });
 
     set({ subjects: currentSubjects });
@@ -1166,7 +1217,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...get(), subjects: currentSubjects }));
     } catch {}
 
-    newSubjects.forEach((s) => firestoreService.saveSubject(s));
+    savedList.forEach((s) => firestoreService.saveSubject(s));
     return newSubjects.length;
   },
 

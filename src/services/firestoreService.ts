@@ -500,13 +500,17 @@ export const firestoreService = {
   },
 
   async bulkDeleteSubjects(ids: string[]): Promise<void> {
-    if (!isLiveFirebaseConfigured || !db) return;
+    if (!isLiveFirebaseConfigured || !db || ids.length === 0) return;
     try {
-      const batch = writeBatch(db);
-      ids.forEach((id) => {
-        batch.delete(doc(db, 'subjects', id));
-      });
-      await batch.commit();
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => {
+          batch.delete(doc(db, 'subjects', id));
+        });
+        await batch.commit();
+      }
     } catch (err) {
       console.error('Error bulk deleting subjects in Firestore:', err);
     }

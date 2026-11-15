@@ -24,10 +24,15 @@ import {
   AlertTriangle,
   X,
   CalendarX,
-  Briefcase
+  Briefcase,
+  BookOpen,
+  Layers,
+  RotateCcw,
+  CheckSquare
 } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 import { LeaveOnDutyModal } from './LeaveOnDutyModal';
+import { GroupPeriodAllocationModal } from './GroupPeriodAllocationModal';
 
 interface DailyScheduleFormProps {
   date: string;
@@ -71,7 +76,12 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   // Local editable periods state
   const [periodsState, setPeriodsState] = useState<Record<string, PeriodEntry>>({});
   const [selectedPeriodForPicker, setSelectedPeriodForPicker] = useState<Period | null>(null);
+  const [selectedPeriodIds, setSelectedPeriodIds] = useState<string[]>([]);
+  const [isManualSelectionMode, setIsManualSelectionMode] = useState(false);
+  const isSelectionMode = isManualSelectionMode || selectedPeriodIds.length > 0;
+  const [pickerTargetPeriodIds, setPickerTargetPeriodIds] = useState<string[]>([]);
   const [leaveOnDutyMode, setLeaveOnDutyMode] = useState<'LEAVE' | 'ON_DUTY' | null>(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const [showFullDayFreeConfirm, setShowFullDayFreeConfirm] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState<string | null>(null);
@@ -116,6 +126,9 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
     setSubmitSuccessMsg(null);
     setHodChangedNotification(null);
     setIsDismissedMismatched(false);
+    setSelectedPeriodIds([]);
+    setIsManualSelectionMode(false);
+    setPickerTargetPeriodIds([]);
   }, [date, facultyId]);
 
   // Synchronize local form state with the reactive persisted schedule from Firestore
@@ -210,44 +223,84 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
   const freeCount = activePeriods.length - assignedCount - onDutyCount - leaveCount;
   const currentStatus: ScheduleStatus = existingSchedule?.status || 'NOT_SUBMITTED';
 
-  const handleSelectSubject = (periodId: string, subject: Subject) => {
+  const handleSelectSubject = (periodIds: string | string[], subject: Subject) => {
+    const ids = Array.isArray(periodIds) ? periodIds : [periodIds];
     userTouchedRef.current = true;
-    setPeriodsState((prev) => ({
-      ...prev,
-      [periodId]: {
-        type: 'SUBJECT',
-        subjectId: subject.id,
-        subjectCode: subject.subjectCode,
-        subjectName: subject.subjectName,
-      },
-    }));
+    setPeriodsState((prev) => {
+      const updated = { ...prev };
+      ids.forEach((pid) => {
+        updated[pid] = {
+          type: 'SUBJECT',
+          subjectId: subject.id,
+          subjectCode: subject.subjectCode,
+          subjectName: subject.subjectName,
+        };
+      });
+      return updated;
+    });
     setSubmitError(null);
-    setSubmitSuccessMsg(null);
+    if (ids.length > 1) {
+      setSubmitSuccessMsg(`Allocated "${subject.subjectCode || subject.subjectName}" across ${ids.length} selected periods!`);
+    } else {
+      setSubmitSuccessMsg(null);
+    }
+    setSelectedPeriodIds([]);
+    setIsManualSelectionMode(false);
+    setPickerTargetPeriodIds([]);
   };
 
-  const handleSelectCustom = (periodId: string, customText: string) => {
+  const handleSelectCustom = (periodIds: string | string[], customText: string) => {
+    const ids = Array.isArray(periodIds) ? periodIds : [periodIds];
     userTouchedRef.current = true;
-    setPeriodsState((prev) => ({
-      ...prev,
-      [periodId]: {
-        type: 'CUSTOM',
-        customText,
-      },
-    }));
+    setPeriodsState((prev) => {
+      const updated = { ...prev };
+      ids.forEach((pid) => {
+        updated[pid] = {
+          type: 'CUSTOM',
+          customText,
+        };
+      });
+      return updated;
+    });
     setSubmitError(null);
-    setSubmitSuccessMsg(null);
+    if (ids.length > 1) {
+      setSubmitSuccessMsg(`Allocated custom duty across ${ids.length} selected periods!`);
+    } else {
+      setSubmitSuccessMsg(null);
+    }
+    setSelectedPeriodIds([]);
+    setIsManualSelectionMode(false);
+    setPickerTargetPeriodIds([]);
   };
 
-  const handleSelectFree = (periodId: string) => {
+  const handleSelectFree = (periodIds: string | string[]) => {
+    const ids = Array.isArray(periodIds) ? periodIds : [periodIds];
     userTouchedRef.current = true;
-    setPeriodsState((prev) => ({
-      ...prev,
-      [periodId]: {
-        type: 'FREE',
-      },
-    }));
+    setPeriodsState((prev) => {
+      const updated = { ...prev };
+      ids.forEach((pid) => {
+        updated[pid] = {
+          type: 'FREE',
+        };
+      });
+      return updated;
+    });
     setSubmitError(null);
-    setSubmitSuccessMsg(null);
+    if (ids.length > 1) {
+      setSubmitSuccessMsg(`Reset ${ids.length} period(s) to Free.`);
+    } else {
+      setSubmitSuccessMsg(null);
+    }
+    setSelectedPeriodIds([]);
+    setIsManualSelectionMode(false);
+    setPickerTargetPeriodIds([]);
+  };
+
+  const handleOpenPickerForSelected = () => {
+    if (selectedPeriodIds.length === 0) return;
+    const firstPeriod = activePeriods.find((p) => p.id === selectedPeriodIds[0]) || activePeriods[0];
+    setPickerTargetPeriodIds(selectedPeriodIds);
+    setSelectedPeriodForPicker(firstPeriod);
   };
 
   const handleSubmitSchedule = () => {
@@ -383,7 +436,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
           {isFuture ? (
             existingSchedule?.submittedAt ? (
               <span className="text-emerald-700 dark:text-emerald-300 font-medium">
-                ✓ Scheduled in Advance • Last synchronized at {formatTimeDisplay(existingSchedule.submittedAt)} (You can update anytime)
+                Scheduled in Advance • Last synchronized at {formatTimeDisplay(existingSchedule.submittedAt)} (You can update anytime)
               </span>
             ) : (
               <span className="text-rose-700 dark:text-rose-300">
@@ -393,7 +446,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
           ) : isToday ? (
             existingSchedule?.submittedAt ? (
               <span className="text-emerald-700 dark:text-emerald-300 font-medium">
-                ✓ Today's Schedule Active • Synchronized at {formatTimeDisplay(existingSchedule.submittedAt)}
+                Today's Schedule Active • Synchronized at {formatTimeDisplay(existingSchedule.submittedAt)}
               </span>
             ) : (
               <span className="text-rose-700 dark:text-rose-300 font-medium">
@@ -464,18 +517,27 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
           <div className="flex items-center justify-between px-1">
             <h4 className="schedule-section-heading text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-              Quick Status Shortcuts
+              Quick Schedule Actions
             </h4>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              One-tap status for full schedule
+              One-tap group allocation &amp; status operations
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShowGroupModal(true)}
+              className="w-full h-11 min-h-[44px] px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-orange-500 via-orange-500 to-amber-600 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-orange-400/50"
+            >
+              <Layers className="w-4 h-4 shrink-0 text-white" />
+              <span className="truncate">Group Periods</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setLeaveOnDutyMode('LEAVE')}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-sky-400 via-sky-400 to-blue-400 hover:from-sky-300 hover:to-blue-300 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-sky-300/80"
+              className="w-full h-11 min-h-[44px] px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-sky-400 via-sky-400 to-blue-400 hover:brightness-105 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-sky-300/80"
             >
               <CalendarX className="w-4 h-4 shrink-0 text-slate-950" />
               <span>Leave</span>
@@ -484,7 +546,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
             <button
               type="button"
               onClick={() => setLeaveOnDutyMode('ON_DUTY')}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:brightness-105 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-amber-600/30"
+              className="w-full h-11 min-h-[44px] px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:brightness-105 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-amber-600/30"
             >
               <Briefcase className="w-4 h-4 shrink-0 text-slate-950" />
               <span>On Duty</span>
@@ -493,7 +555,7 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
             <button
               type="button"
               onClick={() => setShowFullDayFreeConfirm(true)}
-              className="w-full h-11 min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-emerald-400/40"
+              className="w-full h-11 min-h-[44px] px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-105 text-white flex items-center justify-center gap-2 shadow-sm transition-all apple-hover border border-emerald-400/40"
             >
               <Coffee className="w-4 h-4 shrink-0 text-white" />
               <span className="truncate">Full Day Free</span>
@@ -503,39 +565,214 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       )}
 
       {/* Dynamic Period Rows */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-1">
+      <div className="space-y-4 sm:space-y-5">
+        {/* Sticky Top Multi-Period Action Bar (Floating cleanly below AppNavbar on mobile & desktop) */}
+        {isSelectionMode && (
+          <div
+            role="toolbar"
+            aria-label="Multi-period batch actions"
+            className="sticky top-[4.25rem] sm:top-[4.75rem] z-40 mb-5 sm:mb-6 p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white/95 dark:bg-[#1a0c1e]/95 backdrop-blur-xl border border-rose-300/80 dark:border-rose-500/50 shadow-xl shadow-rose-950/10 dark:shadow-black/60 animate-in fade-in slide-in-from-top-2 duration-200 max-w-full overflow-hidden"
+          >
+            <div className="sr-only" aria-live="polite">
+              {selectedPeriodIds.length} period{selectedPeriodIds.length !== 1 ? 's' : ''} selected. Batch actions ready.
+            </div>
+
+            <div className="flex flex-col gap-3 sm:gap-3.5 w-full min-w-0">
+              {/* Top Row: Counter, Labels & Selection Controls */}
+              <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm shrink-0">
+                    {selectedPeriodIds.length}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-xs sm:text-sm text-rose-950 dark:text-rose-100 font-marcellus flex items-center gap-1.5 truncate">
+                      <span>{selectedPeriodIds.length} Period{selectedPeriodIds.length !== 1 ? 's' : ''} Selected</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-200/70 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 font-bold font-sans hidden xs:inline-block">
+                        MULTI-SELECT
+                      </span>
+                    </h4>
+                    <p className="text-[10px] sm:text-[11px] text-rose-700/80 dark:text-rose-300/80 truncate">
+                      {selectedPeriodIds.length === 0 ? 'Tap periods below to select' : 'Tap periods to toggle selection'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try { if ('vibrate' in navigator) navigator.vibrate(15); } catch {}
+                      if (selectedPeriodIds.length === activePeriods.length) {
+                        setSelectedPeriodIds([]);
+                      } else {
+                        setSelectedPeriodIds(activePeriods.map((p) => p.id));
+                      }
+                    }}
+                    className="px-2.5 py-1 min-h-[32px] rounded-xl text-[11px] font-semibold bg-rose-100/80 hover:bg-rose-200 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-200 transition-colors border border-rose-200/80 dark:border-rose-900/40 touch-manipulation active:scale-95"
+                  >
+                    {selectedPeriodIds.length === activePeriods.length ? 'Deselect' : 'Select All'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try { if ('vibrate' in navigator) navigator.vibrate(15); } catch {}
+                      setIsManualSelectionMode(false);
+                      setSelectedPeriodIds([]);
+                    }}
+                    className="w-8 h-8 rounded-xl text-rose-500 hover:text-rose-800 dark:hover:text-rose-200 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors flex items-center justify-center shrink-0 touch-manipulation active:scale-95"
+                    title="Clear selection"
+                    aria-label="Clear selection"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Row: Action Buttons (2-col grid on mobile, flex on desktop) */}
+              <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2.5 pt-3 sm:pt-3.5 mt-0.5 border-t border-rose-200/70 dark:border-rose-900/40 w-full min-w-0">
+                <button
+                  type="button"
+                  disabled={selectedPeriodIds.length === 0}
+                  onClick={() => {
+                    if (selectedPeriodIds.length === 0) return;
+                    try { if ('vibrate' in navigator) navigator.vibrate(20); } catch {}
+                    handleOpenPickerForSelected();
+                  }}
+                  className={`w-full sm:w-auto h-11 min-h-[44px] px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation border min-w-0 ${
+                    selectedPeriodIds.length === 0
+                      ? 'bg-rose-300/40 dark:bg-rose-950/30 text-rose-300 dark:text-rose-700 border-rose-200/40 dark:border-rose-900/30 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 hover:brightness-110 active:scale-[0.98] text-white shadow-md border-rose-400/40'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Assign Subject</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={selectedPeriodIds.length === 0}
+                  onClick={() => {
+                    if (selectedPeriodIds.length === 0) return;
+                    try { if ('vibrate' in navigator) navigator.vibrate(20); } catch {}
+                    handleSelectFree(selectedPeriodIds);
+                  }}
+                  className={`w-full sm:w-auto h-11 min-h-[44px] px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation border min-w-0 ${
+                    selectedPeriodIds.length === 0
+                      ? 'bg-emerald-100/40 dark:bg-emerald-950/20 text-emerald-300 dark:text-emerald-800 border-emerald-200/30 dark:border-emerald-900/30 cursor-not-allowed'
+                      : 'bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 active:scale-[0.98] border-emerald-400/80 text-emerald-800 dark:text-emerald-200'
+                  }`}
+                >
+                  <Coffee className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span className="truncate">Reset to Free</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1 pt-1.5 pb-1">
           <h4 className="schedule-section-heading text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 leading-tight">
             <span>Period Wise Allocation</span>
             <span className="block whitespace-nowrap mt-0.5">
               ({activePeriods.length} Active Periods)
             </span>
           </h4>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            Click any period to select subject or custom activity
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                try { if ('vibrate' in navigator) navigator.vibrate(15); } catch {}
+                if (isSelectionMode) {
+                  setIsManualSelectionMode(false);
+                  setSelectedPeriodIds([]);
+                } else {
+                  setIsManualSelectionMode(true);
+                  setSelectedPeriodIds([]);
+                }
+              }}
+              className={`h-9 px-3.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all apple-hover touch-manipulation ${
+                isSelectionMode
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border border-rose-500 shadow-md ring-2 ring-rose-400/40'
+                  : 'bg-rose-100/90 hover:bg-rose-200 dark:bg-rose-950/70 dark:hover:bg-rose-900/80 text-rose-800 dark:text-rose-200 border border-rose-300/90 dark:border-rose-800/60'
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>{isSelectionMode ? 'Cancel Selection' : 'Multi-Select'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try { if ('vibrate' in navigator) navigator.vibrate(15); } catch {}
+                const allFree: Record<string, PeriodEntry> = {};
+                activePeriods.forEach((p) => {
+                  allFree[p.id] = { type: 'FREE' };
+                });
+                setPeriodsState(allFree);
+                userTouchedRef.current = true;
+                setIsManualSelectionMode(false);
+                setSelectedPeriodIds([]);
+                setSubmitSuccessMsg('All periods reset to Free.');
+              }}
+              title="Reset all periods to Free"
+              aria-label="Reset all periods to Free"
+              className="w-9 h-9 rounded-full bg-rose-100/90 hover:bg-rose-200 dark:bg-rose-950/70 dark:hover:bg-rose-900/80 text-rose-800 dark:text-rose-200 border border-rose-300/90 dark:border-rose-800/60 flex items-center justify-center transition-all apple-hover shadow-xs touch-manipulation active:scale-95 shrink-0"
+            >
+              <RotateCcw className="w-4 h-4 stroke-[2.2]" />
+            </button>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {isSelectionMode ? (
+                <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                  Tap periods to toggle selection
+                </span>
+              ) : (
+                <span>Tap to assign • Long-press for multi-select</span>
+              )}
+            </span>
+          </div>
         </div>
 
-        {activePeriods.map((period) => {
-          const entry = periodsState[period.id] ||
-            (typeof period.sequence === 'number'
-              ? Object.entries(periodsState).find(([k]) => {
-                  const num = parseInt(k.replace(/\D/g, ''), 10);
-                  return num === period.sequence;
-                })?.[1]
-              : undefined);
+        {/* Period Rows List */}
+        <div className="space-y-3 pt-0.5">
+          {activePeriods.map((period) => {
+            const entry = periodsState[period.id] ||
+              (typeof period.sequence === 'number'
+                ? Object.entries(periodsState).find(([k]) => {
+                    const num = parseInt(k.replace(/\D/g, ''), 10);
+                    return num === period.sequence;
+                  })?.[1]
+                : undefined);
 
-          return (
-            <PeriodSelectorRow
-              key={period.id}
-              period={period}
-              entry={entry}
-              isReadOnly={isPast}
-              onOpenPicker={() => setSelectedPeriodForPicker(period)}
-              onQuickToggleFree={() => handleSelectFree(period.id)}
-            />
-          );
-        })}
+            const isSelected = selectedPeriodIds.includes(period.id);
+
+            return (
+              <PeriodSelectorRow
+                key={period.id}
+                period={period}
+                entry={entry}
+                isReadOnly={isPast}
+                isSelected={isSelected}
+                isSelectionMode={isSelectionMode}
+                onToggleSelect={() => {
+                  setSelectedPeriodIds((prev) =>
+                    prev.includes(period.id) ? prev.filter((id) => id !== period.id) : [...prev, period.id]
+                  );
+                }}
+                onLongPress={() => {
+                  setIsManualSelectionMode(true);
+                  setSelectedPeriodIds((prev) =>
+                    prev.includes(period.id) ? prev : [...prev, period.id]
+                  );
+                }}
+                onOpenPicker={() => {
+                  setPickerTargetPeriodIds([period.id]);
+                  setSelectedPeriodForPicker(period);
+                }}
+                onQuickToggleFree={() => handleSelectFree(period.id)}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {/* Submit / Action Footer - Only Save and Submit at the bottom */}
@@ -586,14 +823,22 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
       {selectedPeriodForPicker && (
         <SubjectPickerModal
           isOpen={Boolean(selectedPeriodForPicker)}
-          onClose={() => setSelectedPeriodForPicker(null)}
-          periodName={selectedPeriodForPicker.name}
+          onClose={() => {
+            setSelectedPeriodForPicker(null);
+            setPickerTargetPeriodIds([]);
+          }}
+          periodName={
+            pickerTargetPeriodIds.length > 1
+              ? `${pickerTargetPeriodIds.length} Selected Periods`
+              : selectedPeriodForPicker.name || selectedPeriodForPicker.shortName || `Period ${selectedPeriodForPicker.sequence || ''}`
+          }
+          targetPeriodIds={pickerTargetPeriodIds.length > 0 ? pickerTargetPeriodIds : [selectedPeriodForPicker.id]}
           subjects={subjects}
           currentEntry={periodsState[selectedPeriodForPicker.id]}
           allowCustomSubjects={true}
-          onSelectSubject={(sub) => handleSelectSubject(selectedPeriodForPicker.id, sub)}
-          onSelectCustom={(txt) => handleSelectCustom(selectedPeriodForPicker.id, txt)}
-          onSelectFree={() => handleSelectFree(selectedPeriodForPicker.id)}
+          onSelectSubject={(sub, periodIds) => handleSelectSubject(periodIds, sub)}
+          onSelectCustom={(txt, periodIds) => handleSelectCustom(periodIds, txt)}
+          onSelectFree={(periodIds) => handleSelectFree(periodIds)}
         />
       )}
 
@@ -652,6 +897,70 @@ export const DailyScheduleForm: React.FC<DailyScheduleFormProps> = ({ date }) =>
               setSubmitError(res.error || 'Failed to submit On Duty.');
             }
           }}
+        />
+      )}
+
+      {/* Group Period Allocation Modal */}
+      {showGroupModal && (
+        <GroupPeriodAllocationModal
+          isOpen={showGroupModal}
+          onClose={() => setShowGroupModal(false)}
+          activePeriods={activePeriods}
+          subjects={subjects}
+          currentPeriods={periodsState}
+          onSaveBatch={(updatedPeriods) => {
+            const merged = {
+              ...periodsState,
+              ...updatedPeriods,
+            };
+            const sanitizedPeriods: Record<string, PeriodEntry> = {};
+            activePeriods.forEach((p) => {
+              sanitizedPeriods[p.id] = merged[p.id] || { type: 'FREE' };
+            });
+
+            const validation = validateSchedulePeriods(sanitizedPeriods);
+            if (!validation.isValid) {
+              setSubmitError(validation.error || 'Validation error');
+              return;
+            }
+
+            setIsSubmitting(true);
+            setSubmitError(null);
+            const result = submitSchedule(facultyId, date, sanitizedPeriods);
+            setIsSubmitting(false);
+
+            if (result.success) {
+              userTouchedRef.current = false;
+              setHodChangedNotification(null);
+              setIsDismissedMismatched(true);
+              prevPeriodCountRef.current = activePeriods.length;
+              setPeriodsState(sanitizedPeriods);
+
+              const assigned = Object.values(sanitizedPeriods).filter((p) => p && (p.type === 'SUBJECT' || p.type === 'CUSTOM')).length;
+              const ods = Object.values(sanitizedPeriods).filter((p) => p && p.type === 'ON_DUTY').length;
+              const leaves = Object.values(sanitizedPeriods).filter((p) => p && p.type === 'LEAVE').length;
+              const isAllFree = assigned === 0 && ods === 0 && leaves === 0;
+
+              setSubmitSuccessMsg(
+                isAllFree
+                  ? 'Group allocation saved! Full day is marked as Free and synchronized to Firebase.'
+                  : 'Group period allocation saved and synchronized to Firebase successfully!'
+              );
+              try {
+                confetti({
+                  particleCount: 60,
+                  spread: 55,
+                  origin: { y: 0.85 },
+                  colors: ['#F43F5E', '#EC4899', '#10B981', '#3B82F6'],
+                });
+              } catch {}
+            } else {
+              setSubmitError(result.error || 'Failed to submit group period allocation.');
+            }
+          }}
+          onAssignSubject={(periodIds, sub) => handleSelectSubject(periodIds, sub)}
+          onAssignCustom={(periodIds, txt) => handleSelectCustom(periodIds, txt)}
+          onAssignFree={(periodIds) => handleSelectFree(periodIds)}
         />
       )}
 

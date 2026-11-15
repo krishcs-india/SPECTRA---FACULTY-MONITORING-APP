@@ -37,7 +37,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)] w-full overflow-x-hidden">
+        <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)] w-full overflow-x-clip">
           <div className="max-w-6xl mx-auto">{children}</div>
         </main>
       </div>

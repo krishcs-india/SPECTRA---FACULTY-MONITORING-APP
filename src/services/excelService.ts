@@ -530,7 +530,8 @@ export const excelService = {
     rawRows.forEach((row, idx) => {
       const rowNumber = idx + 2;
       const code = (row["Subject Code"] || row["Code"] || row["subjectCode"] || "").toString().trim().toUpperCase();
-      const name = (row["Subject Name"] || row["Name"] || row["subjectName"] || "").toString().trim();
+      const rawName = (row["Subject Name"] || row["Name"] || row["subjectName"] || "").toString().trim();
+      const name = rawName.replace(/\s+/g, ' ');
 
       if (!name) {
         errors.push({ row: rowNumber, data: row, reason: "Missing Subject Name" });

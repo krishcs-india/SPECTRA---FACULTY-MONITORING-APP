@@ -1,28 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniInput } from '../common/KalyaniInput';
 import { KalyaniButton } from '../common/KalyaniButton';
 import { Subject } from '../../types/subject';
 import { PeriodEntry } from '../../types/schedule';
-import { Search, PlusCircle, CheckCircle2, Sparkles, Coffee, AlertCircle } from 'lucide-react';
+import { Search, PlusCircle, CheckCircle2, Sparkles, Coffee, AlertCircle, Layers } from 'lucide-react';
 import { scrollToTopView } from '../../utils/scrollUtils';
 
 interface SubjectPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   periodName: string;
+  targetPeriodIds?: string[];
   subjects: Subject[];
   currentEntry?: PeriodEntry;
   allowCustomSubjects?: boolean;
-  onSelectSubject: (subject: Subject) => void;
-  onSelectCustom: (customText: string) => void;
-  onSelectFree: () => void;
+  onSelectSubject: (subject: Subject, selectedPeriodIds: string[]) => void;
+  onSelectCustom: (customText: string, selectedPeriodIds: string[]) => void;
+  onSelectFree: (selectedPeriodIds: string[]) => void;
 }
 
 export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
   isOpen,
   onClose,
   periodName,
+  targetPeriodIds = [],
   subjects,
   currentEntry,
   allowCustomSubjects = true,
@@ -35,6 +37,18 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
   const [customText, setCustomText] = useState(currentEntry?.customText || '');
   const [activeTab, setActiveTab] = useState<'OFFICIAL' | 'CUSTOM'>('OFFICIAL');
 
+  const selectedCount = targetPeriodIds.length;
+  const isMultiPeriod = selectedCount > 1;
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearch('');
+      setIsSearchFocused(false);
+      setCustomText(currentEntry?.customText || '');
+      setActiveTab('OFFICIAL');
+    }
+  }, [isOpen]);
+
   const cleanSearch = search.trim();
   const isSearchActive = isSearchFocused || cleanSearch.length > 0;
 
@@ -46,12 +60,12 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
 
   const hasExactMatch = subjects.some(
     (s) =>
-      s.subjectName.toLowerCase() === cleanSearch.toLowerCase() ||
+      (s.subjectName || '').toLowerCase() === cleanSearch.toLowerCase() ||
       (s.subjectCode && s.subjectCode.toLowerCase() === cleanSearch.toLowerCase())
   );
 
   const handleSelectOfficial = (s: Subject) => {
-    onSelectSubject(s);
+    onSelectSubject(s, targetPeriodIds);
     onClose();
   };
 
@@ -66,18 +80,18 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    onSelectSubject(unlistedSub);
+    onSelectSubject(unlistedSub, targetPeriodIds);
     onClose();
   };
 
   const handleApplyCustom = () => {
     if (!customText.trim()) return;
-    onSelectCustom(customText.trim());
+    onSelectCustom(customText.trim(), targetPeriodIds);
     onClose();
   };
 
   const handleMarkFree = () => {
-    onSelectFree();
+    onSelectFree(targetPeriodIds);
     onClose();
   };
 
@@ -86,10 +100,31 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="md"
-      title={`Select Assignment — ${periodName}`}
-      subtitle="Period Assignment Selection"
+      title={
+        isMultiPeriod
+          ? `Assign Subject (${selectedCount} Periods)`
+          : `Select Assignment — ${periodName}`
+      }
+      subtitle={
+        isMultiPeriod
+          ? `Selected periods will all be assigned this subject`
+          : "Period Assignment Selection"
+      }
     >
       <div className="space-y-3.5">
+        {/* Multi-Period Indicator Banner if multiple periods were selected outside */}
+        {isMultiPeriod && (
+          <div className="p-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-center justify-between text-xs text-rose-800 dark:text-rose-200 animate-in fade-in">
+            <span className="font-semibold flex items-center gap-1.5 font-marcellus">
+              <Layers className="w-4 h-4 text-rose-500" />
+              <span>Applying across {selectedCount} selected periods</span>
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500 text-white">
+              BATCH
+            </span>
+          </div>
+        )}
+
         {/* Quick Tabs Bar - Collapses gracefully during active search to give maximum space */}
         {!isSearchActive && (
           <div className="flex items-stretch gap-2 p-1 bg-rose-50/70 dark:bg-[#180E1C] rounded-xl border border-rose-200 dark:border-rose-900/50 animate-in fade-in duration-200">
@@ -127,12 +162,14 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                 <Coffee className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold text-teal-800 dark:text-teal-300">Mark this Period as Free</p>
+                <p className="text-xs font-bold text-teal-800 dark:text-teal-300">
+                  {isMultiPeriod ? `Mark ${selectedCount} Periods as Free` : 'Mark this Period as Free'}
+                </p>
                 <p className="text-[10px] text-teal-600 dark:text-teal-400/80">Available for substitution / duties</p>
               </div>
             </div>
             <KalyaniButton variant="teal" size="sm" onClick={handleMarkFree}>
-              Set Free
+              {isMultiPeriod ? `Set ${selectedCount} Free` : 'Set Free'}
             </KalyaniButton>
           </div>
         )}
@@ -176,7 +213,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               )}
             </div>
 
-            {/* 1. List of Available / Matching Official Subjects - Confined strictly to its own scroll container */}
+            {/* List of Available Official Subjects */}
             <div className="max-h-60 sm:max-h-72 overflow-y-auto overflow-x-hidden space-y-1.5 p-1 rounded-xl">
               {filteredSubjects.length === 0 ? (
                 <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">
@@ -224,7 +261,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
               )}
             </div>
 
-            {/* 2. UNLISTED SUBJECT CALLOUT AT THE BOTTOM (If user searches something not in the list) */}
+            {/* UNLISTED SUBJECT CALLOUT AT THE BOTTOM */}
             {cleanSearch.length > 0 && !hasExactMatch && (
               <div className="pt-2 border-t border-rose-100 dark:border-white/5">
                 <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-[#201026] border border-rose-200 dark:border-rose-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in duration-150">
@@ -248,7 +285,9 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                     className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:brightness-110 transition-all shrink-0"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    <span>Add to List & Assign</span>
+                    <span>
+                      {isMultiPeriod ? `Add & Assign (${selectedCount} Periods)` : 'Add to List & Assign'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -309,7 +348,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                 onClick={handleApplyCustom}
                 disabled={!customText.trim()}
               >
-                Apply Custom Entry
+                {isMultiPeriod ? `Apply to ${selectedCount} Periods` : 'Apply Custom Entry'}
               </KalyaniButton>
             </div>
           </div>

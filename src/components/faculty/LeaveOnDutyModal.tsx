@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { KalyaniModal } from '../common/KalyaniModal';
 import { KalyaniButton } from '../common/KalyaniButton';
 import { Period } from '../../types/period';
@@ -206,8 +206,33 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
 
   // Focus & mobile smooth scroll refs for notes / reason section
   const [isNotesFocused, setIsNotesFocused] = useState(false);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
   const reasonSectionRef = useRef<HTMLDivElement>(null);
   const customReasonInputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToModalTop = useCallback((delay = 60) => {
+    setTimeout(() => {
+      const el = modalBodyRef.current;
+      if (!el) return;
+      if (typeof el.scrollTo === 'function') {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, delay);
+  }, []);
+
+  const scrollToReasonSection = (delay = 80) => {
+    setTimeout(() => {
+      if (reasonSectionRef.current) {
+        scrollToTopView(reasonSectionRef.current, {
+          offset: 16,
+          force: true,
+          behavior: 'smooth',
+        });
+      }
+    }, delay);
+  };
 
   const handleNotesFocus = () => {
     setIsNotesFocused(true);
@@ -237,11 +262,6 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
         }
       }, 360);
     }
-  };
-
-  const handleDoneNotes = () => {
-    customReasonInputRef.current?.blur();
-    setIsNotesFocused(false);
   };
 
   const handleSelectSuggestion = (sug: string) => {
@@ -299,9 +319,16 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
   }, [isPickerOpen]);
 
   const togglePeriodSelection = (periodId: string) => {
-    setSelectedPeriodIds((prev) =>
-      prev.includes(periodId) ? prev.filter((id) => id !== periodId) : [...prev, periodId]
-    );
+    setSelectedPeriodIds((prev) => {
+      const isSelecting = !prev.includes(periodId);
+      const next = isSelecting
+        ? [...prev, periodId]
+        : prev.filter((id) => id !== periodId);
+      if (isSelecting && next.length > 0) {
+        scrollToReasonSection(100);
+      }
+      return next;
+    });
     setValidationError(null);
   };
 
@@ -367,11 +394,26 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
     }
   };
 
+  const modalFooter = !isPickerOpen ? (
+    <div className="flex items-center justify-end w-full">
+      <KalyaniButton
+        variant="gold"
+        size="md"
+        onClick={handleSave}
+        className="w-full sm:w-auto px-8 text-xs sm:text-sm font-bold shadow-sm"
+      >
+        {isLeave ? 'Confirm & Save Leave' : 'Confirm & Save On Duty'}
+      </KalyaniButton>
+    </div>
+  ) : null;
+
   return (
     <KalyaniModal
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="xl"
+      bodyRef={modalBodyRef}
+      footer={modalFooter}
       title={
         isPickerOpen ? (
           <div className="flex items-center gap-2.5">
@@ -498,9 +540,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                     </div>
 
                     {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </div>
+                      <CheckCircle2 className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
                     )}
                   </button>
                 );
@@ -531,7 +571,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               type="button"
               onClick={() => {
                 setActiveTab('QUICK');
-                if (isNotesFocused) handleDoneNotes();
+                scrollToModalTop();
               }}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'QUICK'
@@ -547,7 +587,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               type="button"
               onClick={() => {
                 setActiveTab('PERIOD_WISE');
-                if (isNotesFocused) handleDoneNotes();
+                scrollToModalTop();
               }}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'PERIOD_WISE'
@@ -567,7 +607,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                 {/* Full Day Card */}
                 <button
                   type="button"
-                  onClick={() => setQuickScope('FULL_DAY')}
+                  onClick={() => {
+                    setQuickScope('FULL_DAY');
+                    scrollToModalTop();
+                  }}
                   className={`p-4 rounded-2xl border text-left transition-all apple-hover flex flex-col justify-between min-h-[90px] ${
                     quickScope === 'FULL_DAY'
                       ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-500/60 shadow-sm ring-1 ring-rose-400'
@@ -590,7 +633,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                 {/* Half Day Card */}
                 <button
                   type="button"
-                  onClick={() => setQuickScope('HALF_DAY')}
+                  onClick={() => {
+                    setQuickScope('HALF_DAY');
+                    scrollToModalTop();
+                  }}
                   className={`p-4 rounded-2xl border text-left transition-all apple-hover flex flex-col justify-between min-h-[90px] ${
                     quickScope === 'HALF_DAY'
                       ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-500/60 shadow-sm ring-1 ring-rose-400'
@@ -620,7 +666,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
-                      onClick={() => setHalfDaySlot('FN')}
+                      onClick={() => {
+                        setHalfDaySlot('FN');
+                        scrollToReasonSection(100);
+                      }}
                       className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all apple-hover ${
                         halfDaySlot === 'FN'
                           ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
@@ -635,7 +684,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => setHalfDaySlot('AN')}
+                      onClick={() => {
+                        setHalfDaySlot('AN');
+                        scrollToReasonSection(100);
+                      }}
                       className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all apple-hover ${
                         halfDaySlot === 'AN'
                           ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
@@ -672,6 +724,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                   onClick={() => {
                     setSelectedPeriodIds(sortedPeriods.map((p) => p.id));
                     setValidationError(null);
+                    scrollToReasonSection(100);
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                     isAllSelected
@@ -688,6 +741,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                     onClick={() => {
                       setSelectedPeriodIds(fnPeriodIds);
                       setValidationError(null);
+                      scrollToReasonSection(100);
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                       isFnSelected
@@ -705,6 +759,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                     onClick={() => {
                       setSelectedPeriodIds(anPeriodIds);
                       setValidationError(null);
+                      scrollToReasonSection(100);
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                       isAnSelected
@@ -719,7 +774,10 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                 {selectedPeriodIds.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setSelectedPeriodIds([])}
+                    onClick={() => {
+                      setSelectedPeriodIds([]);
+                      scrollToModalTop();
+                    }}
                     className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors ml-auto"
                   >
                     Clear
@@ -831,7 +889,6 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (isNotesFocused) handleDoneNotes();
                 setSearchQuery('');
                 setIsPickerOpen(true);
               }}
@@ -852,7 +909,7 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               </div>
             </button>
 
-            {/* Extra Reason / Purpose Input with Smooth Auto-Scroll & Typing Controls */}
+            {/* Extra Reason / Purpose Input with Clean Clear Button */}
             <div className="space-y-2">
               <div className="relative flex items-center">
                 <input
@@ -873,63 +930,54 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
                       : 'Optional duty notes / details...'
                   }
                   className={`w-full px-3.5 py-3 rounded-xl bg-white dark:bg-[#180E1C] border text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all shadow-sm ${
+                    customReason.length > 0 ? 'pr-9' : ''
+                  } ${
                     isNotesFocused
-                      ? 'border-rose-500 ring-2 ring-rose-500/20 pr-20'
+                      ? 'border-rose-500 ring-2 ring-rose-500/20'
                       : 'border-rose-200 dark:border-rose-900/50 hover:border-rose-400'
                   }`}
                 />
 
-                {/* Done & Clear Actions inside the input during active focus */}
-                {isNotesFocused && (
-                  <div className="absolute right-2 flex items-center gap-1">
-                    {customReason.length > 0 && (
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setCustomReason('');
-                          customReasonInputRef.current?.focus();
-                        }}
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                        title="Clear text"
-                      >
-                        ✕
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={handleDoneNotes}
-                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1"
-                    >
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>Done</span>
-                    </button>
-                  </div>
+                {/* Subtle Clear Action inside input when text is entered */}
+                {customReason.length > 0 && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setCustomReason('');
+                      customReasonInputRef.current?.focus();
+                    }}
+                    className="absolute right-2.5 p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    title="Clear text"
+                  >
+                    ✕
+                  </button>
                 )}
               </div>
 
-              {/* Quick Suggestion Chips (Visible during typing/focus for instantaneous 1-tap entry) */}
-              {isNotesFocused && (
-                <div className="pt-1 space-y-1.5 animate-in fade-in duration-150">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                    Quick suggestions (tap to fill):
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {(isLeave ? LEAVE_SUGGESTIONS : ON_DUTY_SUGGESTIONS).map((sug) => (
-                      <button
-                        key={sug}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => handleSelectSuggestion(sug)}
-                        className="px-2.5 py-1 rounded-lg text-xs bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 hover:bg-rose-100 hover:border-rose-300 transition-all font-medium active:scale-95"
-                      >
-                        + {sug}
-                      </button>
-                    ))}
-                  </div>
+              {/* Quick Suggestion Chips (Instantly fills notes on tap) */}
+              <div className="pt-1 space-y-1.5">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  Quick suggestions (tap to fill):
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(isLeave ? LEAVE_SUGGESTIONS : ON_DUTY_SUGGESTIONS).map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSelectSuggestion(sug)}
+                      className={`px-2.5 py-1 rounded-lg text-xs border transition-all font-medium active:scale-95 ${
+                        customReason === sug
+                          ? 'bg-rose-600 text-white border-rose-600 font-bold shadow-xs'
+                          : 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 hover:bg-rose-100 hover:border-rose-300'
+                      }`}
+                    >
+                      + {sug}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -940,27 +988,6 @@ export const LeaveOnDutyModal: React.FC<LeaveOnDutyModalProps> = ({
               <span>{validationError}</span>
             </div>
           )}
-
-          {/* Modal Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <KalyaniButton
-              variant="ghost"
-              size="md"
-              onClick={onClose}
-              className="text-xs"
-            >
-              Cancel
-            </KalyaniButton>
-
-            <KalyaniButton
-              variant="gold"
-              size="md"
-              onClick={handleSave}
-              className="text-xs font-bold px-6 shadow-sm"
-            >
-              {isLeave ? 'Confirm & Save Leave' : 'Confirm & Save On Duty'}
-            </KalyaniButton>
-          </div>
         </div>
       )}
     </KalyaniModal>

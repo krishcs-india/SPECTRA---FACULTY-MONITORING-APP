@@ -56,8 +56,12 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       (s.subjectName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const isAllFilteredSelected =
+    filteredSubjects.length > 0 &&
+    filteredSubjects.every((s) => selectedIds.includes(s.id));
+
   const handleToggleSelectAll = () => {
-    if (selectedIds.length === filteredSubjects.length) {
+    if (isAllFilteredSelected) {
       setSelectedIds([]);
     } else {
       setSelectedIds(filteredSubjects.map((s) => s.id));
@@ -91,20 +95,24 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
     }
 
     const cleanCode = subjectCode.trim().toUpperCase();
-    const cleanName = subjectName.trim().toLowerCase();
+    const cleanName = subjectName.trim().replace(/\s+/g, ' ').toLowerCase();
+
+    const isDuplicate = (s: Subject, excludeId?: string) => {
+      if (excludeId && s.id === excludeId) return false;
+      const sCode = (s.subjectCode || '').trim().toUpperCase();
+      const sName = (s.subjectName || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      return sCode === cleanCode && sName === cleanName;
+    };
 
     if (editingSubject) {
-      if (cleanCode && cleanName) {
-        const duplicate = subjects.find(
-          (s) =>
-            (s.subjectCode || '').trim().toUpperCase() === cleanCode &&
-            (s.subjectName || '').trim().toLowerCase() === cleanName &&
-            s.id !== editingSubject.id
+      const duplicate = subjects.find((s) => isDuplicate(s, editingSubject.id));
+      if (duplicate) {
+        setFormError(
+          cleanCode
+            ? `Subject with Code "${cleanCode}" and Name "${subjectName.trim()}" already exists in this department.`
+            : `Subject with Name "${subjectName.trim()}" already exists in this department.`
         );
-        if (duplicate) {
-          setFormError(`Subject with Code "${cleanCode}" and Name "${subjectName.trim()}" already exists in this department.`);
-          return;
-        }
+        return;
       }
       updateSubject(editingSubject.id, {
         subjectCode: cleanCode,
@@ -113,17 +121,13 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       setEditingSubject(null);
       setNotificationMsg(`Subject ${cleanCode || subjectName.trim()} updated successfully.`);
     } else {
-      // Check duplicate only if both code and name match an existing subject
-      if (
-        cleanCode &&
-        cleanName &&
-        subjects.some(
-          (s) =>
-            (s.subjectCode || '').trim().toUpperCase() === cleanCode &&
-            (s.subjectName || '').trim().toLowerCase() === cleanName
-        )
-      ) {
-        setFormError(`Subject with Code "${cleanCode}" and Name "${subjectName.trim()}" already exists in this department.`);
+      const duplicate = subjects.find((s) => isDuplicate(s));
+      if (duplicate) {
+        setFormError(
+          cleanCode
+            ? `Subject with Code "${cleanCode}" and Name "${subjectName.trim()}" already exists in this department.`
+            : `Subject with Name "${subjectName.trim()}" already exists in this department.`
+        );
         return;
       }
 
@@ -174,7 +178,7 @@ export const SubjectMasterManager: React.FC<SubjectMasterManagerProps> = ({ depa
       header: (
         <input
           type="checkbox"
-          checked={filteredSubjects.length > 0 && selectedIds.length === filteredSubjects.length}
+          checked={isAllFilteredSelected}
           onChange={handleToggleSelectAll}
           className="w-4 h-4 rounded border-rose-300 dark:border-rose-800 bg-white dark:bg-slate-900 text-rose-500 focus:ring-rose-400 cursor-pointer"
           title="Select / Deselect All Visible Subjects"

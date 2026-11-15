@@ -31,8 +31,8 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
 
   const existingKeys = new Set(
     existingSubjects
-      .map((s) => `${(s.subjectCode || '').trim().toUpperCase()}:::${(s.subjectName || '').trim().toLowerCase()}`)
-      .filter(Boolean)
+      .filter((s) => s && s.subjectName?.trim())
+      .map((s) => `${(s.subjectCode || '').trim().toUpperCase()}:::${s.subjectName.trim().replace(/\s+/g, ' ').toLowerCase()}`)
   );
 
   // Auto-dismiss download confirmation after 5 seconds
@@ -42,6 +42,15 @@ export const ExcelSubjectImportModal: React.FC<ExcelSubjectImportModalProps> = (
       return () => clearTimeout(t);
     }
   }, [downloadMsg]);
+
+  // Reset modal state upon closing
+  React.useEffect(() => {
+    if (!isOpen) {
+      setParseResult(null);
+      setErrorMsg(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }, [isOpen]);
 
   const handleDownloadTemplate = async () => {
     try {

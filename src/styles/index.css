@@ -75,6 +75,7 @@
 
   *, *::before, *::after {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-variant-numeric: lining-nums proportional-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -102,6 +103,7 @@
     letter-spacing: 0.02em;
   }
 
+
   /* Complete elimination of cursive handwriting */
   .font-cursive, .font-cursive *,
   .font-calligraphy, .font-calligraphy *,
@@ -119,7 +121,7 @@
   }
 
   .marcellus-regular {
-    font-family: "Marcellus", Georgia, serif !important;
+    font-family: 'Marcellus', Georgia, serif !important;
     font-weight: 400;
     font-style: normal;
   }

@@ -18,11 +18,15 @@ export function useSubjects(departmentId: string, includeInactive: boolean = tru
       .filter((s) => {
         if (!s) return false;
         const sDept = normalizeDepartmentId(s.departmentId);
-        const matchesDept = sDept === cleanDept || s.departmentId === 'GLOBAL';
+        const matchesDept = !s.departmentId || sDept === cleanDept || s.departmentId === 'GLOBAL';
         if (!matchesDept) return false;
         return includeInactive ? true : s.active !== false;
       })
-      .sort((a, b) => (a.subjectCode || '').localeCompare(b.subjectCode || ''));
+      .sort(
+        (a, b) =>
+          (a.subjectCode || '').localeCompare(b.subjectCode || '') ||
+          (a.subjectName || '').localeCompare(b.subjectName || '')
+      );
   }, [allSubjects, cleanDept, includeInactive]);
 
   return {
